@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="@dimen/spacing_sm"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/tvStepNumber"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:background="@drawable/bg_circle_red"
+        android:gravity="center"
+        android:text="1"
+        android:textColor="@color/white"
+        android:textSize="@dimen/text_xs"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvStepTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Bật đèn khẩn cấp (Hazard) &amp; Đỗ sát lề phải"
+            android:textColor="@color/text_primary"
+            android:textSize="@dimen/text_sm"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvStepDesc"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Đánh lái vào làn dừng khẩn cấp hoặc mép đường phụ"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_xs" />
+    </LinearLayout>
+</LinearLayout>

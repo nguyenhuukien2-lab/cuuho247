@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
+
+    <!-- Top bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/surface"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="@dimen/spacing_md">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ResQ247  24/7"
+                android:textColor="@color/red_primary"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/history_title"
+                android:textColor="@color/text_secondary"
+                android:textSize="@dimen/text_xs" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_pill_red"
+            android:paddingHorizontal="@dimen/spacing_md"
+            android:paddingVertical="8dp"
+            android:text="@string/hotline_number"
+            android:textColor="@color/white"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="@dimen/spacing_sm"
+            android:background="@drawable/bg_circle_red"
+            android:contentDescription="@null"
+            android:padding="8dp"
+            android:src="@drawable/ic_person"
+            app:tint="@color/white" />
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="@dimen/spacing_lg">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="@dimen/spacing_md"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_shield"
+                    app:tint="@color/blue_primary" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_sm"
+                    android:layout_weight="1"
+                    android:text="@string/history_log_title"
+                    android:textColor="@color/text_primary"
+                    android:textSize="@dimen/text_md"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvHistoryTotal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tổng: 4 lượt"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="@dimen/text_xs" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:background="@drawable/bg_pill_gray"
+                android:orientation="horizontal"
+                android:padding="4dp"
+                android:weightSum="3">
+
+                <TextView android:id="@+id/tabAll" style="@style/HistoryTab.Selected" android:text="Tất cả (4)" />
+                <TextView android:id="@+id/tabDone" style="@style/HistoryTab" android:text="Đã xong (3)" />
+                <TextView android:id="@+id/tabCancelled" style="@style/HistoryTab" android:text="Đã hủy (1)" />
+            </LinearLayout>
+
+            <!-- Pending rating card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="@dimen/spacing_md"
+                android:background="@drawable/bg_rounded_card"
+                android:orientation="vertical"
+                android:padding="@dimen/spacing_md">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🖼 CẦN ĐÁNH GIÁ"
+                        android:textColor="@color/red_primary"
+                        android:textSize="@dimen/text_xs"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Vừa hoàn tất"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/ivRatingPhoto"
+                    android:layout_width="match_parent"
+                    android:layout_height="160dp"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    android:background="@drawable/bg_rounded_dark"
+                    android:contentDescription="@null"
+                    android:scaleType="centerCrop" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_md"
+                    android:gravity="center"
+                    android:text="Mức độ hài lòng của bạn"
+                    android:textColor="@color/text_primary"
+                    android:textStyle="bold" />
+
+                <RatingBar
+                    android:id="@+id/ratingBarSatisfaction"
+                    style="?android:attr/ratingBarStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    android:isIndicator="false"
+                    android:numStars="5"
+                    android:progressTint="@color/star_gold"
+                    android:rating="5"
+                    android:stepSize="1" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="Cực kỳ hài lòng (5/5)"
+                    android:textColor="@color/orange_primary"
+                    android:textSize="@dimen/text_xs" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    android:orientation="horizontal"
+                    android:weightSum="4">
+
+                    <TextView style="@style/IssueChip.Selected" android:layout_width="0dp" android:layout_weight="1" android:text="⚡ Nhanh" />
+                    <TextView style="@style/IssueChip" android:layout_width="0dp" android:layout_weight="1" android:text="🤝 Nhiệt tình" />
+                    <TextView style="@style/IssueChip" android:layout_width="0dp" android:layout_weight="1" android:text="💲 Giá tốt" />
+                    <TextView style="@style/IssueChip" android:layout_width="0dp" android:layout_weight="1" android:text="🔧 Chuẩn" />
+                </LinearLayout>
+
+                <EditText
+                    android:id="@+id/etRatingComment"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    android:background="@drawable/bg_input_field"
+                    android:hint="Ghi nhận xét thêm để hỗ trợ nâng cao chất lượng dịch vụ ResQ247..."
+                    android:minLines="2"
+                    android:padding="@dimen/spacing_sm"
+                    android:textSize="@dimen/text_sm" />
+
+                <TextView
+                    android:id="@+id/btnAddReceiptPhoto"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    android:background="@drawable/bg_option_selectable"
+                    android:gravity="center"
+                    android:padding="@dimen/spacing_sm"
+                    android:text="📷 Ảnh nghiệm thu (+2)"
+                    android:textColor="@color/text_primary"
+                    android:textSize="@dimen/text_sm" />
+
+                <Button
+                    android:id="@+id/btnSubmitRating"
+                    style="@style/Button.Primary"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="@dimen/spacing_md"
+                    android:text="@string/btn_submit_rating"
+                    android:textColor="@color/white" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:text="Đơn cứu hộ đã thực hiện"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvHistory"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="@dimen/spacing_md"
+                android:nestedScrollingEnabled="false"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:background="@drawable/bg_pill_blue_light"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="@dimen/spacing_md">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_shield"
+                    app:tint="@color/blue_primary" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_sm"
+                    android:layout_weight="1"
+                    android:text="Chính sách bảo hành minh bạch 100%. Mọi thắc mắc về giá cước cứu hộ sẽ được tổng đài ResQ247 giải quyết trong vòng 15 phút."
+                    android:textColor="@color/text_primary"
+                    android:textSize="@dimen/text_xs" />
+            </LinearLayout>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <include layout="@layout/bottom_nav_bar" />
+
+</LinearLayout>

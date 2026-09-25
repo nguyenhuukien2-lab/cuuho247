@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="@dimen/spacing_md"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:weightSum="4">
+
+    <TextView style="@style/TrackingStage" android:id="@+id/stageAccepted" android:text="✓&#10;Đã tiếp nhận" android:background="@drawable/bg_circle_blue_filled" />
+    <TextView style="@style/TrackingStage" android:id="@+id/stageEnRoute" android:text="🚚&#10;Đang đến" android:background="@drawable/bg_circle_blue_filled" />
+    <TextView style="@style/TrackingStage" android:id="@+id/stageArrived" android:text="📍&#10;Đã đến nơi" android:background="@drawable/bg_circle_gray" />
+    <TextView style="@style/TrackingStage" android:id="@+id/stageWorking" android:text="🔧&#10;Đang xử lý" android:background="@drawable/bg_circle_gray" />
+</LinearLayout>

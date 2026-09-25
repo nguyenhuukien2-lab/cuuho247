@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Cứu Hộ 247</string>
+    <string name="title_login">Đăng Nhập</string>
+    <string name="title_register">Đăng Ký</string>
+    <string name="title_home">Trang Chủ - Cứu Hộ 247</string>
+    <string name="title_request_form">Tạo Yêu Cầu Cứu Hộ</string>
+    <string name="title_provider_list">Danh Sách Đơn Vị Cứu Hộ</string>
+    <string name="title_tracking">Theo Dõi Cứu Hộ</string>
+    <string name="title_payment">Thanh Toán Service</string>
+    <string name="title_history">Lịch Sử Yêu Cầu</string>
+
+    <string name="email">Email</string>
+    <string name="password">Mật Khẩu</string>
+    <string name="full_name">Họ và Tên</string>
+    <string name="phone_number">Số Điện Thoại</string>
+    <string name="confirm_password">Xác Nhận Mật Khẩu</string>
+
+    <string name="login_button">Đăng Nhập</string>
+    <string name="register_button">Đăng Ký Tài Khoản</string>
+    <string name="goto_register">Chưa có tài khoản? Đăng ký ngay</string>
+    <string name="goto_login">Đã có tài khoản? Đăng nhập</string>
+
+    <string name="btn_create_request">Yêu Cầu Cứu Hộ Ngay</string>
+    <string name="btn_view_history">Lịch Sử Cứu Hộ</string>
+    <string name="btn_logout">Đăng Xuất</string>
+    <string name="btn_submit">Gửi Yêu Cầu</string>
+    <string name="btn_select">Chọn Đơn Vị</string>
+    <string name="btn_pay">Thanh Toán</string>
+    <string name="btn_call_provider">Gọi Đơn Vị Cứu Hộ</string>
+    <string name="btn_find_team">TÌM THỢ CỨU HỘ NGAY (3s)</string>
+    <string name="btn_choose_team">Chọn Đơn Vị Này</string>
+    <string name="btn_call_tech">Gọi Kỹ Thuật Viên</string>
+    <string name="btn_message">Nhắn Tin</string>
+    <string name="btn_share_location">Chia Sẻ Vị Trí Realtime</string>
+    <string name="btn_cancel_request">Hủy Yêu Cầu</string>
+    <string name="btn_submit_rating">Gửi Đánh Giá &amp; Nhận Thưởng</string>
+
+    <string name="label_service_type">Loại Dịch Vụ Cứu Hộ</string>
+    <string name="label_description">Mô Tả Chi Tiết Sự Cố</string>
+    <string name="label_location">Vị Trí Hiện Tại</string>
+    <string name="label_status">Trạng Thái:</string>
+    <string name="label_cost">Chi Phí:</string>
+    <string name="label_payment_method">Phương Thức Thanh Toán</string>
+
+    <string name="status_pending">Đang tìm đơn vị</string>
+    <string name="status_accepted">Đã tiếp nhận</string>
+    <string name="status_in_progress">Di chuyển</string>
+    <string name="status_completed">Hoàn thành</string>
+    <string name="status_cancelled">Đã hủy</string>
+
+    <!-- Additional strings for modern login screen -->
+    <string name="hotline_number">1900 6868</string>
+    <string name="login_title">Đăng Nhập Tài Khoản</string>
+    <string name="login_subtitle">Nhập thông tin tài khoản của bạn để tiếp tục</string>
+    <string name="phone_label">Số điện thoại hoặc Email</string>
+    <string name="btn_continue_otp">ĐĂNG NHẬP NGAY</string>
+    <string name="login_quick_network">Truy cập nhanh</string>
+    <string name="login_or">Hoặc đăng nhập bằng</string>
+
+    <!-- Home screen strings -->
+    <string name="home_title">Dịch Vụ Cứu Hộ Giao Thông 24/7</string>
+    <string name="gps_realtime">VỊ TRÍ GPS THỜI GIAN THỰC</string>
+    <string name="change_location">Đổi vị trí</string>
+    <string name="rescue_now">Cứu hộ ngay</string>
+    <string name="quick_services_title">DỊCH VỤ CỨU HỘ NHANH</string>
+    <string name="safety_tips_title">Các bước xử lý khẩn cấp trên đường</string>
+
+    <!-- Request form strings -->
+    <string name="request_title">Tạo Yêu Cầu Cứu Hộ Khẩn Cấp</string>
+    <string name="request_step">Thông tin chi tiết phương tiện &amp; sự cố</string>
+    <string name="vehicle_type_title">Loại phương tiện gặp sự cố</string>
+    <string name="vehicle_info_title">Thông tin chi tiết xe</string>
+    <string name="issue_title">Mô tả sự cố (Chọn nhanh hoặc nhập bên dưới)</string>
+    <string name="photos_title">Hình ảnh hiện trạng xe / khu vực sự cố</string>
+    <string name="location_title">Vị trí cứu hộ hiện tại</string>
+
+    <!-- Provider list strings -->
+    <string name="providers_title">Đơn Vị Cứu Hộ Gần Bạn</string>
+    <string name="providers_subtitle">Đã chọn lọc kỹ thuật viên chuyên nghiệp</string>
+
+    <!-- Tracking strings -->
+    <string name="tracking_title">Theo Dõi Hành Trình Cứu Hộ</string>
+    <string name="tracking_on_way">Kỹ thuật viên đang di chuyển tới vị trí của bạn</string>
+
+    <!-- Payment strings -->
+    <string name="payment_title">Thanh Toán Dịch Vụ Cứu Hộ</string>
+    <string name="payment_fixed">Đã xử lý sự cố hoàn tất</string>
+    <string name="payment_breakdown_title">Chi tiết chi phí cứu hộ</string>
+    <string name="payment_method_title">Chọn phương thức thanh toán</string>
+
+    <!-- History strings -->
+    <string name="history_title">Lịch Sử Hoạt Động Cứu Hộ</string>
+    <string name="history_log_title">Nhật ký cứu hộ trực tuyến</string>
+</resources>
