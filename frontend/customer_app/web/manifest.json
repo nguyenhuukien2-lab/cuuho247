@@ -1,0 +1,11 @@
+{
+    "name": "Cứu Hộ 24/7",
+    "short_name": "Cứu Hộ 24/7",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#F6F8FB",
+    "theme_color": "#12304A",
+    "description": "Ứng dụng tìm hỗ trợ cứu hộ xe 24/7",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false
+}

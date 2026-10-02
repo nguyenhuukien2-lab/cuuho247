@@ -1,0 +1,45 @@
+.dart_tool/
+build/
+.flutter-plugins*
+.tooling_appdata/
+config/*.json
+!config/supabase.example.json
+!config/backend-tests.example.json
+.android_scaffold_tmp/
+.dart-tool/
+*.iml
+# Widget Preview related
+.widget_preview/
+
+# Customer app private configuration (examples remain versionable).
+frontend/customer_app/config/*.json
+!frontend/customer_app/config/supabase.example.json
+!frontend/customer_app/config/backend-tests.example.json
+
+# Generated/local files throughout this repository.
+**/.gradle/
+**/.kotlin/
+**/coverage/
+**/.idea/
+**/local.properties
+**/GeneratedPluginRegistrant.java
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+tools/.work/
+.chrome-preview-test/
+.chrome-web-test/
+.edge-preview-test/
+.tmp_web_server.dart
+widget_preview_capture.png
+widget_preview_capture_2.png
+widget_preview_chrome.png
+
+# Credentials and signing material must stay local.
+**/.env
+**/.env.*
+!**/.env.example
+**/key.properties
+**/*.jks
+**/*.keystore
+backend/supabase/.temp/
+backend/supabase/.branches/

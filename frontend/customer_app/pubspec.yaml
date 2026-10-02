@@ -1,0 +1,29 @@
+name: cuu_ho_247
+description: "Ứng dụng Cứu Hộ 24/7 xây dựng bằng Flutter và Material Design 3."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.6.0 <4.0.0'
+  flutter: '>=3.27.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_rating_bar: ^4.0.1
+  cupertino_icons: ^1.0.6
+  http: ^1.2.0
+  supabase_flutter: ^2.0.0
+  geolocator: ^14.0.2
+  image_picker: ^1.2.3
+  flutter_map: ^8.3.2
+  latlong2: ^0.10.1
+  url_launcher: ^6.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

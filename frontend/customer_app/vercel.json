@@ -1,0 +1,5 @@
+{
+  "buildCommand": "export CI=true && git clone https://github.com/flutter/flutter.git -b stable --depth 1 _flutter && export PATH=\"$PATH:`pwd`/_flutter/bin\" && flutter config --enable-web && flutter create . --platforms web && flutter pub get && flutter build web --release",
+  "outputDirectory": "build/web",
+  "framework": null
+}
