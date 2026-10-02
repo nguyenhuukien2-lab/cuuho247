@@ -1,31 +1,34 @@
-# Cấu trúc ban đầu: Cứu Hộ 24/7 Đối tác
+# Cấu trúc ứng dụng: Cứu Hộ 24/7 Đối tác
 
-Flutter project độc lập tại `frontend/rescuer_app`, tạo bằng Flutter 3.47.5.
-Application ID Android và bundle ID iOS: `vn.cuuho247.rescuer`.
-Tên hiển thị trên Android, iOS và Web: `Cứu Hộ 24/7 Đối tác`.
+Ứng dụng Flutter độc lập tại `frontend/rescuer_app`, với application ID Android
+`vn.cuuho247.rescuer` và tên hiển thị `Cứu Hộ 24/7 Đối tác`.
 
 ```text
 lib/
-  main.dart
-  app/                 Khung ứng dụng
-  config/              Cấu hình phía ứng dụng
-  core/                Thành phần dùng chung
-  models/              Kiểu dữ liệu
-  services/             Tích hợp dịch vụ
-  repositories/         Truy cập dữ liệu
-  widgets/              Widget dùng chung
+  app/                 Theme, trạng thái UI cục bộ, app shell
+  core/                Tiện ích dùng chung
+  models/              Kiểu dữ liệu trạng thái và bản xem trước đơn
   screens/
-    auth/ onboarding/ home/ requests/ active_job/
-    history/ account/
-assets/
-  images/ icons/ logos/
-test/                    Kiểm tra widget ban đầu
-config/                  Cấu hình cho project
-android/ ios/ web/       Nền tảng Flutter
+    auth/              Đăng nhập, quên mật khẩu
+    onboarding/        Hồ sơ, giấy tờ, phương tiện, dịch vụ
+    home/              Bảng điều khiển online/offline
+    requests/          Danh sách, bản đồ và nhận đơn
+    active_job/        Theo dõi, báo giá, xác nhận hoàn tất
+    history/           Danh sách và chi tiết an toàn
+    account/           Tài khoản, quyền thiết bị và kết nối
+  widgets/             Component và trạng thái giao diện dùng chung
+assets/                images/, icons/, logos/
+test/                  Widget tests cho shell và quyền riêng tư đơn
 ```
 
-Các thư mục dự kiến chưa dùng được giữ bằng `.gitkeep`. `main.dart` chỉ hiển thị
-dòng “Cứu Hộ 24/7 Đối tác — đang chuẩn bị”. Ba thư mục assets đã được khai báo
-trong `pubspec.yaml`.
+Giao diện hiện dùng trạng thái cục bộ để kiểm tra điều hướng. Backend và dữ liệu
+đơn chưa được kết nối; danh sách đơn ở trạng thái chưa khả dụng, nên không có
+thông tin vận hành mẫu hoặc nhận đơn giả. Quyền GPS/thông báo chưa được yêu cầu
+từ hệ điều hành. Bản đồ là minh họa khu vực gần đúng, không dùng nhà cung cấp bản đồ.
 
-Đây là bộ khung khởi đầu; chưa có màn hình sản phẩm, backend hay nghiệp vụ.
+## Thiết kế backend chưa triển khai
+
+Thiết kế schema, RPC/API, RLS, claim và quyền riêng tư được mô tả trong
+[rescuer_backend_plan.md](../../docs/backend/rescuer_backend_plan.md). Chưa có
+migration được áp lên Supabase và ứng dụng không chứa Supabase SDK, URL, khóa,
+service role hoặc lời gọi backend.
