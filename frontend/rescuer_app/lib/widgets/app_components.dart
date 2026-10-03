@@ -23,7 +23,7 @@ class AppCard extends StatelessWidget {
         ),
       ],
     ),
-    child: child,
+    child: Material(type: MaterialType.transparency, child: child),
   );
 }
 
@@ -63,7 +63,7 @@ class AppButton extends StatelessWidget {
           Icon(icon, size: 19),
           const SizedBox(width: 9),
         ],
-        Text(label, textAlign: TextAlign.center),
+        Flexible(child: Text(label, textAlign: TextAlign.center)),
       ],
     );
 
