@@ -1,6 +1,6 @@
 ﻿# Cứu Hộ 24/7 Đối tác — Giai đoạn 1–4
 
-Entry point `lib/main.dart` mở `ConnectedRescuerApp` và `PreparationScreen` với năm tab Trang chủ / Đơn mới / Tài khoản / Đang xử lý / Lịch sử. Các màn demo cũ còn trong source nhưng không được mở từ entry point này. Xem [Giai đoạn 2](PHASE2.md) cho contract và kịch bản test nhận đơn.
+Entry point `lib/main.dart` mở `ConnectedRescuerApp` và `PreparationScreen` với năm tab Trang chủ / Đơn mới / Đang xử lý / Lịch sử / Tài khoản. Các màn demo cũ còn trong source nhưng không được mở từ entry point này. Xem [Giai đoạn 2](PHASE2.md) cho contract và kịch bản test nhận đơn.
 
 [Giai đoạn 3](PHASE3.md) bổ sung timeline và cập nhật tiến độ chuyến:
 Đã nhận đơn → Đang đến điểm cứu hộ → Đã đến nơi → Đang hỗ trợ khách.

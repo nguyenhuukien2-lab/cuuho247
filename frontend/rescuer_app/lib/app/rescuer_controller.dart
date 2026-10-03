@@ -196,7 +196,7 @@ class RescuerController extends ChangeNotifier {
 
   void openSection(String section) {
     accountSection = section;
-    tab = 2;
+    tab = 4;
     _notify();
   }
 
@@ -301,7 +301,7 @@ class RescuerController extends ChangeNotifier {
     if (!signedIn) return;
     try {
       await _load(epoch);
-      if (hasActiveJob) tab = 3;
+      if (hasActiveJob) tab = 2;
     } catch (e) {
       if (_current(epoch)) error = rescuerError(e);
     } finally {
@@ -548,7 +548,7 @@ class RescuerController extends ChangeNotifier {
     cursor = null;
     locationReady = false;
     feedStatus = FeedStatus.unavailable;
-    tab = 4;
+    tab = 3;
     completionSuccessSerial++;
     notice = 'Đã hoàn tất chuyến';
     _jobUpdateEvent(notice!);
@@ -754,7 +754,7 @@ class RescuerController extends ChangeNotifier {
       if (activeJob?.assignment.requestId == request.id) {
         _claimSucceeded();
       } else {
-        if (_rpcError(e, 'RESCUER_BUSY') && hasActiveJob) tab = 3;
+        if (_rpcError(e, 'RESCUER_BUSY') && hasActiveJob) tab = 2;
         if (_rpcError(e, 'REQUEST_UNAVAILABLE') &&
             !hasActiveJob &&
             jobStatus == JobStatus.empty) {
@@ -782,7 +782,7 @@ class RescuerController extends ChangeNotifier {
     cursor = null;
     feedStatus = FeedStatus.unavailable;
     feedError = null;
-    tab = 3;
+    tab = 2;
     notice = 'Đã nhận đơn thành công.';
     claimSuccessSerial++;
     _notify();
@@ -997,8 +997,8 @@ class RescuerController extends ChangeNotifier {
     tab = value;
     _notify();
     if (value == 1 && online && canOnline) unawaited(refreshRequests());
-    if (value == 3) unawaited(refreshActiveJob());
-    if (value == 4) unawaited(refreshHistory());
+    if (value == 2) unawaited(refreshActiveJob());
+    if (value == 3) unawaited(refreshHistory());
   }
 
   Future<void> setOnline(bool value) => _run((epoch) async {

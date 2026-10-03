@@ -132,7 +132,7 @@ void main() {
     );
     await c.claimRequest(request);
     expect(c.activeJob?.assignment.requestId, 'other-request');
-    expect(c.tab, 3);
+    expect(c.tab, 2);
     expect(c.error, contains('chuyến đang xử lý'));
     expect(c.requests, isEmpty);
     expect(c.claimSuccessSerial, 0);
@@ -150,7 +150,7 @@ void main() {
       service.calls.where((x) => x.$1 == 'rescuer_claim_request').single.$2,
       {'p_request_id': 'request', 'p_vehicle_id': 'vehicle'},
     );
-    expect(c.tab, 3);
+    expect(c.tab, 2);
     expect(c.activeJob?.contactPhone, '0901234567');
     expect(c.requests, isEmpty);
     expect(c.error, isNull);
@@ -200,7 +200,7 @@ void main() {
       await c.claimRequest(request);
       expect(c.error, isNull);
       expect(c.hasActiveJob, isTrue);
-      expect(c.tab, 3);
+      expect(c.tab, 2);
       expect(c.claimSuccessSerial, 1);
       expect(
         service.calls.where((x) => x.$1 == 'rescuer_claim_request').length,
@@ -215,7 +215,7 @@ void main() {
       final service = ClaimFake()..currentJob = job();
       final c = await start(service);
       expect(c.online, isFalse);
-      expect(c.tab, 3);
+      expect(c.tab, 2);
       expect(c.activeJob?.contactName, 'Khách sau nhận');
       service.jobFailure = const PostgrestException(
         message: 'permission denied',

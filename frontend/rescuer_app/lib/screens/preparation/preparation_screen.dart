@@ -186,9 +186,9 @@ class _PreparationScreenState extends State<PreparationScreen> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 720),
                   child: RefreshIndicator(
-                    onRefresh: c.tab == 3
+                    onRefresh: c.tab == 2
                         ? c.refreshActiveJob
-                        : c.tab == 4
+                        : c.tab == 3
                         ? c.refreshHistory
                         : c.refreshProfile,
                     child: ListView(
@@ -233,9 +233,9 @@ class _PreparationScreenState extends State<PreparationScreen> {
                           ..._home(c)
                         else if (c.tab == 1)
                           ..._feed(c)
-                        else if (c.tab == 3)
+                        else if (c.tab == 2)
                           ActiveJobPanel(c: c)
-                        else if (c.tab == 4)
+                        else if (c.tab == 3)
                           HistoryPanel(c: c)
                         else
                           ..._account(c),
@@ -259,11 +259,6 @@ class _PreparationScreenState extends State<PreparationScreen> {
               label: 'Đơn mới',
             ),
             NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: 'Tài khoản',
-            ),
-            NavigationDestination(
               icon: Icon(Icons.local_shipping_outlined),
               selectedIcon: Icon(Icons.local_shipping),
               label: 'Đang xử lý',
@@ -272,6 +267,11 @@ class _PreparationScreenState extends State<PreparationScreen> {
               icon: Icon(Icons.history_outlined),
               selectedIcon: Icon(Icons.history),
               label: 'Lịch sử',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
+              label: 'Tài khoản',
             ),
           ],
         ),
@@ -358,7 +358,7 @@ class _PreparationScreenState extends State<PreparationScreen> {
         children: [
           AppButton(
             label: 'Mở chuyến đang xử lý',
-            onPressed: () => c.selectTab(3),
+            onPressed: () => c.selectTab(2),
           ),
         ],
       ),
@@ -410,7 +410,7 @@ class _PreparationScreenState extends State<PreparationScreen> {
         const SizedBox(height: 16),
         AppButton(
           label: 'Xem chuyến đang xử lý',
-          onPressed: () => c.selectTab(3),
+          onPressed: () => c.selectTab(2),
         ),
       ];
     }

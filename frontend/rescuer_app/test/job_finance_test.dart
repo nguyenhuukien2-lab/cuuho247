@@ -209,7 +209,7 @@ void main() {
       expect(c.activeJob, isNull);
       expect(c.currentQuote, isNull);
       expect(c.claimedAssignment, isNull);
-      expect(c.tab, 4);
+      expect(c.tab, 3);
       expect(c.historyItems.single.assignment.state, 'completed');
       expect(c.historyItems.single.assignment.totalVnd, 0);
       expect(c.completionSuccessSerial, 1);
@@ -364,7 +364,7 @@ void main() {
       addTearDown(() async => s.changes.close());
       await mount(tester, c);
       // Mount starts controller and restores the active tab.
-      expect(c.tab, 3);
+      expect(c.tab, 2);
       Future<void> showKey(String key) async {
         await tester.pumpAndSettle();
         final finder = find.byKey(ValueKey(key));
@@ -421,7 +421,7 @@ void main() {
       s.gate!.complete();
       await tester.pumpAndSettle();
       expect(find.byType(CompleteJobDialog), findsNothing);
-      expect(c.tab, 4);
+      expect(c.tab, 3);
       expect(find.byKey(const ValueKey('history-assignment')), findsOneWidget);
       expect(find.text('0901234567'), findsNothing);
       expect(tester.takeException(), isNull);
