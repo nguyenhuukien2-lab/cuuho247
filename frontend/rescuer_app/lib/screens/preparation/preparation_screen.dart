@@ -20,19 +20,43 @@ class PreparationScreen extends StatefulWidget {
 class _PreparationScreenState extends State<PreparationScreen> {
   bool _dialogOpen = false;
   late int _shownClaimSerial;
+  late int _shownJobUpdateSerial;
   @override
   void initState() {
     super.initState();
     _shownClaimSerial = widget.controller.claimSuccessSerial;
+    _shownJobUpdateSerial = widget.controller.jobUpdateSerial;
     widget.controller.addListener(_locationPrompt);
     widget.controller.addListener(_claimPrompt);
+    widget.controller.addListener(_jobUpdatePrompt);
   }
 
   @override
   void dispose() {
     widget.controller.removeListener(_locationPrompt);
     widget.controller.removeListener(_claimPrompt);
+    widget.controller.removeListener(_jobUpdatePrompt);
     super.dispose();
+  }
+
+  void _jobUpdatePrompt() {
+    final c = widget.controller;
+    if (c.jobUpdateSerial == _shownJobUpdateSerial) return;
+    _shownJobUpdateSerial = c.jobUpdateSerial;
+    final message = c.jobUpdateMessage;
+    final failed = c.jobUpdateFailed;
+    final uid = c.userId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || message == null || uid == null || c.userId != uid) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: failed ? AppColors.danger : AppColors.navy,
+          ),
+        );
+    });
   }
 
   void _claimPrompt() {

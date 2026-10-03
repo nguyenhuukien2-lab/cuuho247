@@ -1,6 +1,9 @@
-﻿# Cứu Hộ 24/7 Đối tác — Giai đoạn 1 và 2
+﻿# Cứu Hộ 24/7 Đối tác — Giai đoạn 1–3
 
 Entry point `lib/main.dart` mở `ConnectedRescuerApp` và `PreparationScreen` với bốn tab Trang chủ / Đơn mới / Tài khoản / Đang xử lý. Các màn demo cũ còn trong source nhưng không được mở từ entry point này. Xem [Giai đoạn 2](PHASE2.md) cho contract và kịch bản test nhận đơn.
+
+[Giai đoạn 3](PHASE3.md) bổ sung timeline và cập nhật tiến độ chuyến:
+Đã nhận đơn → Đang đến điểm cứu hộ → Đã đến nơi → Đang hỗ trợ khách.
 
 ## Chạy trên điện thoại
 
@@ -48,7 +51,7 @@ Cache này được Git bỏ qua; `flutter clean` sẽ xóa cả `.dart_tool`, c
 - Sửa tại chỗ và Mở khóa xe chỉ bật nếu danh mục thật có mã tương ứng (`repair`, `locksmith`). Nếu thiếu, UI ghi rõ chưa hỗ trợ; không dùng `other` thay thế.
 - Chưa có trường ghi chú/khu vực hoạt động hồ sơ; mô tả phương tiện dùng `display_name` hiện có.
 - RPC danh sách đơn chưa trả thời gian tạo nên UI chưa hiển thị thời gian tạo.
-- Chưa làm cập nhật trạng thái chuyến, báo giá, hoàn tất, lịch sử/thu nhập. Nhận đơn và xem chuyến đang xử lý đã được nối trong Giai đoạn 2.
+- Đã cập nhật tiến độ chuyến qua RPC hiện có đến `in_progress`. Chưa làm báo giá, hoàn tất, hủy chuyến hoặc lịch sử/thu nhập nâng cao.
 - Không sửa customer app hay migration; không dùng service_role, không commit, không push database. Việc duyệt do quy trình quản trị backend thực hiện.
 
 ## Kịch bản kiểm tra điện thoại
@@ -68,7 +71,7 @@ Cache này được Git bỏ qua; `flutter clean` sẽ xóa cả `.dart_tool`, c
 - `pubspec.yaml`, `pubspec.lock`: dependencies.
 - `test/connected_app_test.dart`, `document_upload_test.dart`: controller/UI/privacy/retry upload.
 
-`flutter pub get` thành công với cache riêng. `flutter analyze --no-pub`: không issue. `flutter test --no-pub --concurrency=1`: 29 test đạt, gồm hai test UI local cũ. Tests dùng fake service/HTTP, không ghi dữ liệu lên Supabase thật.
+`flutter pub get` thành công với cache riêng. `flutter analyze --no-pub`: không issue. `flutter test --no-pub --concurrency=1`: 39 test đạt, gồm hai test UI local cũ. Tests dùng fake service/HTTP, không ghi dữ liệu lên Supabase thật.
 
 `flutter build apk --debug --dart-define-from-file=config/supabase.dev.json --no-pub`: thành công sau `flutter clean`, pub get lại và đặt cache/temp ở ổ D; APK ở `build/app/outputs/flutter-apk/app-debug.apk`. Lỗi cache Kotlin khác ổ đĩa và class plugin của output cũ đã hết. Build còn cảnh báo plugin file_picker/package_info_plus dùng Kotlin Gradle Plugin và Java API deprecated.
 

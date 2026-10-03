@@ -43,6 +43,16 @@ class RescuerController extends ChangeNotifier {
   JobStatus jobStatus = JobStatus.unavailable;
   String? jobError, claimingRequestId;
   int claimSuccessSerial = 0;
+  String? updatingJobState, jobUpdateMessage;
+  int jobUpdateSerial = 0;
+  bool jobUpdateFailed = false;
+  bool get canAdvanceJob =>
+      signedIn &&
+      snapshot.approved &&
+      jobStatus == JobStatus.ready &&
+      activeJob?.assignment.nextState != null &&
+      !working &&
+      !loading;
   bool get hasActiveJob =>
       activeJob != null || claimedAssignment?.isActive == true;
   bool get canClaim =>
@@ -198,6 +208,8 @@ class RescuerController extends ChangeNotifier {
         _epoch++;
         working = false;
         loading = false;
+        updatingJobState = null;
+        jobUpdateMessage = null;
         _timer?.cancel();
         activeJob = null;
         claimedAssignment = null;
@@ -225,6 +237,9 @@ class RescuerController extends ChangeNotifier {
     jobStatus = JobStatus.unavailable;
     jobError = null;
     claimingRequestId = null;
+    updatingJobState = null;
+    jobUpdateMessage = null;
+    jobUpdateFailed = false;
     notice = null;
     locationHelp = null;
     gpsReady = false;
@@ -346,6 +361,80 @@ class RescuerController extends ChangeNotifier {
     if (!snapshot.approved) return;
     await _loadActiveJob(epoch);
   });
+
+  Future<void> advanceJob() => _run((epoch) async {
+    final before = activeJob?.assignment;
+    final target = before?.nextState;
+    if (!signedIn ||
+        !snapshot.approved ||
+        jobStatus != JobStatus.ready ||
+        before == null ||
+        target == null) {
+      const message = 'Tải lại chuyến đang xử lý trước khi cập nhật tiến độ.';
+      _jobUpdateEvent(message, failed: true);
+      throw const RescuerFailure(message);
+    }
+    updatingJobState = target;
+    _timer?.cancel();
+    _notify();
+    try {
+      final result = await service.mutate('rescuer_update_job_status', {
+        'p_assignment_id': before.id,
+        'p_target_state': target,
+        'p_reason_code': null,
+        'p_expected_version': before.version,
+      });
+      _guard(epoch);
+      final updated = JobAssignment.fromJson(result);
+      if (updated.id != before.id ||
+          updated.requestId != before.requestId ||
+          updated.version <= before.version) {
+        throw const FormatException('Unexpected job update');
+      }
+      // RPC confirms only assignment metadata. Revalidate access before showing
+      // customer details; a failed read retains the acknowledged state/version.
+      claimedAssignment = updated.isActive ? updated : null;
+      await _loadActiveJob(epoch);
+      final message = 'Đã cập nhật: ${updated.stateLabel}.';
+      notice = message;
+      _jobUpdateEvent(message);
+    } catch (e) {
+      _guard(epoch);
+      await _loadActiveJob(epoch);
+      final current = activeJob?.assignment;
+      final targetIndex = JobAssignment.progressStates.indexOf(target);
+      // A transport failure may follow a committed update. A server transaction
+      // error (version/RLS/transition) must remain an error, never an auto retry.
+      if (e is! PostgrestException &&
+          current?.id == before.id &&
+          current!.version > before.version &&
+          JobAssignment.progressStates.indexOf(current.state) >= targetIndex) {
+        const message = 'Trạng thái chuyến đã được đồng bộ.';
+        notice = message;
+        _jobUpdateEvent(message);
+      } else {
+        final message = _rpcError(e, 'VERSION_CONFLICT')
+            ? 'Chuyến đã được cập nhật ở phiên khác. Kiểm tra trạng thái vừa tải lại rồi tiếp tục.'
+            : _rpcError(e, 'REQUEST_UNAVAILABLE')
+            ? 'Chuyến không còn đang xử lý hoặc bạn không còn quyền cập nhật. Hãy kiểm tra lại chuyến.'
+            : rescuerError(e);
+        _jobUpdateEvent(message, failed: true);
+        throw RescuerFailure(message);
+      }
+    } finally {
+      if (_current(epoch)) {
+        updatingJobState = null;
+        _schedule();
+      }
+    }
+  });
+
+  void _jobUpdateEvent(String message, {bool failed = false}) {
+    jobUpdateMessage = message;
+    jobUpdateFailed = failed;
+    jobUpdateSerial++;
+    _notify();
+  }
 
   Future<void> claimRequest(AvailableRequest request) => _run((epoch) async {
     if (!online ||

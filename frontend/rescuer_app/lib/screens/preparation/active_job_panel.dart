@@ -4,6 +4,7 @@ import '../../app/app_theme.dart';
 import '../../app/rescuer_controller.dart';
 import '../../widgets/app_components.dart';
 import 'preparation_components.dart';
+import 'job_progress_timeline.dart';
 
 class ActiveJobPanel extends StatelessWidget {
   const ActiveJobPanel({super.key, required this.c});
@@ -60,10 +61,43 @@ class ActiveJobPanel extends StatelessWidget {
           const SizedBox(height: 16),
           PreparationCard(
             title: 'Trạng thái chuyến',
-            subtitle: 'Chuyến được đồng bộ với hệ thống cứu hộ.',
+            subtitle: 'Cập nhật trạng thái để khách hàng theo dõi tiến độ',
             icon: Icons.route_outlined,
             children: [
-              StatusBadge(label: _states[assignment.state] ?? 'Đang xử lý'),
+              StatusBadge(label: assignment.stateLabel),
+              const SizedBox(height: 18),
+              JobProgressTimeline(assignment: assignment),
+              if (assignment.nextState != null) ...[
+                const SizedBox(height: 16),
+                AppButton(
+                  key: const ValueKey('advance-job'),
+                  label: c.updatingJobState != null
+                      ? 'Đang cập nhật…'
+                      : assignment.nextActionLabel!,
+                  icon: switch (assignment.nextState) {
+                    'en_route' => Icons.navigation_outlined,
+                    'arrived' => Icons.place_outlined,
+                    _ => Icons.handyman_outlined,
+                  },
+                  loading: c.updatingJobState != null,
+                  onPressed: c.canAdvanceJob ? c.advanceJob : null,
+                ),
+                if (c.jobStatus == JobStatus.error) ...[
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Tải lại chuyến để tiếp tục cập nhật tiến độ.',
+                    style: AppType.caption,
+                  ),
+                ],
+              ] else if (assignment.state == 'in_progress') ...[
+                const SizedBox(height: 16),
+                const InfoBanner(
+                  title: 'Đang hỗ trợ khách',
+                  message: 'Tiến độ đã được cập nhật. Giữ liên lạc với khách hàng trong quá trình hỗ trợ.',
+                  icon: Icons.handyman_outlined,
+                  tone: BadgeTone.green,
+                ),
+              ],
               const SizedBox(height: 12),
               SelectableText(
                 'Mã đơn: ${assignment.requestId}',
@@ -130,12 +164,6 @@ class ActiveJobPanel extends StatelessWidget {
     );
   }
 
-  static const _states = {
-    'accepted': 'Đã nhận đơn',
-    'en_route': 'Đang đến điểm cứu hộ',
-    'arrived': 'Đã đến điểm cứu hộ',
-    'in_progress': 'Đang cứu hộ',
-  };
   static String _time(DateTime value) {
     final t = value.toLocal();
     String two(int n) => n.toString().padLeft(2, '0');

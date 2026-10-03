@@ -44,6 +44,7 @@ class SupabaseRescuerService implements RescuerService {
     'rescuer_set_online',
     'rescuer_update_location',
     'rescuer_claim_request',
+    'rescuer_update_job_status',
   };
   @override
   String? get userId => client.auth.currentUser?.id;
@@ -127,6 +128,17 @@ class SupabaseRescuerService implements RescuerService {
   Future<Json> mutate(String name, Json params) async {
     if (!_mutations.contains(name)) {
       throw const RescuerFailure('Thao tác chưa được hỗ trợ.');
+    }
+    if (name == 'rescuer_update_job_status' &&
+        (![
+              'en_route',
+              'arrived',
+              'in_progress',
+            ].contains(params['p_target_state']) ||
+            params['p_reason_code'] != null)) {
+      throw const RescuerFailure(
+        'Chỉ hỗ trợ cập nhật tiến độ đến bước hỗ trợ khách.',
+      );
     }
     if (userId == null) throw const RescuerFailure('Vui lòng đăng nhập lại.');
     final payloadKey = jsonEncode([userId, name, params]);
@@ -254,7 +266,8 @@ String rescuerError(Object error) {
           'Phiên online đã thay đổi. Tải lại trạng thái trước khi tiếp tục.',
       'STALE_LOCATION_SEQUENCE':
           'Vị trí đã được cập nhật ở phiên khác. Tải lại trạng thái.',
-      'VERSION_CONFLICT': 'Hồ sơ đã thay đổi. Tải lại trước khi lưu.',
+      'VERSION_CONFLICT': 'Dữ liệu đã thay đổi. Tải lại trước khi tiếp tục.',
+      'INVALID_STATUS_TRANSITION': 'Không thể chuyển sang trạng thái này. Tải lại chuyến và thực hiện bước tiếp theo.',
       'DOCUMENT_NOT_READY': 'Cần hoàn tất giấy tờ trước khi gửi duyệt.',
       'DISCOVERY_RATE_LIMITED':
           'Bạn tải đơn quá nhanh. Vui lòng thử lại sau một phút.',

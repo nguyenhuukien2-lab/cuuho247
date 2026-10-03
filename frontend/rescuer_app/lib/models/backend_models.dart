@@ -130,6 +130,9 @@ class JobAssignment {
     required this.state,
     required this.version,
     this.acceptedAt,
+    this.enRouteAt,
+    this.arrivedAt,
+    this.inProgressAt,
   });
   factory JobAssignment.fromJson(Json json) => JobAssignment(
     id: json['assignment_id'] as String,
@@ -138,10 +141,38 @@ class JobAssignment {
     state: json['state'] as String,
     version: (json['version'] as num).toInt(),
     acceptedAt: DateTime.tryParse(json['accepted_at'] as String? ?? ''),
+    enRouteAt: DateTime.tryParse(json['en_route_at'] as String? ?? ''),
+    arrivedAt: DateTime.tryParse(json['arrived_at'] as String? ?? ''),
+    inProgressAt: DateTime.tryParse(json['in_progress_at'] as String? ?? ''),
   );
   final String id, requestId, vehicleId, state;
   final int version;
-  final DateTime? acceptedAt;
+  final DateTime? acceptedAt, enRouteAt, arrivedAt, inProgressAt;
+  static const progressStates = [
+    'accepted',
+    'en_route',
+    'arrived',
+    'in_progress',
+  ];
+  String? get nextState => switch (state) {
+    'accepted' => 'en_route',
+    'en_route' => 'arrived',
+    'arrived' => 'in_progress',
+    _ => null,
+  };
+  String? get nextActionLabel => switch (state) {
+    'accepted' => 'Đang đến điểm cứu hộ',
+    'en_route' => 'Đã đến nơi',
+    'arrived' => 'Bắt đầu hỗ trợ',
+    _ => null,
+  };
+  String get stateLabel => switch (state) {
+    'accepted' => 'Đã nhận đơn',
+    'en_route' => 'Đang đến điểm cứu hộ',
+    'arrived' => 'Đã đến nơi',
+    'in_progress' => 'Đang hỗ trợ khách',
+    _ => 'Chuyến không còn đang xử lý',
+  };
   bool get isActive =>
       ['accepted', 'en_route', 'arrived', 'in_progress'].contains(state);
 }
