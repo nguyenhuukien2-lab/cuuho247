@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/app_theme.dart';
 import '../../app/rescuer_controller.dart';
@@ -6,6 +7,7 @@ import '../../widgets/app_components.dart';
 import 'preparation_components.dart';
 import 'job_progress_timeline.dart';
 import 'job_finance_section.dart';
+import 'ui_v2_components.dart';
 
 class ActiveJobPanel extends StatelessWidget {
   const ActiveJobPanel({super.key, required this.c});
@@ -25,6 +27,50 @@ class ActiveJobPanel extends StatelessWidget {
           style: AppType.body,
         ),
         const SizedBox(height: 18),
+        if (assignment != null) ...[
+          NavyPanel(
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.orange,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.navigation_rounded,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'MÃ ĐƠN · ${assignment.requestId}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.white70,
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      Text(
+                        assignment.stateLabel,
+                        style: const TextStyle(
+                          fontSize: 21,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+        ],
         AppButton(
           label: 'Tải lại chuyến',
           icon: Icons.refresh,
@@ -68,29 +114,7 @@ class ActiveJobPanel extends StatelessWidget {
               StatusBadge(label: assignment.stateLabel),
               const SizedBox(height: 18),
               JobProgressTimeline(assignment: assignment),
-              if (assignment.nextState != null) ...[
-                const SizedBox(height: 16),
-                AppButton(
-                  key: const ValueKey('advance-job'),
-                  label: c.updatingJobState != null
-                      ? 'Đang cập nhật…'
-                      : assignment.nextActionLabel!,
-                  icon: switch (assignment.nextState) {
-                    'en_route' => Icons.navigation_outlined,
-                    'arrived' => Icons.place_outlined,
-                    _ => Icons.handyman_outlined,
-                  },
-                  loading: c.updatingJobState != null,
-                  onPressed: c.canAdvanceJob ? c.advanceJob : null,
-                ),
-                if (c.jobStatus == JobStatus.error) ...[
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Tải lại chuyến để tiếp tục cập nhật tiến độ.',
-                    style: AppType.caption,
-                  ),
-                ],
-              ] else if (assignment.state == 'in_progress') ...[
+              if (assignment.state == 'in_progress') ...[
                 const SizedBox(height: 16),
                 const InfoBanner(
                   title: 'Đang hỗ trợ khách',
@@ -112,14 +136,6 @@ class ActiveJobPanel extends StatelessWidget {
                 ),
               ],
             ],
-          ),
-        ],
-        if (assignment?.state == 'in_progress') ...[
-          const SizedBox(height: 16),
-          JobFinanceSection(
-            key: ValueKey(assignment!.id),
-            c: c,
-            assignment: assignment,
           ),
         ],
         if (job != null && c.jobStatus == JobStatus.ready) ...[
@@ -145,6 +161,18 @@ class ActiveJobPanel extends StatelessWidget {
             children: [
               _field('Họ tên', job.contactName),
               _field('Số điện thoại', job.contactPhone),
+              if (job.contactPhone != null &&
+                  RegExp(r'^\+?[0-9]{8,15}$').hasMatch(job.contactPhone!))
+                AppButton(
+                  label: 'Gọi ngay',
+                  icon: Icons.phone_in_talk_outlined,
+                  kind: ButtonStyleKind.secondary,
+                  onPressed: () => _open(
+                    context,
+                    Uri(scheme: 'tel', path: job.contactPhone),
+                    'Không mở được ứng dụng gọi điện. Bạn có thể sao chép số ở trên.',
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 16),
@@ -153,16 +181,87 @@ class ActiveJobPanel extends StatelessWidget {
             subtitle: 'Kiểm tra địa chỉ và vị trí với khách hàng.',
             icon: Icons.location_on_outlined,
             children: [
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: AppColors.blueSoft,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(
+                      Icons.pin_drop_rounded,
+                      color: AppColors.orange,
+                      size: 32,
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Vị trí điểm cứu hộ\nChưa tích hợp bản đồ trực tiếp',
+                        style: AppType.body,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
               _field('Địa chỉ / địa điểm', job.address),
               if (job.latitude != null && job.longitude != null)
                 _field(
                   'Tọa độ',
                   '${job.latitude!.toStringAsFixed(6)}, ${job.longitude!.toStringAsFixed(6)}',
                 ),
+              if (job.latitude != null && job.longitude != null) ...[
+                const SizedBox(height: 8),
+                AppButton(
+                  label: 'Mở Google Maps',
+                  icon: Icons.map_outlined,
+                  onPressed: () => _open(
+                    context,
+                    Uri.https('www.google.com', '/maps/search/', {
+                      'api': '1',
+                      'query': '${job.latitude},${job.longitude}',
+                    }),
+                    'Không mở được bản đồ. Kiểm tra ứng dụng bản đồ hoặc trình duyệt.',
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
               const Text('Chưa có ảnh hiện trường.', style: AppType.caption),
             ],
           ),
+        ],
+        if (assignment?.state == 'in_progress') ...[
+          const SizedBox(height: 16),
+          JobFinanceSection(
+            key: ValueKey(assignment!.id),
+            c: c,
+            assignment: assignment,
+          ),
+        ],
+        if (assignment?.nextState != null) ...[
+          const SizedBox(height: 20),
+          AppButton(
+            key: const ValueKey('advance-job'),
+            label: c.updatingJobState != null
+                ? 'Đang cập nhật…'
+                : switch (assignment!.nextState) {
+                    'en_route' => 'ĐANG ĐẾN ĐIỂM CỨU HỘ',
+                    'arrived' => 'XÁC NHẬN: ĐÃ ĐẾN NƠI',
+                    _ => 'BẮT ĐẦU HỖ TRỢ',
+                  },
+            icon: Icons.navigation_outlined,
+            loading: c.updatingJobState != null,
+            onPressed: c.canAdvanceJob ? c.advanceJob : null,
+          ),
+          if (c.jobStatus == JobStatus.error)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text(
+                'Tải lại chuyến để tiếp tục cập nhật tiến độ.',
+                style: AppType.caption,
+              ),
+            ),
         ],
         const SizedBox(height: 18),
         const Text(
@@ -177,6 +276,22 @@ class ActiveJobPanel extends StatelessWidget {
     final t = value.toLocal();
     String two(int n) => n.toString().padLeft(2, '0');
     return '${two(t.hour)}:${two(t.minute)} · ${two(t.day)}/${two(t.month)}/${t.year}';
+  }
+
+  static Future<void> _open(
+    BuildContext context,
+    Uri uri,
+    String message,
+  ) async {
+    try {
+      if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
+    } catch (_) {
+      // A missing external application must not interrupt the job flow.
+    }
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+    }
   }
 
   static Widget _field(String label, String? value) => Padding(

@@ -7,6 +7,10 @@ Entry point `lib/main.dart` mở `ConnectedRescuerApp` và `PreparationScreen` v
 
 [Giai đoạn 4](PHASE4.md) bổ sung báo giá, xác nhận hoàn tất và lịch sử chuyến qua RPC thật.
 
+[UI V2](UI_V2.md) thiết kế lại 5 tab và màn đăng nhập theo ảnh tham chiếu:
+header navy cố định, card bo góc, CTA cam, timeline 5 bước, bộ lọc đơn/lịch sử
+trên thiết bị. Giữ nguyên RPC và controller nghiệp vụ.
+
 ## Chạy trên điện thoại
 
 Từ `frontend/rescuer_app`, cấu hình file local `config/supabase.dev.json` theo `config/supabase.example.json`. File dev được Git bỏ qua. Chỉ sử dụng URL và publishable/anon key; validator từ chối secret key và JWT có quyền cao hơn anon.

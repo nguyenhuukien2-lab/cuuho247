@@ -71,6 +71,9 @@ Future<RescuerController> start(JobFake service) async {
 }
 
 Future<void> showAction(WidgetTester tester) async {
+  // The V2 action is at the bottom; let the floating success snackbar dismiss
+  // before testing the next real tap on that action.
+  await tester.pump(const Duration(seconds: 4));
   await tester.pumpAndSettle();
   final action = find.byKey(const ValueKey('advance-job'));
   final viewport = tester.getRect(find.byType(ListView));

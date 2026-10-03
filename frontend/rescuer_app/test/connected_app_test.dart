@@ -528,7 +528,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Vá/thay lốp'), findsOneWidget);
     expect(find.textContaining('SECRET'), findsNothing);
-    expect(find.text('Nhận đơn'), findsOneWidget);
+    expect(find.text('NHẬN ĐƠN NGAY'), findsOneWidget);
     service.feedFailure = const PostgrestException(
       message: 'permission denied',
       code: '42501',

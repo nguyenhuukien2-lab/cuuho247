@@ -25,6 +25,22 @@ class _JobFinanceSectionState extends State<JobFinanceSection> {
       _note = TextEditingController();
   String? _error;
   @override
+  void initState() {
+    super.initState();
+    _main.addListener(_previewChanged);
+    _extra.addListener(_previewChanged);
+  }
+
+  void _previewChanged() => setState(() {});
+  int? get _previewTotal {
+    try {
+      return QuoteDraft.parse(_main.text, _extra.text, '').total;
+    } on RescuerFailure {
+      return null;
+    }
+  }
+
+  @override
   void dispose() {
     _main.dispose();
     _extra.dispose();
@@ -73,7 +89,13 @@ class _JobFinanceSectionState extends State<JobFinanceSection> {
         if (a.currentQuoteId != null) ...[
           const StatusBadge(label: 'Báo giá đã gửi'),
           const SizedBox(height: 12),
-          Text(formatMoney(a.totalVnd, a.currency), style: AppType.pageTitle),
+          Text(
+            formatMoney(a.totalVnd, a.currency),
+            style: AppType.pageTitle.copyWith(
+              color: AppColors.orange,
+              fontSize: 30,
+            ),
+          ),
           const SizedBox(height: 8),
           if (quote != null) ...[
             for (final item in quote.items)
@@ -154,9 +176,36 @@ class _JobFinanceSectionState extends State<JobFinanceSection> {
                     ),
                   ),
                 const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.orangeSoft,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'TỔNG CHI PHÍ DỰ KIẾN · CHƯA GỬI',
+                        style: AppType.caption,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _previewTotal == null
+                            ? 'Nhập chi phí để xem tổng'
+                            : formatMoney(_previewTotal, 'VND'),
+                        style: AppType.pageTitle.copyWith(
+                          color: AppColors.orange,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
                 AppButton(
                   key: const ValueKey('send-quote'),
-                  label: 'Gửi báo giá',
+                  label: 'Gửi báo giá cho khách',
                   icon: Icons.send_outlined,
                   loading: c.sendingQuote,
                   onPressed: c.canSendQuote ? _send : null,

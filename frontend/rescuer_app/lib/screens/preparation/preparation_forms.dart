@@ -34,7 +34,34 @@ class _PreparationLoginState extends State<PreparationLogin> {
           padding: const EdgeInsets.all(24),
           children: [
             const SizedBox(height: 20),
-            const Center(child: BrandMark(size: 76)),
+            Container(
+              padding: const EdgeInsets.all(26),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.navy, AppColors.navySoft],
+                ),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Column(
+                children: [
+                  BrandMark(size: 70, light: true),
+                  SizedBox(height: 16),
+                  Text(
+                    'ĐỐI TÁC CỨU HỘ 24/7',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 20,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Vững tay lái. Kết nối mọi hành trình.',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 24),
             const Text(
               'Sẵn sàng đồng hành',

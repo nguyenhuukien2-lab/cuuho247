@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 abstract final class AppColors {
-  static const navy = Color(0xFF142A42);
+  static const navy = Color(0xFF0B2540);
   static const navySoft = Color(0xFF213D5B);
-  static const orange = Color(0xFFED7A22);
+  static const orange = Color(0xFFFF5A1F);
   static const orangeSoft = Color(0xFFFFF1E6);
   static const background = Color(0xFFF5F7FA);
   static const surface = Colors.white;
   static const ink = Color(0xFF17283C);
-  static const muted = Color(0xFF738197);
+  static const muted = Color(0xFF596B80);
   static const line = Color(0xFFE5EAF0);
   static const success = Color(0xFF17865B);
   static const successSoft = Color(0xFFE9F7F0);
@@ -57,6 +57,7 @@ abstract final class AppType {
     color: AppColors.ink,
   );
   static const caption = TextStyle(
+    fontFamily: 'Roboto',
     fontSize: 12,
     height: 1.45,
     color: AppColors.muted,
@@ -84,16 +85,51 @@ abstract final class AppTheme {
         displayColor: AppColors.ink,
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.background,
-        foregroundColor: AppColors.ink,
+        backgroundColor: AppColors.navy,
+        foregroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
         titleTextStyle: TextStyle(
+          fontFamily: 'Roboto',
           fontSize: 19,
           fontWeight: FontWeight.w700,
-          color: AppColors.ink,
+          color: Colors.white,
         ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        indicatorColor: AppColors.orangeSoft,
+        elevation: 8,
+        height: 76,
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            color: states.contains(WidgetState.selected)
+                ? AppColors.orange
+                : AppColors.muted,
+            size: 23,
+          ),
+        ),
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => TextStyle(
+            fontSize: 11,
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w800
+                : FontWeight.w600,
+            color: states.contains(WidgetState.selected)
+                ? AppColors.navy
+                : AppColors.muted,
+          ),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: Colors.white,
+        selectedColor: AppColors.navy,
+        checkmarkColor: Colors.white,
+        labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+        side: const BorderSide(color: AppColors.line),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,

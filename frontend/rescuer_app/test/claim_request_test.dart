@@ -275,7 +275,11 @@ void main() {
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('claim-request')),
         250,
+        scrollable: find.byType(Scrollable).first,
       );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const ValueKey('claim-request')));
+      await tester.pumpAndSettle();
       service.pendingClaim = Completer<Json>();
       await tester.tap(find.byKey(const ValueKey('claim-request')));
       await tester.pump();

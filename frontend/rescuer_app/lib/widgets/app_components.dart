@@ -10,14 +10,14 @@ class AppCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,
-    padding: padding ?? const EdgeInsets.all(AppSpace.lg),
+    padding: padding ?? const EdgeInsets.all(AppSpace.xl),
     decoration: BoxDecoration(
       color: AppColors.surface,
       borderRadius: BorderRadius.circular(AppRadii.lg),
       border: Border.all(color: AppColors.line),
       boxShadow: const [
         BoxShadow(
-          color: Color(0x0714263B),
+          color: Color(0x0D0B2540),
           blurRadius: 18,
           offset: Offset(0, 5),
         ),
@@ -68,17 +68,19 @@ class AppButton extends StatelessWidget {
     );
 
     final style = ButtonStyle(
-      minimumSize: WidgetStateProperty.all(const Size(48, 52)),
+      minimumSize: WidgetStateProperty.all(const Size(48, 56)),
       padding: WidgetStateProperty.all(
         const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
       ),
       shape: WidgetStateProperty.all(
-        RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.md),
-        ),
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
       textStyle: WidgetStateProperty.all(
-        const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+        const TextStyle(
+          fontFamily: 'Roboto',
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
 
@@ -173,13 +175,15 @@ class StatusBadge extends StatelessWidget {
             Icon(icon, size: 14, color: color),
             const SizedBox(width: 5),
           ],
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              height: 1.1,
-              fontWeight: FontWeight.w700,
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                height: 1.1,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
