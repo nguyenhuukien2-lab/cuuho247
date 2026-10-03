@@ -1,9 +1,11 @@
-﻿# Cứu Hộ 24/7 Đối tác — Giai đoạn 1–3
+﻿# Cứu Hộ 24/7 Đối tác — Giai đoạn 1–4
 
-Entry point `lib/main.dart` mở `ConnectedRescuerApp` và `PreparationScreen` với bốn tab Trang chủ / Đơn mới / Tài khoản / Đang xử lý. Các màn demo cũ còn trong source nhưng không được mở từ entry point này. Xem [Giai đoạn 2](PHASE2.md) cho contract và kịch bản test nhận đơn.
+Entry point `lib/main.dart` mở `ConnectedRescuerApp` và `PreparationScreen` với năm tab Trang chủ / Đơn mới / Tài khoản / Đang xử lý / Lịch sử. Các màn demo cũ còn trong source nhưng không được mở từ entry point này. Xem [Giai đoạn 2](PHASE2.md) cho contract và kịch bản test nhận đơn.
 
 [Giai đoạn 3](PHASE3.md) bổ sung timeline và cập nhật tiến độ chuyến:
 Đã nhận đơn → Đang đến điểm cứu hộ → Đã đến nơi → Đang hỗ trợ khách.
+
+[Giai đoạn 4](PHASE4.md) bổ sung báo giá, xác nhận hoàn tất và lịch sử chuyến qua RPC thật.
 
 ## Chạy trên điện thoại
 
@@ -51,7 +53,8 @@ Cache này được Git bỏ qua; `flutter clean` sẽ xóa cả `.dart_tool`, c
 - Sửa tại chỗ và Mở khóa xe chỉ bật nếu danh mục thật có mã tương ứng (`repair`, `locksmith`). Nếu thiếu, UI ghi rõ chưa hỗ trợ; không dùng `other` thay thế.
 - Chưa có trường ghi chú/khu vực hoạt động hồ sơ; mô tả phương tiện dùng `display_name` hiện có.
 - RPC danh sách đơn chưa trả thời gian tạo nên UI chưa hiển thị thời gian tạo.
-- Đã cập nhật tiến độ chuyến qua RPC hiện có đến `in_progress`. Chưa làm báo giá, hoàn tất, hủy chuyến hoặc lịch sử/thu nhập nâng cao.
+- Đã cập nhật tiến độ, báo giá, hoàn tất và lịch sử cơ bản. Chưa làm thanh toán, hủy chuyến hoặc thống kê thu nhập nâng cao.
+- Chưa có RPC đọc lại chi tiết báo giá và lưu ghi chú hoàn tất. Sau mở lại app chỉ xem tổng tiền từ chuyến; trường ghi chú hoàn tất bị khóa và có hướng dẫn. Xem PHASE4.md để biết contract và giới hạn.
 - Không sửa customer app hay migration; không dùng service_role, không commit, không push database. Việc duyệt do quy trình quản trị backend thực hiện.
 
 ## Kịch bản kiểm tra điện thoại

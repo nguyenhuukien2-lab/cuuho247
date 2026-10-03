@@ -46,6 +46,43 @@ class RescuerController extends ChangeNotifier {
   String? updatingJobState, jobUpdateMessage;
   int jobUpdateSerial = 0;
   bool jobUpdateFailed = false;
+  QuoteDetails? currentQuote;
+  bool sendingQuote = false, completingJob = false;
+  int completionSuccessSerial = 0;
+  List<HistoryJob> historyItems = [];
+  Json? historyCursor;
+  FeedStatus historyStatus = FeedStatus.unavailable;
+  String? historyError, historyDetailError;
+  HistoryJob? historyDetail;
+  bool historyDetailLoading = false;
+  bool get canSendQuote =>
+      !working &&
+      !loading &&
+      snapshot.approved &&
+      jobStatus == JobStatus.ready &&
+      activeJob?.assignment.state == 'in_progress' &&
+      activeJob?.assignment.currentQuoteId == null;
+  bool get canCompleteJob =>
+      !working &&
+      !loading &&
+      snapshot.approved &&
+      jobStatus == JobStatus.ready &&
+      activeJob?.assignment.state == 'in_progress' &&
+      activeJob?.assignment.hasQuote == true;
+
+  void _clearFinancialData() {
+    currentQuote = null;
+    sendingQuote = false;
+    completingJob = false;
+    historyItems = [];
+    historyCursor = null;
+    historyStatus = FeedStatus.unavailable;
+    historyError = null;
+    historyDetail = null;
+    historyDetailError = null;
+    historyDetailLoading = false;
+  }
+
   bool get canAdvanceJob =>
       signedIn &&
       snapshot.approved &&
@@ -206,6 +243,7 @@ class RescuerController extends ChangeNotifier {
       },
       onError: (Object e) {
         _epoch++;
+        _clearFinancialData();
         working = false;
         loading = false;
         updatingJobState = null;
@@ -228,6 +266,7 @@ class RescuerController extends ChangeNotifier {
   Future<void> _syncAuth({bool force = false}) async {
     if (!force && userId == service.userId) return;
     final epoch = ++_epoch;
+    _clearFinancialData();
     _timer?.cancel();
     userId = service.userId;
     snapshot = const RescuerSnapshot();
@@ -274,6 +313,7 @@ class RescuerController extends ChangeNotifier {
   }
 
   Future<void> _load(int epoch) async {
+    currentQuote = null;
     activeJob = null;
     RescuerSnapshot result;
     try {
@@ -330,6 +370,8 @@ class RescuerController extends ChangeNotifier {
 
   Future<void> _loadActiveJob(int epoch) async {
     _guard(epoch);
+    final previousQuote = currentQuote;
+    currentQuote = null;
     activeJob = null; // Revalidate PII access on every refresh.
     jobStatus = JobStatus.loading;
     jobError = null;
@@ -339,6 +381,10 @@ class RescuerController extends ChangeNotifier {
       _guard(epoch);
       activeJob = result;
       claimedAssignment = result?.assignment;
+      if (result?.assignment.currentQuoteId == previousQuote?.id &&
+          result?.assignment.id == previousQuote?.assignmentId) {
+        currentQuote = previousQuote;
+      }
       jobStatus = result == null ? JobStatus.empty : JobStatus.ready;
       if (result != null) {
         requests = [];
@@ -360,6 +406,228 @@ class RescuerController extends ChangeNotifier {
   Future<void> refreshActiveJob() => _run((epoch) async {
     if (!snapshot.approved) return;
     await _loadActiveJob(epoch);
+  });
+
+  Future<void> sendQuote(QuoteDraft input) => _run((epoch) async {
+    final job = activeJob;
+    if (jobStatus != JobStatus.ready ||
+        !snapshot.approved ||
+        job == null ||
+        job.assignment.state != 'in_progress' ||
+        job.assignment.currentQuoteId != null ||
+        job.service == null ||
+        job.service!.isEmpty) {
+      const message =
+          'Tải lại chuyến. Chỉ gửi báo giá khi đang hỗ trợ và chưa có báo giá.';
+      _jobUpdateEvent(message, failed: true);
+      throw const RescuerFailure(message);
+    }
+    final draft = QuoteDraft.parse(
+      input.mainFee.toString(),
+      input.surcharge.toString(),
+      input.note,
+    );
+    final before = job.assignment;
+    sendingQuote = true;
+    _timer?.cancel();
+    _notify();
+    try {
+      final result = await service.mutate('rescuer_create_quote', {
+        'p_assignment_id': before.id,
+        'p_items': draft.items(job.service!),
+        'p_note': draft.note.isEmpty ? null : draft.note,
+        'p_expected_version': before.version,
+      });
+      _guard(epoch);
+      final quote = QuoteDetails.fromJson(result);
+      if (quote.assignmentId != before.id ||
+          quote.totalVnd != draft.total ||
+          quote.status != 'issued') {
+        throw const FormatException('Unexpected quote');
+      }
+      currentQuote = quote;
+      await _loadActiveJob(epoch);
+      notice = 'Đã gửi báo giá';
+      _jobUpdateEvent(notice!);
+    } catch (e) {
+      _guard(epoch);
+      await _loadActiveJob(epoch);
+      final a = activeJob?.assignment;
+      if (e is! PostgrestException &&
+          a?.id == before.id &&
+          a!.version > before.version &&
+          a.currentQuoteId != null &&
+          a.totalVnd == draft.total) {
+        notice = 'Đã gửi báo giá';
+        _jobUpdateEvent(notice!);
+      } else {
+        final message = _financialError(e);
+        _jobUpdateEvent(message, failed: true);
+        throw RescuerFailure(message);
+      }
+    } finally {
+      if (_current(epoch)) {
+        sendingQuote = false;
+        _schedule();
+      }
+    }
+  });
+
+  Future<void> completeJob(JobAssignment confirmed) => _run((epoch) async {
+    final before = activeJob?.assignment;
+    if (jobStatus != JobStatus.ready ||
+        !snapshot.approved ||
+        before == null ||
+        before.state != 'in_progress' ||
+        !before.hasQuote ||
+        before.id != confirmed.id ||
+        before.version != confirmed.version ||
+        before.currentQuoteId != confirmed.currentQuoteId ||
+        before.totalVnd != confirmed.totalVnd) {
+      const message =
+          'Chuyến hoặc chi phí đã thay đổi. Tải lại và xác nhận lại trước khi hoàn tất.';
+      _jobUpdateEvent(message, failed: true);
+      throw const RescuerFailure(message);
+    }
+    completingJob = true;
+    _timer?.cancel();
+    _notify();
+    try {
+      final result = JobAssignment.fromJson(
+        await service.mutate('rescuer_update_job_status', {
+          'p_assignment_id': before.id,
+          'p_target_state': 'completed',
+          'p_reason_code': null,
+          'p_expected_version': before.version,
+        }),
+      );
+      _guard(epoch);
+      if (result.id != before.id ||
+          result.state != 'completed' ||
+          result.completionQuoteId != before.currentQuoteId ||
+          result.version <= before.version) {
+        throw const FormatException('Unexpected completion');
+      }
+      await _completionSucceeded(epoch);
+    } catch (e) {
+      _guard(epoch);
+      await _loadActiveJob(epoch);
+      HistoryJob? completed;
+      if (e is! PostgrestException) {
+        try {
+          completed = await service.historyJob(before.id);
+          _guard(epoch);
+        } catch (_) {
+          _guard(epoch);
+        }
+      }
+      if (completed?.assignment.state == 'completed' &&
+          completed!.assignment.completionQuoteId == before.currentQuoteId &&
+          completed.assignment.version > before.version) {
+        await _completionSucceeded(epoch);
+      } else {
+        final message = _financialError(e);
+        _jobUpdateEvent(message, failed: true);
+        throw RescuerFailure(message);
+      }
+    } finally {
+      if (_current(epoch)) {
+        completingJob = false;
+        _schedule();
+      }
+    }
+  });
+
+  Future<void> _completionSucceeded(int epoch) async {
+    _guard(epoch);
+    activeJob = null;
+    claimedAssignment = null;
+    currentQuote = null;
+    jobStatus = JobStatus.empty;
+    requests = [];
+    cursor = null;
+    locationReady = false;
+    feedStatus = FeedStatus.unavailable;
+    tab = 4;
+    completionSuccessSerial++;
+    notice = 'Đã hoàn tất chuyến';
+    _jobUpdateEvent(notice!);
+    await _loadActiveJob(epoch);
+    await _loadHistory(epoch);
+  }
+
+  static String _financialError(Object e) {
+    if (_rpcError(e, 'VERSION_CONFLICT')) {
+      return 'Chuyến hoặc báo giá đã được cập nhật ở phiên khác. Kiểm tra dữ liệu vừa tải lại rồi tiếp tục.';
+    }
+    if (_rpcError(e, 'REQUEST_UNAVAILABLE')) {
+      return 'Chuyến không còn đang xử lý hoặc bạn không còn quyền thao tác. Hãy tải lại chuyến.';
+    }
+    if (e is PostgrestException && e.code == '23505') {
+      return 'Đã có báo giá. Tải lại để xem báo giá hiện tại.';
+    }
+    return rescuerError(e);
+  }
+
+  Future<void> _loadHistory(int epoch, {bool more = false}) async {
+    _guard(epoch);
+    if (more && historyCursor == null) return;
+    final next = more ? historyCursor : null;
+    if (!more) {
+      historyItems = [];
+      historyDetail = null;
+      historyCursor = null;
+    }
+    historyStatus = FeedStatus.loading;
+    historyError = null;
+    _notify();
+    try {
+      final page = await service.history(cursor: next);
+      _guard(epoch);
+      historyItems = more
+          ? [
+              ...historyItems,
+              ...page.items.where(
+                (j) => !historyItems.any(
+                  (old) => old.assignment.id == j.assignment.id,
+                ),
+              ),
+            ]
+          : page.items;
+      historyCursor = page.cursor;
+      historyStatus = historyItems.isEmpty
+          ? FeedStatus.empty
+          : FeedStatus.ready;
+    } catch (e) {
+      if (!_current(epoch)) rethrow;
+      historyItems = [];
+      historyCursor = null;
+      historyDetail = null;
+      historyStatus = FeedStatus.error;
+      historyError = rescuerError(e);
+    }
+  }
+
+  Future<void> refreshHistory({bool more = false}) =>
+      _run((epoch) => _loadHistory(epoch, more: more));
+  Future<void> loadHistoryDetail(String id) => _run((epoch) async {
+    historyDetail = null;
+    historyDetailError = null;
+    historyDetailLoading = true;
+    _notify();
+    try {
+      final result = await service.historyJob(id);
+      _guard(epoch);
+      if (result.assignment.id != id) {
+        throw const FormatException('Unexpected history job');
+      }
+      historyDetail = result;
+    } catch (e) {
+      if (!_current(epoch)) rethrow;
+      historyDetailError = rescuerError(e);
+    } finally {
+      if (_current(epoch)) historyDetailLoading = false;
+    }
   });
 
   Future<void> advanceJob() => _run((epoch) async {
@@ -730,6 +998,7 @@ class RescuerController extends ChangeNotifier {
     _notify();
     if (value == 1 && online && canOnline) unawaited(refreshRequests());
     if (value == 3) unawaited(refreshActiveJob());
+    if (value == 4) unawaited(refreshHistory());
   }
 
   Future<void> setOnline(bool value) => _run((epoch) async {

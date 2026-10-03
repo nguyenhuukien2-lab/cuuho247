@@ -9,6 +9,7 @@ import '../../widgets/app_components.dart';
 import 'preparation_components.dart';
 import 'preparation_forms.dart';
 import 'active_job_panel.dart';
+import 'history_panel.dart';
 
 class PreparationScreen extends StatefulWidget {
   const PreparationScreen({super.key, required this.controller});
@@ -187,6 +188,8 @@ class _PreparationScreenState extends State<PreparationScreen> {
                   child: RefreshIndicator(
                     onRefresh: c.tab == 3
                         ? c.refreshActiveJob
+                        : c.tab == 4
+                        ? c.refreshHistory
                         : c.refreshProfile,
                     child: ListView(
                       key: ValueKey('${c.tab}-${c.accountSection}'),
@@ -232,6 +235,8 @@ class _PreparationScreenState extends State<PreparationScreen> {
                           ..._feed(c)
                         else if (c.tab == 3)
                           ActiveJobPanel(c: c)
+                        else if (c.tab == 4)
+                          HistoryPanel(c: c)
                         else
                           ..._account(c),
                       ],
@@ -262,6 +267,11 @@ class _PreparationScreenState extends State<PreparationScreen> {
               icon: Icon(Icons.local_shipping_outlined),
               selectedIcon: Icon(Icons.local_shipping),
               label: 'Đang xử lý',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.history_outlined),
+              selectedIcon: Icon(Icons.history),
+              label: 'Lịch sử',
             ),
           ],
         ),

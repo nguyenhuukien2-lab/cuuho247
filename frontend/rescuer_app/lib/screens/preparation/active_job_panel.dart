@@ -5,6 +5,7 @@ import '../../app/rescuer_controller.dart';
 import '../../widgets/app_components.dart';
 import 'preparation_components.dart';
 import 'job_progress_timeline.dart';
+import 'job_finance_section.dart';
 
 class ActiveJobPanel extends StatelessWidget {
   const ActiveJobPanel({super.key, required this.c});
@@ -111,6 +112,14 @@ class ActiveJobPanel extends StatelessWidget {
                 ),
               ],
             ],
+          ),
+        ],
+        if (assignment?.state == 'in_progress') ...[
+          const SizedBox(height: 16),
+          JobFinanceSection(
+            key: ValueKey(assignment!.id),
+            c: c,
+            assignment: assignment,
           ),
         ],
         if (job != null && c.jobStatus == JobStatus.ready) ...[

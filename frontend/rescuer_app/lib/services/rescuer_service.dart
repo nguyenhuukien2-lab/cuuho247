@@ -17,6 +17,8 @@ abstract class RescuerService {
   Future<Json> mutate(String name, Json params);
   Future<RequestPage> available(String vehicleId, {Json? cursor});
   Future<ActiveJob?> getActiveJob();
+  Future<HistoryPage> history({Json? cursor});
+  Future<HistoryJob> historyJob(String assignmentId);
   Future<void> uploadDocument(
     String type,
     String? vehicleId,
@@ -28,6 +30,36 @@ abstract class RescuerService {
 }
 
 class SupabaseRescuerService implements RescuerService {
+  @override
+  Future<HistoryPage> history({Json? cursor}) async {
+    if (userId == null) throw const RescuerFailure('Vui lòng đăng nhập lại.');
+    final j = Json.from(
+      await client.rpc(
+        'rescuer_list_job_history',
+        params: {'p_limit': 20, 'p_cursor': cursor, 'p_state_filter': null},
+      ) as Map,
+    );
+    return HistoryPage(
+      (j['items'] as List)
+          .map((r) => HistoryJob.fromJson(Json.from(r as Map)))
+          .toList(),
+      j['next_cursor'] == null ? null : Json.from(j['next_cursor'] as Map),
+    );
+  }
+
+  @override
+  Future<HistoryJob> historyJob(String assignmentId) async {
+    if (userId == null) throw const RescuerFailure('Vui lòng đăng nhập lại.');
+    return HistoryJob.fromJson(
+      Json.from(
+        await client.rpc(
+          'rescuer_get_job_history',
+          params: {'p_assignment_id': assignmentId},
+        ) as Map,
+      ),
+    );
+  }
+
   SupabaseRescuerService(this.client);
   final SupabaseClient client;
   final Map<String, String> _pendingOperations = {};
@@ -45,6 +77,7 @@ class SupabaseRescuerService implements RescuerService {
     'rescuer_update_location',
     'rescuer_claim_request',
     'rescuer_update_job_status',
+    'rescuer_create_quote',
   };
   @override
   String? get userId => client.auth.currentUser?.id;
@@ -134,10 +167,11 @@ class SupabaseRescuerService implements RescuerService {
               'en_route',
               'arrived',
               'in_progress',
+              'completed',
             ].contains(params['p_target_state']) ||
             params['p_reason_code'] != null)) {
       throw const RescuerFailure(
-        'Chỉ hỗ trợ cập nhật tiến độ đến bước hỗ trợ khách.',
+        'Thao tác trạng thái chuyến chưa được hỗ trợ.',
       );
     }
     if (userId == null) throw const RescuerFailure('Vui lòng đăng nhập lại.');
@@ -269,6 +303,9 @@ String rescuerError(Object error) {
       'VERSION_CONFLICT': 'Dữ liệu đã thay đổi. Tải lại trước khi tiếp tục.',
       'INVALID_STATUS_TRANSITION': 'Không thể chuyển sang trạng thái này. Tải lại chuyến và thực hiện bước tiếp theo.',
       'DOCUMENT_NOT_READY': 'Cần hoàn tất giấy tờ trước khi gửi duyệt.',
+      'INVALID_QUOTE': 'Kiểm tra số tiền, dịch vụ và ghi chú báo giá.',
+      'QUOTE_REQUIRED': 'Cần báo giá đã gửi trước khi hoàn tất chuyến.',
+      'QUOTE_IMMUTABLE': 'Báo giá đã gửi không thể chỉnh sửa. Tải lại chuyến để xem báo giá hiện tại.',
       'DISCOVERY_RATE_LIMITED':
           'Bạn tải đơn quá nhanh. Vui lòng thử lại sau một phút.',
       'RESCUER_BUSY':

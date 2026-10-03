@@ -26,6 +26,12 @@ class FakeLocation implements LocationService {
 
 class FakeService implements RescuerService {
   @override
+  Future<HistoryPage> history({Json? cursor}) async =>
+      const HistoryPage([], null);
+  @override
+  Future<HistoryJob> historyJob(String assignmentId) async =>
+      throw const RescuerFailure('Chưa có lịch sử.');
+  @override
   Future<ActiveJob?> getActiveJob() async => null;
   @override
   String? userId;

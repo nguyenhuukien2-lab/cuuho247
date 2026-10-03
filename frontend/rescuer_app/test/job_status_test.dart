@@ -386,7 +386,7 @@ void main() {
       expect(payloads[0], payloads[1]);
       expect(payloads[0].keys.toSet(), {...params.keys, 'p_operation_id'});
       expect(payloads[0]['p_operation_id'], isNotEmpty);
-      for (final target in ['completed', 'cancelled', 'accepted', 'arriving']) {
+      for (final target in ['cancelled', 'accepted', 'arriving']) {
         await expectLater(
           service.mutate('rescuer_update_job_status', {
             ...params,
