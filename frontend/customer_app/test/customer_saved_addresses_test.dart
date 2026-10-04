@@ -1,3 +1,4 @@
+import 'request_steps.dart';
 import 'package:cuu_ho_247/app/app_controller.dart';
 import 'package:cuu_ho_247/app/user_session.dart';
 import 'package:cuu_ho_247/screens/customer_saved_addresses_screen.dart';
@@ -68,37 +69,37 @@ void main() {
             controller: controller, repository: repo)));
     await tester.pumpAndSettle();
     expect(find.text('Chưa có địa chỉ đã lưu'), findsOneWidget);
-    await tester.tap(find.text('Thêm địa chỉ').first);
+    await tapRequest(tester, find.text('Thêm địa chỉ').first);
     await tester.pumpAndSettle();
-    await tester.enterText(
-        find.widgetWithText(TextFormField, 'Địa chỉ'), saved.address);
+    await enterRequest(
+        tester, find.widgetWithText(TextFormField, 'Địa chỉ'), saved.address);
     tester.testTextInput.hide();
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Lưu địa chỉ'));
+    await revealRequest(tester, find.text('Lưu địa chỉ'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Lưu địa chỉ'));
+    await tapRequest(tester, find.text('Lưu địa chỉ'));
     await tester.pumpAndSettle();
     expect(find.text(saved.address), findsOneWidget);
-    await tester.tap(find.text('Sửa địa chỉ'));
+    await tapRequest(tester, find.text('Sửa địa chỉ'));
     await tester.pumpAndSettle();
-    await tester.enterText(
-        find.widgetWithText(TextFormField, 'Địa chỉ'), '456 Lê Lợi');
+    await enterRequest(
+        tester, find.widgetWithText(TextFormField, 'Địa chỉ'), '456 Lê Lợi');
     tester.testTextInput.hide();
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Lưu địa chỉ'));
+    await revealRequest(tester, find.text('Lưu địa chỉ'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Lưu địa chỉ'));
+    await tapRequest(tester, find.text('Lưu địa chỉ'));
     await tester.pumpAndSettle();
     expect(find.text('456 Lê Lợi'), findsOneWidget);
-    await tester.tap(find.text('Xóa'));
+    await tapRequest(tester, find.text('Xóa'));
     await tester.pumpAndSettle();
     expect(repo.deletes, 0);
-    await tester.tap(find.text('Giữ lại'));
+    await tapRequest(tester, find.text('Giữ lại'));
     await tester.pumpAndSettle();
     expect(repo.deletes, 0);
-    await tester.tap(find.text('Xóa'));
+    await tapRequest(tester, find.text('Xóa'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Xóa địa chỉ'));
+    await tapRequest(tester, find.text('Xóa địa chỉ'));
     await tester.pumpAndSettle();
     expect(repo.deletes, 1);
     expect(find.text('Chưa có địa chỉ đã lưu'), findsOneWidget);
@@ -128,50 +129,63 @@ void main() {
                   locationService: gps,
                   addressRepository: repo))));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextFormField).at(2), 'An');
-      await tester.enterText(find.byType(TextFormField).at(3), '0900000000');
+      await enterRequest(
+          tester, find.byType(TextFormField, skipOffstage: false).at(2), 'An');
+      await enterRequest(tester,
+          find.byType(TextFormField, skipOffstage: false).at(3), '0900000000');
       tester.testTextInput.hide();
-      await tester.tap(find.text('Lấy vị trí hiện tại'));
+      await tapRequest(tester, find.text('Lấy vị trí hiện tại'));
       await tester.pump();
-      await tester.tap(find.descendant(
-          of: find.byType(SavedAddressPicker),
-          matching: find.byType(DropdownButton<String>)));
+      await tapRequest(
+          tester,
+          find.descendant(
+              of: find.byType(SavedAddressPicker),
+              matching: find.byType(DropdownButton<String>)));
       await tester.pump(const Duration(milliseconds: 400));
-      await tester.tap(find
-          .textContaining(hasCoordinates ? 'Nhà (Mặc định)' : 'Nhà —')
-          .last);
+      await tapRequest(
+          tester,
+          find
+              .textContaining(hasCoordinates ? 'Nhà (Mặc định)' : 'Nhà —')
+              .last);
       await tester.pump(const Duration(milliseconds: 400));
       gps.pending.complete(location.located);
       await tester.pumpAndSettle();
       expect(
           tester
-              .widget<TextFormField>(find.byType(TextFormField).first)
+              .widget<TextFormField>(
+                  find.byType(TextFormField, skipOffstage: false).first)
               .controller!
               .text,
           saved.address);
-      await tester.ensureVisible(find.text('Gửi yêu cầu cứu hộ'));
+      await revealRequest(tester, find.text('XÁC NHẬN ĐẶT CỨU HỘ'));
       await location.sendRequest(tester);
       expect(controller.submissions.single.address, saved.address);
       expect(
           controller.submissions.single.latitude, hasCoordinates ? 10.7 : null);
       expect(controller.submissions.single.longitude,
           hasCoordinates ? 106.7 : null);
-      await tester.ensureVisible(find.byType(SavedAddressPicker));
-      await tester.tap(find.descendant(
-          of: find.byType(SavedAddressPicker),
-          matching: find.byType(DropdownButton<String>)));
+      await revealRequest(tester, find.byType(SavedAddressPicker));
+      await tapRequest(
+          tester,
+          find.descendant(
+              of: find.byType(SavedAddressPicker),
+              matching: find.byType(DropdownButton<String>)));
       await tester.pumpAndSettle();
-      await tester.tap(find
-          .textContaining(hasCoordinates ? 'Nhà (Mặc định)' : 'Nhà —')
-          .last);
+      await tapRequest(
+          tester,
+          find
+              .textContaining(hasCoordinates ? 'Nhà (Mặc định)' : 'Nhà —')
+              .last);
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextFormField).first, '456 Lê Lợi');
+      await enterRequest(tester,
+          find.byType(TextFormField, skipOffstage: false).first, '456 Lê Lợi');
       tester.testTextInput.hide();
       await tester.pumpAndSettle();
+      await requestStep(tester, 4);
       expect(
           tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
           isFalse);
-      await tester.ensureVisible(find.text('Gửi yêu cầu cứu hộ'));
+      await revealRequest(tester, find.text('XÁC NHẬN ĐẶT CỨU HỘ'));
       await location.sendRequest(tester);
       expect(controller.submissions.last.address, '456 Lê Lợi');
       expect(controller.submissions.last.latitude, isNull);

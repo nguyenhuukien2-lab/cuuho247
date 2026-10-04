@@ -1,3 +1,4 @@
+import 'request_steps.dart';
 import 'dart:convert';
 
 import 'package:cuu_ho_247/app/app_controller.dart';
@@ -77,12 +78,12 @@ void main() {
       final controller = photos.PhotoController();
       final repository = photos.FakePhotos();
       await photos.mount(tester, controller, photos.FakePicker(), repository);
-      await tester.tap(find.text('Chọn ảnh'));
+      await tapRequest(tester, find.text('Chọn ảnh'));
       await tester.pumpAndSettle();
-      await tester.enterText(addressField(), value);
+      await enterRequest(tester, addressField(), value);
       tester.testTextInput.hide();
       await tester.pump();
-      await tester.tap(find.text('Gửi yêu cầu cứu hộ'));
+      await tapRequest(tester, find.text('XÁC NHẬN ĐẶT CỨU HỘ'));
       await tester.pumpAndSettle();
       expect(controller.creates, 0);
       expect(repository.uploaded, isEmpty);
@@ -91,11 +92,11 @@ void main() {
               of: addressField(), matching: find.text(addressMessage)),
           findsOneWidget);
       expect(addressHasFocus(tester), isTrue);
-      expect(find.text('Xe nổ lốp'), findsOneWidget);
-      expect(find.text('Khách hàng'), findsOneWidget);
-      expect(find.text('0900000000'), findsOneWidget);
-      expect(find.byType(Image), findsOneWidget);
-      await tester.enterText(addressField(), '  456 Lê Lợi  ');
+      expect(find.text('Xe nổ lốp', skipOffstage: false), findsOneWidget);
+      expect(find.text('Khách hàng', skipOffstage: false), findsOneWidget);
+      expect(find.text('0900000000', skipOffstage: false), findsOneWidget);
+      expect(find.byType(Image, skipOffstage: false), findsOneWidget);
+      await enterRequest(tester, addressField(), '  456 Lê Lợi  ');
       tester.testTextInput.hide();
       await tester.pump();
       await location.sendRequest(tester);
@@ -119,18 +120,19 @@ void main() {
     final scroll = tester
         .widget<CustomScrollView>(find.byType(CustomScrollView))
         .controller!;
+    await requestStep(tester, 4);
     for (var i = 0;
         i < 8 && find.byType(CheckboxListTile).evaluate().isEmpty;
         i++) {
       scroll.jumpTo(scroll.position.maxScrollExtent);
       await tester.pumpAndSettle();
     }
-    await tester.ensureVisible(find.byType(CheckboxListTile));
+    await revealRequest(tester, find.byType(CheckboxListTile));
     await tester.pumpAndSettle();
-    expect(tester.getRect(addressField()).bottom, lessThan(0));
-    await tester.tap(find.byType(CheckboxListTile));
+    expect(addressField(), findsNothing);
+    await tapRequest(tester, find.byType(CheckboxListTile));
     await tester.pump();
-    await tester.tap(find.text('Gửi yêu cầu cứu hộ'));
+    await tapRequest(tester, find.text('XÁC NHẬN ĐẶT CỨU HỘ'));
     await tester.pumpAndSettle();
     expect(controller.submissions, isEmpty);
     expect(
@@ -149,7 +151,7 @@ void main() {
       final controller = location.CapturingController();
       final gps = location.FakeLocationService();
       await location.mountForm(tester, controller, gps);
-      await tester.enterText(addressField(), ' ');
+      await enterRequest(tester, addressField(), ' ');
       tester.testTextInput.hide();
       await tester.pumpAndSettle();
       if (useMap) {
@@ -157,7 +159,7 @@ void main() {
             tester.getCenter(find.byType(FlutterMap)) + const Offset(35, -20));
         await tester.pump(const Duration(milliseconds: 400));
       } else {
-        await tester.tap(find.text('Lấy vị trí hiện tại'));
+        await tapRequest(tester, find.text('Lấy vị trí hiện tại'));
         gps.pending.complete(location.located);
       }
       await tester.pumpAndSettle();
@@ -180,23 +182,25 @@ void main() {
     addTearDown(controller.dispose);
     await tester.pumpWidget(MaterialApp(
         home: Scaffold(body: NewRequestScreen(controller: controller))));
-    await tester.enterText(addressField(), '123 Nguyễn Huệ');
-    await tester.enterText(find.byType(TextFormField).at(2), 'An');
-    await tester.enterText(find.byType(TextFormField).at(3), '0900000000');
+    await enterRequest(tester, addressField(), '123 Nguyễn Huệ');
+    await enterRequest(
+        tester, find.byType(TextFormField, skipOffstage: false).at(2), 'An');
+    await enterRequest(tester,
+        find.byType(TextFormField, skipOffstage: false).at(3), '0900000000');
     tester.testTextInput.hide();
     await location.sendRequest(tester);
     final originalKey = controller.keys.single;
-    await tester.enterText(addressField(), '   ');
+    await enterRequest(tester, addressField(), '   ');
     tester.testTextInput.hide();
     await tester.pump();
-    await tester.tap(find.text('Thử lại'));
+    await tapRequest(tester, find.text('Thử lại'));
     await tester.pumpAndSettle();
     expect(controller.keys, [originalKey]);
-    await tester.enterText(addressField(), '  789 Lê Lợi  ');
+    await enterRequest(tester, addressField(), '  789 Lê Lợi  ');
     tester.testTextInput.hide();
-    await tester.tap(find.byType(CheckboxListTile));
+    await tapRequest(tester, find.byType(CheckboxListTile));
     await tester.pump();
-    await tester.tap(find.text('Thử lại'));
+    await tapRequest(tester, find.text('Thử lại'));
     await tester.pumpAndSettle();
     expect(controller.keys, [originalKey, originalKey]);
     expect(controller.submittedAddresses.last, '789 Lê Lợi');

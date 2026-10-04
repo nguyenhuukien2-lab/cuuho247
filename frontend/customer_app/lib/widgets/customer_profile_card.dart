@@ -5,13 +5,19 @@ import '../app/user_session.dart';
 import '../services/customer_profile_service.dart';
 import '../services/supabase_service.dart';
 import 'customer_ui.dart';
+import 'account_ui.dart';
 
 class CustomerProfileCard extends StatefulWidget {
   const CustomerProfileCard(
       {super.key,
       required this.controller,
+      this.royal = false,
+      this.vehicleCount,
+      this.completedCount,
       this.repository = const SupabaseCustomerProfileRepository()});
   final AppController controller;
+  final bool royal;
+  final int? vehicleCount, completedCount;
   final CustomerProfileRepository repository;
   @override
   State<CustomerProfileCard> createState() => _CustomerProfileCardState();
@@ -101,6 +107,32 @@ class _CustomerProfileCardState extends State<CustomerProfileCard> {
   Widget build(BuildContext context) {
     final data = profile;
     final name = displayCustomerName(data?.fullName ?? UserSession.fullName);
+    if (widget.royal && owner != null) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        CustomerAccountHeaderCard(
+            name: name,
+            phone: data?.phone ?? UserSession.phoneNumber,
+            email: data?.email ?? UserSession.email,
+            onEdit: data != null && !loading ? edit : null,
+            onReload: data != null && !loading ? load : null,
+            vehicleCount: widget.vehicleCount,
+            completedCount: widget.completedCount),
+        if (loading) ...[
+          const SizedBox(height: 12),
+          const LinearProgressIndicator(),
+          const Text('Đang tải hồ sơ…')
+        ],
+        if (error != null) ...[
+          const SizedBox(height: 12),
+          InlineNotice(error!, onRetry: loading ? null : load)
+        ],
+        if (saved)
+          const Padding(
+              padding: EdgeInsets.only(top: 12),
+              child: Text('Đã lưu thông tin cá nhân.',
+                  style: TextStyle(color: AppColors.success))),
+      ]);
+    }
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       if (owner == null)
         CustomerEmptyState(

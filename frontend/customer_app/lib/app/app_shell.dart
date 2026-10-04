@@ -6,8 +6,8 @@ import '../screens/new_home_screen.dart';
 import '../screens/new_request_screen.dart';
 import '../screens/new_tracking_screen.dart';
 import 'app_controller.dart';
-import 'app_theme.dart';
 import 'user_session.dart';
+import '../widgets/booking_ui.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.controller, this.initialIndex});
@@ -29,7 +29,10 @@ class _AppShellState extends State<AppShell>
       widget.controller.tabIndex = widget.initialIndex!;
     _lastTab = widget.controller.tabIndex;
     _fade = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 180), value: 1);
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+      value: 1,
+    );
     widget.controller.addListener(_refresh);
   }
 
@@ -57,12 +60,16 @@ class _AppShellState extends State<AppShell>
   @override
   Widget build(BuildContext context) {
     final pages = [
-      NewHomeScreen(controller: widget.controller),
-      NewRequestScreen(
+      NewHomeScreen(
           key: ValueKey(UserSession.userId), controller: widget.controller),
+      NewRequestScreen(
+        key: ValueKey(UserSession.userId),
+        controller: widget.controller,
+      ),
       NewTrackingScreen(
-          controller: widget.controller,
-          isActive: widget.controller.tabIndex == 2),
+        controller: widget.controller,
+        isActive: widget.controller.tabIndex == 2,
+      ),
       NewHistoryScreen(controller: widget.controller),
       NewAccountScreen(controller: widget.controller),
     ];
@@ -75,40 +82,12 @@ class _AppShellState extends State<AppShell>
             : FadeTransition(
                 opacity: _fade,
                 child: IndexedStack(
-                    index: widget.controller.tabIndex, children: pages)),
+                  index: widget.controller.tabIndex,
+                  children: pages,
+                ),
+              ),
       ),
-      bottomNavigationBar: _BottomNavigation(controller: widget.controller),
-    );
-  }
-}
-
-class _BottomNavigation extends StatelessWidget {
-  const _BottomNavigation({required this.controller});
-  final AppController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    const items = [
-      (Icons.home_outlined, Icons.home_rounded, 'Trang chủ'),
-      (Icons.build_circle_outlined, Icons.build_circle, 'Cứu hộ'),
-      (Icons.route_outlined, Icons.route, 'Đang xử lý'),
-      (Icons.history_outlined, Icons.history, 'Lịch sử'),
-      (Icons.person_outline_rounded, Icons.person_rounded, 'Tài khoản'),
-    ];
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: AppColors.border))),
-      child: NavigationBar(
-        selectedIndex: controller.tabIndex,
-        onDestinationSelected: controller.selectTab,
-        destinations: [
-          for (final item in items)
-            NavigationDestination(
-                icon: Icon(item.$1),
-                selectedIcon: Icon(item.$2),
-                label: item.$3),
-        ],
-      ),
+      bottomNavigationBar: CustomerBottomNav(controller: widget.controller),
     );
   }
 }

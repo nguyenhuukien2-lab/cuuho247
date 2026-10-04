@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../app/app_controller.dart';
 import '../app/app_theme.dart';
 
-/// Vertical steps retain readable labels on narrow screens and large text.
+/// Compact progress wraps into two rows on narrow screens.
 class RequestTimeline extends StatelessWidget {
   const RequestTimeline({super.key, required this.stage});
   final RequestStage stage;
@@ -10,29 +10,45 @@ class RequestTimeline extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const labels = [
+      'Đã gửi',
       'Đang tìm',
       'Đã nhận',
       'Đang đến',
-      'Đang cứu hộ',
+      'Đang hỗ trợ',
       'Hoàn tất'
     ];
-    const icons = [
-      Icons.search_rounded,
-      Icons.task_alt_rounded,
-      Icons.navigation_rounded,
-      Icons.build_rounded,
-      Icons.check_circle_rounded
-    ];
-    final current = stage == RequestStage.cancelled ? -1 : stage.index;
-    return Column(children: [
-      for (var i = 0; i < labels.length; i++)
-        TimelineEntry(
-            title: labels[i],
-            icon: icons[i],
-            active: i <= current,
-            current: i == current,
-            last: i == labels.length - 1),
-    ]);
+    final current = stage == RequestStage.cancelled ? 0 : stage.index + 1;
+    return LayoutBuilder(
+        builder: (context, box) => Wrap(spacing: 8, runSpacing: 12, children: [
+              for (var i = 0; i < labels.length; i++)
+                SizedBox(
+                    width: (box.maxWidth - 16) / 3,
+                    child: Column(children: [
+                      Icon(
+                          i < current
+                              ? Icons.check_circle
+                              : i == current
+                                  ? Icons.radio_button_checked
+                                  : Icons.radio_button_unchecked,
+                          color: i < current
+                              ? AppColors.success
+                              : i == current
+                                  ? AppColors.orange
+                                  : AppColors.muted,
+                          size: 24),
+                      const SizedBox(height: 6),
+                      Text(labels[i],
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: i == current
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              color: i <= current
+                                  ? AppColors.text
+                                  : AppColors.muted)),
+                    ])),
+            ]));
   }
 }
 

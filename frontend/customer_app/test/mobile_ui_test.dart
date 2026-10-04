@@ -1,3 +1,4 @@
+import 'request_steps.dart';
 import 'package:cuu_ho_247/app/app_controller.dart';
 import 'package:cuu_ho_247/app/app_shell.dart';
 import 'package:cuu_ho_247/app/app_theme.dart';
@@ -83,6 +84,7 @@ void main() {
       Future<void> scrollTo(WidgetTester tester, Finder target) async {
         final state =
             tester.state<ScrollableState>(find.byType(Scrollable).first);
+        await revealRequest(tester, target);
         state.position.jumpTo(0);
         await tester.pump();
         for (var i = 0; i < 40 && target.evaluate().isEmpty; i++) {
@@ -90,7 +92,7 @@ void main() {
               .clamp(0, state.position.maxScrollExtent));
           await tester.pump(const Duration(milliseconds: 100));
         }
-        await tester.ensureVisible(target);
+        await revealRequest(tester, target);
         await tester.pump();
       }
 
@@ -101,16 +103,24 @@ void main() {
         final controller = AppController()..restoringSession = false;
         addTearDown(controller.dispose);
         await mount(tester, AppShell(controller: controller));
-        final cta = find.text('Gọi cứu hộ ngay');
+        final cta = find.text('YÊU CẦU CỨU HỘ NGAY');
         expect(tester.getRect(cta).right, lessThanOrEqualTo(size.width - 16));
-        await tester.tap(cta);
+        await tapRequest(tester, cta);
         await tester.pump(const Duration(milliseconds: 250));
         expect(controller.tabIndex, 1);
         final address = find.widgetWithText(TextFormField, 'Địa chỉ');
         await scrollTo(tester, address);
-        await tester.enterText(address, longAddress);
+        await enterRequest(tester, address, longAddress);
         for (final index in [2, 3, 4, 0, 1]) {
-          await tester.tap(find.byType(NavigationDestination).at(index));
+          await tapRequest(
+              tester,
+              find.text(const [
+                'Trang chủ',
+                'Đặt cứu hộ',
+                'Theo dõi',
+                'Lịch sử',
+                'Tài khoản'
+              ][index]));
           await tester.pump(const Duration(milliseconds: 250));
           expect(controller.tabIndex, index);
           expect(tester.takeException(), isNull);
@@ -118,7 +128,15 @@ void main() {
         await scrollTo(tester, address);
         final field = tester.widget<TextFormField>(address);
         expect(field.controller!.text, longAddress);
-        expect(find.byType(NavigationDestination), findsNWidgets(5));
+        for (final label in [
+          'Trang chủ',
+          'Theo dõi',
+          'Đặt cứu hộ',
+          'Lịch sử',
+          'Tài khoản'
+        ]) {
+          expect(find.text(label), findsOneWidget);
+        }
         await tester.pumpWidget(const SizedBox.shrink());
       });
 
@@ -144,18 +162,18 @@ void main() {
         final choose = find.text('Chọn ảnh');
         await scrollTo(tester, choose);
         for (var i = 0; i < 3; i++) {
-          await tester.ensureVisible(choose);
-          await tester.tap(choose);
+          await revealRequest(tester, choose);
+          await tapRequest(tester, choose);
           await tester.pump(const Duration(milliseconds: 100));
         }
         expect(find.byTooltip('Bỏ ảnh'), findsNWidgets(3));
         expect(tester.takeException(), isNull);
         tester.view.viewInsets = const FakeViewPadding(bottom: 300);
         await tester.pump();
-        await scrollTo(tester, find.text('Gửi yêu cầu cứu hộ'));
-        await tester.ensureVisible(find.text('Gửi yêu cầu cứu hộ'));
+        await scrollTo(tester, find.text('XÁC NHẬN ĐẶT CỨU HỘ'));
+        await revealRequest(tester, find.text('XÁC NHẬN ĐẶT CỨU HỘ'));
         await tester.pump();
-        expect(tester.getRect(find.text('Gửi yêu cầu cứu hộ')).bottom,
+        expect(tester.getRect(find.text('XÁC NHẬN ĐẶT CỨU HỘ')).bottom,
             lessThanOrEqualTo(size.height - 300));
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());
@@ -220,7 +238,7 @@ void main() {
         await scrollTo(tester, find.byTooltip('5 sao'));
         expect(tester.getSize(find.byTooltip('5 sao')).width,
             greaterThanOrEqualTo(48));
-        await tester.tap(find.byTooltip('5 sao'));
+        await tapRequest(tester, find.byTooltip('5 sao'));
         await tester.pump();
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());
@@ -238,7 +256,7 @@ void main() {
                 controller: controller,
                 repository: vehicles.VehiclesFake()
                   ..vehicles = [vehicles.truck]));
-        await tester.tap(find.text('Sửa xe'));
+        await tapRequest(tester, find.text('Sửa xe'));
         await tester.pumpAndSettle();
         await scrollAll(tester);
         await tester.pumpWidget(const SizedBox.shrink());
@@ -248,7 +266,7 @@ void main() {
                 controller: controller,
                 repository: addresses.AddressesFake()
                   ..addresses = [addresses.saved]));
-        await tester.tap(find.text('Sửa địa chỉ'));
+        await tapRequest(tester, find.text('Sửa địa chỉ'));
         await tester.pumpAndSettle();
         await scrollAll(tester);
         await tester.pumpWidget(const SizedBox.shrink());
@@ -260,12 +278,12 @@ void main() {
                     child: CustomerProfileCard(
                         controller: controller,
                         repository: profile.ProfileFake()))));
-        await tester.ensureVisible(find.text('Chỉnh sửa thông tin'));
-        await tester.tap(find.text('Chỉnh sửa thông tin'));
+        await revealRequest(tester, find.text('Chỉnh sửa thông tin'));
+        await tapRequest(tester, find.text('Chỉnh sửa thông tin'));
         await tester.pump();
         tester.view.viewInsets = const FakeViewPadding(bottom: 300);
         await tester.pump();
-        await tester.ensureVisible(find.text('Lưu thay đổi'));
+        await revealRequest(tester, find.text('Lưu thay đổi'));
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());
       });

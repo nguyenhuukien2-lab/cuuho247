@@ -105,10 +105,13 @@ class ChoiceTile extends StatelessWidget {
       required this.icon,
       required this.label,
       required this.selected,
+      this.selectedColor = AppColors.navy,
+      this.selectedBackground = AppColors.selected,
       required this.onTap});
   final IconData icon;
   final String label;
   final bool selected;
+  final Color selectedColor, selectedBackground;
   final VoidCallback? onTap;
   @override
   Widget build(BuildContext context) => Semantics(
@@ -121,10 +124,10 @@ class ChoiceTile extends StatelessWidget {
               : const Duration(milliseconds: 160),
           constraints: const BoxConstraints(minHeight: 76),
           decoration: BoxDecoration(
-              color: selected ? AppColors.selected : AppColors.surface,
+              color: selected ? selectedBackground : AppColors.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                  color: selected ? AppColors.navy : AppColors.border,
+                  color: selected ? selectedColor : AppColors.border,
                   width: selected ? 1.5 : 1)),
           child: Material(
               color: Colors.transparent,
@@ -136,7 +139,7 @@ class ChoiceTile extends StatelessWidget {
                       child: Row(children: [
                         Icon(icon,
                             size: 24,
-                            color: selected ? AppColors.navy : AppColors.muted),
+                            color: selected ? selectedColor : AppColors.muted),
                         const SizedBox(width: 8),
                         Expanded(
                             child: Text(label,
@@ -148,7 +151,7 @@ class ChoiceTile extends StatelessWidget {
                                     color: onTap == null
                                         ? AppColors.muted
                                         : selected
-                                            ? AppColors.navy
+                                            ? selectedColor
                                             : AppColors.text))),
                       ]))))));
 }

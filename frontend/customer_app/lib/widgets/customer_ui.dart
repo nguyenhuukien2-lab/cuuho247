@@ -29,27 +29,43 @@ class ScreenHeader extends StatelessWidget {
   final String? subtitle;
   final Widget? trailing;
   @override
-  Widget build(BuildContext context) => Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: Theme.of(context).textTheme.headlineSmall),
-          if (subtitle != null) ...[
-            const SizedBox(height: 8),
-            Text(subtitle!, style: const TextStyle(color: AppColors.muted))
-          ],
-        ])),
-        if (trailing != null) trailing!,
-      ]));
+  Widget build(BuildContext context) => Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+            color: AppColors.navy, borderRadius: BorderRadius.circular(20)),
+        child: Row(children: [
+          const Icon(Icons.health_and_safety_outlined,
+              color: Colors.white, size: 26),
+          const SizedBox(width: 12),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text(title,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700)),
+                if (subtitle != null)
+                  Text(subtitle!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 12)),
+              ])),
+          if (trailing != null) trailing!,
+        ]),
+      );
 }
 
 /// Natural tile height allows Vietnamese labels to wrap at large text sizes.
 class ServiceGrid extends StatelessWidget {
-  const ServiceGrid({super.key, this.selected, required this.onSelected});
+  const ServiceGrid({super.key, this.selected, required this.onSelected, this.selectedColor = AppColors.navy, this.selectedBackground = AppColors.selected});
   final RescueService? selected;
   final ValueChanged<RescueService>? onSelected;
+  final Color selectedColor, selectedBackground;
   @override
   Widget build(BuildContext context) => LayoutBuilder(
       builder: (context, box) => Column(children: [
@@ -64,6 +80,8 @@ class ServiceGrid extends StatelessWidget {
                       Expanded(
                           child: row + column < RescueService.values.length
                               ? ChoiceTile(
+                                  selectedColor: selectedColor,
+                                  selectedBackground: selectedBackground,
                                   icon: serviceIcon(
                                       RescueService.values[row + column]),
                                   label:
@@ -188,4 +206,21 @@ class SettingsRow extends StatelessWidget {
         subtitle: Text(subtitle),
         trailing: const Icon(Icons.chevron_right_rounded),
       );
+}
+
+/// Secondary content is available on demand without losing local widget state.
+class MoreDetails extends StatelessWidget {
+  const MoreDetails({super.key, required this.title, required this.children});
+  final String title;
+  final List<Widget> children;
+  @override
+  Widget build(BuildContext context) => Card(
+          child: ExpansionTile(
+        key: PageStorageKey('details-$title'),
+        title: Text(title),
+        maintainState: true,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+        childrenPadding: const EdgeInsets.all(16),
+        children: children,
+      ));
 }

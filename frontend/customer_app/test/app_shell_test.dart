@@ -9,14 +9,14 @@ void main() {
     await tester.pump();
 
     expect(find.text('Trang chủ'), findsOneWidget);
-    expect(find.text('Cứu hộ'), findsOneWidget);
-    expect(find.text('Đang xử lý'), findsOneWidget);
+    expect(find.text('Đặt cứu hộ'), findsOneWidget);
+    expect(find.text('Theo dõi'), findsOneWidget);
     expect(find.text('Lịch sử'), findsOneWidget);
     expect(find.text('Tài khoản'), findsOneWidget);
 
-    await tester.tap(find.text('Cứu hộ'));
+    await tester.tap(find.text('Đặt cứu hộ'));
     await tester.pump();
-    expect(find.text('Tạo yêu cầu cứu hộ'), findsOneWidget);
+    expect(find.text('Chọn dịch vụ'), findsOneWidget);
     expect(find.byType(ServiceGrid), findsOneWidget);
   });
 }

@@ -1,3 +1,4 @@
+import 'request_steps.dart';
 import 'package:cuu_ho_247/app/app_controller.dart';
 import 'package:cuu_ho_247/screens/history_details_screen.dart';
 import 'package:cuu_ho_247/screens/new_tracking_screen.dart';
@@ -130,8 +131,7 @@ void main() {
     final gps = form.FakeLocationService();
     await form.mountForm(tester, controller, gps);
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(CheckboxListTile));
-    await tester.tap(find.text('Lấy vị trí hiện tại'));
+    await tapRequest(tester, find.text('Lấy vị trí hiện tại'));
     await tester.pump();
     await tester.tapAt(
         tester.getCenter(find.byType(FlutterMap)) + const Offset(35, -20));
@@ -140,6 +140,7 @@ void main() {
     await tester.pumpAndSettle();
     final marker =
         tester.widget<MarkerLayer>(find.byType(MarkerLayer)).markers.single;
+    await requestStep(tester, 4);
     expect(tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
         isFalse);
     expect(marker.point.latitude, isNot(form.located.coordinates!.latitude));
@@ -155,7 +156,7 @@ void main() {
     final controller = form.CapturingController();
     final gps = form.FakeLocationService();
     await form.mountForm(tester, controller, gps);
-    await tester.tap(find.text('Lấy vị trí hiện tại'));
+    await tapRequest(tester, find.text('Lấy vị trí hiện tại'));
     gps.pending.complete(form.located);
     await tester.pumpAndSettle();
     expect(mapController(tester).camera.center.latitude,

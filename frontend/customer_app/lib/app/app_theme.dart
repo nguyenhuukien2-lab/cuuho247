@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 
 abstract final class AppColors {
-  static const background = Color(0xFFF7F9FC);
+  static const background = Color(0xFFF5F7FA);
   static const surface = Color(0xFFFFFFFF);
-  static const navy = Color(0xFF123B66);
+  static const navy = Color(0xFF0B2540);
   static const selected = Color(0xFFE6EFF8);
-  static const orange = Color(0xFFE85D04);
+  static const orange = Color(0xFFFF5A1F);
   static const orangePressed = Color(0xFFC94D0A);
   static const orangeSoft = Color(0xFFFFF0E6);
-  static const text = Color(0xFF17202A);
-  static const muted = Color(0xFF667085);
+  static const text = Color(0xFF111827);
+  static const muted = Color(0xFF6B7280);
   static const border = Color(0xFFDCE3EA);
-  static const success = Color(0xFF16835D);
-  static const warning = Color(0xFFB76E00);
-  static const error = Color(0xFFC62828);
+  static const success = Color(0xFF16A34A);
+  static const warning = Color(0xFFF59E0B);
+  static const error = Color(0xFFDC2626);
   static const info = Color(0xFF175CD3);
   static const progress = Color(0xFF3646A0);
 }
@@ -25,7 +25,7 @@ abstract final class AppSpacing {
 }
 
 abstract final class AppRadius {
-  static const small = 8.0, card = 12.0, featured = 12.0;
+  static const small = 8.0, card = 20.0, featured = 20.0;
 }
 
 abstract final class AppTheme {
@@ -99,7 +99,7 @@ abstract final class AppTheme {
       textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(minimumSize: const Size(48, 48))),
       navigationBarTheme: NavigationBarThemeData(
-        height: 72,
+        height: 68,
         elevation: 0,
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,

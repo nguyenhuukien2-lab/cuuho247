@@ -140,7 +140,7 @@ void main() {
     expect(controller.watchedIds, ['request-a']);
     controller.streams.last.add(request(RequestStage.inProgress, tick: 2));
     await tester.pump();
-    expect(find.text('Đang hỗ trợ'), findsOneWidget);
+    expect(find.text('Đối tác đang hỗ trợ'), findsWidgets);
     controller.replaceRequest(request(RequestStage.accepted, id: 'request-b'));
     await tester.pump();
     expect(controller.watchedIds, ['request-a', 'request-b']);

@@ -1,3 +1,4 @@
+import 'request_steps.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -105,14 +106,15 @@ Future<void> mount(WidgetTester tester, PhotoController controller,
               controller: controller,
               photoPicker: picker,
               photoRepository: repository))));
-  final fields = find.byType(TextFormField);
-  await tester.enterText(fields.at(0), 'Địa chỉ được giữ lại');
-  await tester.enterText(fields.at(1), 'Xe nổ lốp');
-  await tester.enterText(fields.at(2), 'Khách hàng');
-  await tester.enterText(fields.at(3), '0900000000');
+  final fields = find.byType(TextFormField, skipOffstage: false);
+  await enterRequest(tester, fields.at(0), 'Địa chỉ được giữ lại');
+  await enterRequest(tester, fields.at(1), 'Xe nổ lốp');
+  await enterRequest(tester, fields.at(2), 'Khách hàng');
+  await enterRequest(tester, fields.at(3), '0900000000');
   tester.testTextInput.hide();
-  await tester.tap(find.byType(CheckboxListTile));
+  await tapRequest(tester, find.byType(CheckboxListTile));
   await tester.pumpAndSettle();
+  await requestStep(tester, 3);
 }
 
 void main() {
@@ -144,24 +146,25 @@ void main() {
     final picker = FakePicker();
     await mount(tester, PhotoController(), picker, FakePhotos());
     for (final label in ['Chọn ảnh', 'Chụp ảnh', 'Chọn ảnh']) {
-      await tester.tap(find.text(label));
+      await tapRequest(tester, find.text(label));
       await tester.pumpAndSettle();
     }
-    expect(find.byType(Image), findsNWidgets(3));
+    expect(find.byType(Image, skipOffstage: false), findsNWidgets(3));
     expect(picker.cameras, [false, true, false]);
-    await tester.tap(find.text('Chọn ảnh'));
+    await tapRequest(tester, find.text('Chọn ảnh'));
     expect(picker.count, 3);
-    await tester.tap(find.byTooltip('Bỏ ảnh').first);
+    await tapRequest(tester, find.byTooltip('Bỏ ảnh').first);
     await tester.pumpAndSettle();
     picker.cancel = true;
-    await tester.tap(find.text('Chọn ảnh'));
+    await tapRequest(tester, find.text('Chọn ảnh'));
     await tester.pumpAndSettle();
-    expect(find.byType(Image), findsNWidgets(2));
+    expect(find.byType(Image, skipOffstage: false), findsNWidgets(2));
     picker.fail = true;
-    await tester.tap(find.text('Chụp ảnh'));
+    await tapRequest(tester, find.text('Chụp ảnh'));
     await tester.pumpAndSettle();
     expect(find.text('Không mở được camera.'), findsOneWidget);
-    expect(find.text('Địa chỉ được giữ lại'), findsOneWidget);
+    expect(
+        find.text('Địa chỉ được giữ lại', skipOffstage: false), findsWidgets);
   });
 
   testWidgets(
@@ -171,32 +174,32 @@ void main() {
     final repository = FakePhotos()..failId = 'photo-2';
     await mount(tester, controller, FakePicker(), repository);
     for (var i = 0; i < 3; i++) {
-      await tester.tap(find.text('Chọn ảnh'));
+      await tapRequest(tester, find.text('Chọn ảnh'));
       await tester.pumpAndSettle();
     }
-    await tester.tap(find.text('Gửi yêu cầu cứu hộ'));
+    await tapRequest(tester, find.text('XÁC NHẬN ĐẶT CỨU HỘ'));
     await tester.pumpAndSettle();
     expect(controller.creates, 1);
     expect(controller.tabIndex, 1);
     expect(repository.uploaded, ['photo-1']);
     expect(find.textContaining('Mất kết nối.'), findsOneWidget);
-    expect(find.byType(Image), findsNWidgets(3));
+    expect(find.byType(Image, skipOffstage: false), findsNWidgets(3));
     for (final value in [
       'Địa chỉ được giữ lại',
       'Xe nổ lốp',
       'Khách hàng',
       '0900000000'
     ]) {
-      expect(find.text(value), findsOneWidget);
+      expect(find.text(value, skipOffstage: false), findsWidgets);
     }
     repository.failId = null;
-    await tester.tap(find.text('Thử lại'));
+    await tapRequest(tester, find.text('Thử lại'));
     await tester.pumpAndSettle();
     expect(controller.creates, 1);
     expect(repository.uploaded, ['photo-1', 'photo-2', 'photo-3']);
     expect(repository.requestIds.toSet(), {'request-1'});
     expect(controller.tabIndex, 2);
-    expect(find.byType(Image), findsNothing);
+    expect(find.byType(Image, skipOffstage: false), findsNothing);
   });
 
   testWidgets(
@@ -205,14 +208,14 @@ void main() {
     final controller = PhotoController()..fail = true;
     final repository = FakePhotos();
     await mount(tester, controller, FakePicker(), repository);
-    await tester.tap(find.text('Chọn ảnh'));
+    await tapRequest(tester, find.text('Chọn ảnh'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Gửi yêu cầu cứu hộ'));
+    await tapRequest(tester, find.text('XÁC NHẬN ĐẶT CỨU HỘ'));
     await tester.pumpAndSettle();
     expect(repository.uploaded, isEmpty);
-    expect(find.byType(Image), findsOneWidget);
+    expect(find.byType(Image, skipOffstage: false), findsOneWidget);
     controller.fail = false;
-    await tester.tap(find.text('Thử lại'));
+    await tapRequest(tester, find.text('Thử lại'));
     await tester.pumpAndSettle();
     expect(controller.keys.toSet(), hasLength(1));
     expect(repository.uploaded, ['photo-1']);
@@ -224,13 +227,13 @@ void main() {
     final controller = PhotoController()..returnOtherRequest = true;
     final repository = FakePhotos();
     await mount(tester, controller, FakePicker(), repository);
-    await tester.tap(find.text('Chọn ảnh'));
+    await tapRequest(tester, find.text('Chọn ảnh'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Gửi yêu cầu cứu hộ'));
+    await tapRequest(tester, find.text('XÁC NHẬN ĐẶT CỨU HỘ'));
     await tester.pumpAndSettle();
     expect(repository.uploaded, isEmpty);
     expect(find.textContaining('Ảnh chưa được gửi.'), findsOneWidget);
-    expect(find.byType(Image), findsOneWidget);
+    expect(find.byType(Image, skipOffstage: false), findsOneWidget);
   });
 
   testWidgets(
@@ -247,26 +250,26 @@ void main() {
                 repository: repository)));
     await tester.pumpWidget(card('customer-a'));
     await tester.pumpAndSettle();
-    expect(find.byType(Image), findsOneWidget);
+    expect(find.byType(Image, skipOffstage: false), findsOneWidget);
     repository.listFails = true;
-    await tester.tap(find.byTooltip('Tải lại ảnh'));
+    await tapRequest(tester, find.byTooltip('Tải lại ảnh'));
     await tester.pumpAndSettle();
     expect(find.text('Không tải được ảnh sự cố. Vui lòng thử lại.'),
         findsOneWidget);
     repository.listFails = false;
     repository.items = [];
-    await tester.tap(find.byTooltip('Tải lại ảnh'));
+    await tapRequest(tester, find.byTooltip('Tải lại ảnh'));
     await tester.pumpAndSettle();
     expect(find.text('Chưa có ảnh sự cố.'), findsOneWidget);
     final old = Completer<List<RequestPhoto>>();
     repository.pendingList = old;
-    await tester.tap(find.byTooltip('Tải lại ảnh'));
+    await tapRequest(tester, find.byTooltip('Tải lại ảnh'));
     await tester.pump();
     repository.pendingList = null;
     await tester.pumpWidget(card('customer-b'));
     old.complete([const RequestPhoto(id: 'a', url: 'https://example.test/a')]);
     await tester.pumpAndSettle();
-    expect(find.byType(Image), findsNothing);
+    expect(find.byType(Image, skipOffstage: false), findsNothing);
     expect(find.text('Chưa có ảnh sự cố.'), findsOneWidget);
   });
 }

@@ -1,3 +1,4 @@
+import 'request_steps.dart';
 import 'dart:async';
 
 import 'package:cuu_ho_247/app/app_controller.dart';
@@ -50,16 +51,17 @@ void main() {
     await tester.pumpWidget(MaterialApp(
         theme: AppTheme.light,
         home: Scaffold(body: NewRequestScreen(controller: controller))));
-    final fields = find.byType(TextFormField);
+    final fields = find.byType(TextFormField, skipOffstage: false);
     expect(fields, findsNWidgets(4));
-    await tester.enterText(fields.at(0), 'Địa điểm kiểm thử do khách xác nhận');
-    await tester.enterText(fields.at(1), 'Mô tả kiểm thử');
-    await tester.enterText(fields.at(2), 'Khách kiểm thử');
-    await tester.enterText(fields.at(3), '0900000000');
-    await tester.tap(find.byType(CheckboxListTile));
+    await enterRequest(
+        tester, fields.at(0), 'Địa điểm kiểm thử do khách xác nhận');
+    await enterRequest(tester, fields.at(1), 'Mô tả kiểm thử');
+    await enterRequest(tester, fields.at(2), 'Khách kiểm thử');
+    await enterRequest(tester, fields.at(3), '0900000000');
+    await tapRequest(tester, find.byType(CheckboxListTile));
     tester.testTextInput.hide();
     await tester.pump();
-    await tester.tap(find.text('Gửi yêu cầu cứu hộ'));
+    await tapRequest(tester, find.text('XÁC NHẬN ĐẶT CỨU HỘ'));
     await tester.pump();
     expect(controller.keys, hasLength(1));
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
@@ -75,11 +77,11 @@ void main() {
       'Khách kiểm thử',
       '0900000000'
     ]) {
-      expect(find.text(value), findsOneWidget);
+      expect(find.text(value, skipOffstage: false), findsWidgets);
     }
     expect(controller.tabIndex, 1);
     expect(controller.activeRequest, isNull);
-    await tester.tap(find.text('Thử lại'));
+    await tapRequest(tester, find.text('Thử lại'));
     await tester.pumpAndSettle();
     expect(controller.keys, hasLength(2));
     expect(controller.keys[1], controller.keys[0]);

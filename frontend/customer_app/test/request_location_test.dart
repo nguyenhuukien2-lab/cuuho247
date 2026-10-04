@@ -1,3 +1,4 @@
+import 'request_steps.dart';
 import 'dart:async';
 
 import 'package:cuu_ho_247/app/app_controller.dart';
@@ -64,18 +65,19 @@ Future<void> mountForm(WidgetTester tester, CapturingController controller,
       home: Scaffold(
           body: NewRequestScreen(
               controller: controller, locationService: service))));
-  final fields = find.byType(TextFormField);
-  await tester.enterText(fields.at(0), '  123 Nguyễn Huệ  ');
-  await tester.enterText(fields.at(2), 'Khách hàng');
-  await tester.enterText(fields.at(3), '0900000000');
+  final fields = find.byType(TextFormField, skipOffstage: false);
+  await enterRequest(tester, fields.at(0), '  123 Nguyễn Huệ  ');
+  await enterRequest(tester, fields.at(2), 'Khách hàng');
+  await enterRequest(tester, fields.at(3), '0900000000');
   tester.testTextInput.hide();
   await tester.pump();
+  await requestStep(tester, 2);
 }
 
 Future<void> sendRequest(WidgetTester tester) async {
-  await tester.tap(find.byType(CheckboxListTile));
+  await tapRequest(tester, find.byType(CheckboxListTile));
   await tester.pump();
-  await tester.tap(find.text('Gửi yêu cầu cứu hộ'));
+  await tapRequest(tester, find.text('XÁC NHẬN ĐẶT CỨU HỘ'));
   await tester.pumpAndSettle();
 }
 
@@ -97,10 +99,10 @@ void main() {
     final controller = CapturingController();
     final service = FakeLocationService();
     await mountForm(tester, controller, service);
-    await tester.tap(find.text('Lấy vị trí hiện tại'));
+    await tapRequest(tester, find.text('Lấy vị trí hiện tại'));
     await tester.pump();
     expect(find.text('Đang lấy vị trí…'), findsOneWidget);
-    await tester.tap(find.text('Lấy vị trí hiện tại'));
+    await tapRequest(tester, find.text('Lấy vị trí hiện tại'));
     expect(service.calls, 1);
     service.pending.complete(located);
     await tester.pumpAndSettle();
@@ -109,6 +111,7 @@ void main() {
     await sendRequest(tester);
     expect(controller.submissions.single,
         (address: '123 Nguyễn Huệ', latitude: 10.7769, longitude: 106.7009));
+    await requestStep(tester, 2);
     expect(find.text('Chưa lấy vị trí'), findsOneWidget);
     await sendRequest(tester);
     expect(controller.submissions.last.latitude, isNull);
@@ -119,7 +122,7 @@ void main() {
       final controller = CapturingController();
       final service = FakeLocationService();
       await mountForm(tester, controller, service);
-      await tester.tap(find.text('Lấy vị trí hiện tại'));
+      await tapRequest(tester, find.text('Lấy vị trí hiện tại'));
       service.pending.complete(LocationResult(status, 'Thử lại hoặc nhập tay'));
       await tester.pumpAndSettle();
       expect(
@@ -130,7 +133,7 @@ void main() {
       await sendRequest(tester);
       expect(controller.submissions.single.latitude, isNull);
       service.pending = Completer<LocationResult>();
-      await tester.tap(find.text('Lấy vị trí hiện tại'));
+      await tapRequest(tester, find.text('Lấy vị trí hiện tại'));
       service.pending.complete(located);
       await tester.pumpAndSettle();
       expect(find.text('Đã lấy vị trí'), findsOneWidget);
@@ -141,7 +144,7 @@ void main() {
     final controller = CapturingController();
     final service = FakeLocationService();
     await mountForm(tester, controller, service);
-    await tester.tap(find.text('Lấy vị trí hiện tại'));
+    await tapRequest(tester, find.text('Lấy vị trí hiện tại'));
     await tester.pump();
     await sendRequest(tester);
     service.pending.complete(located);
@@ -156,13 +159,14 @@ void main() {
     final controller = CapturingController();
     final service = FakeLocationService();
     await mountForm(tester, controller, service);
-    await tester.tap(find.text('Lấy vị trí hiện tại'));
+    await tapRequest(tester, find.text('Lấy vị trí hiện tại'));
     service.pending.complete(located);
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(CheckboxListTile));
+    await tapRequest(tester, find.byType(CheckboxListTile));
     await tester.pump();
-    await tester.tap(find.text('Chỉ dùng địa chỉ nhập tay'));
+    await tapRequest(tester, find.text('Chỉ dùng địa chỉ nhập tay'));
     await tester.pump();
+    await requestStep(tester, 4);
     expect(tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
         isFalse);
     await sendRequest(tester);
@@ -173,7 +177,7 @@ void main() {
     final controller = CapturingController();
     final service = FakeLocationService();
     await mountForm(tester, controller, service);
-    await tester.tap(find.text('Lấy vị trí hiện tại'));
+    await tapRequest(tester, find.text('Lấy vị trí hiện tại'));
     await tester.pumpWidget(const SizedBox.shrink());
     service.pending.complete(located);
     await tester.pumpAndSettle();

@@ -122,6 +122,7 @@ void main() {
     expect(find.text('Chi tiết yêu cầu'), findsOneWidget);
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
-    expect(find.text('Lịch sử cứu hộ'), findsOneWidget);
+    expect(find.byType(NewHistoryScreen), findsOneWidget);
+    expect(find.text('Nhật Ký Cứu Hộ An Toàn'), findsOneWidget);
   });
 }

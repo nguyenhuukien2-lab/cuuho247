@@ -15,14 +15,17 @@ class FormSection extends StatelessWidget {
   final List<Widget> children;
 
   @override
-  Widget build(BuildContext context) =>
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(icon, color: AppColors.navy, size: 22),
-          const SizedBox(width: 8),
-          Expanded(child: SectionTitle(title, subtitle: subtitle)),
-        ]),
-        const SizedBox(height: 12),
-        ...children,
-      ]);
+  Widget build(BuildContext context) => Card(
+      child: Padding(
+          padding: const EdgeInsets.all(16),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Icon(icon, color: AppColors.navy, size: 22),
+              const SizedBox(width: 8),
+              Expanded(child: SectionTitle(title, subtitle: subtitle)),
+            ]),
+            const SizedBox(height: 12),
+            ...children,
+          ])));
 }

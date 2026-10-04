@@ -1,3 +1,7 @@
+import 'customer_vehicles_test.dart' as accountVehicles;
+import 'customer_saved_addresses_test.dart' as accountAddresses;
+import 'package:cuu_ho_247/widgets/booking_ui.dart';
+import 'request_steps.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:cuu_ho_247/app/app_controller.dart';
@@ -54,8 +58,8 @@ void main() {
   });
 
   test('brand palette and principal text meet readable contrast', () {
-    expect(AppColors.navy, const Color(0xFF123B66));
-    expect(AppColors.orange, const Color(0xFFE85D04));
+    expect(AppColors.navy, const Color(0xFF0B2540));
+    expect(AppColors.orange, const Color(0xFFFF5A1F));
     for (final pair in [
       (AppColors.text, AppColors.orange),
       (Colors.white, AppColors.orangePressed),
@@ -147,14 +151,14 @@ void main() {
       final key = GlobalKey();
       await mount(tester, AppShell(controller: controller),
           reduceMotion: true, captureKey: key);
-      expect(find.text('Chào Nguyễn Minh Anh!'), findsOneWidget);
-      expect(find.byType(NavigationDestination), findsNWidgets(5));
-      expect(tester.getSize(find.byType(NavigationBar)).height,
-          lessThanOrEqualTo(92));
+      expect(find.text('Xin chào, Nguyễn Minh Anh'), findsOneWidget);
+      expect(find.byType(CustomerBottomNav), findsOneWidget);
+      expect(tester.getSize(find.byType(CustomerBottomNav)).height,
+          lessThanOrEqualTo(size.height * .22));
       for (final label in [
         'Trang chủ',
-        'Cứu hộ',
-        'Đang xử lý',
+        'Đặt cứu hộ',
+        'Theo dõi',
         'Lịch sử',
         'Tài khoản'
       ]) {
@@ -165,11 +169,11 @@ void main() {
       }
       expect(
           tester
-              .getSize(find.widgetWithText(FilledButton, 'Gọi cứu hộ ngay'))
+              .getSize(find.widgetWithText(FilledButton, 'YÊU CẦU CỨU HỘ NGAY'))
               .height,
           greaterThanOrEqualTo(52));
       await capture(tester, key, 'home-${size.width.toInt()}-large');
-      await tester.tap(find.byType(NavigationDestination).at(1));
+      await tapRequest(tester, find.text('Đặt cứu hộ'));
       await tester.pump();
       final fade = tester.widget<FadeTransition>(find
           .ancestor(
@@ -177,7 +181,7 @@ void main() {
               matching: find.byType(FadeTransition))
           .first);
       expect(fade.opacity.value, 1);
-      await tester.tap(find.text('Vá lốp'));
+      await tapRequest(tester, find.text('Vá lốp'));
       await tester.pump();
       expect(controller.selectedService, RescueService.tire);
       final tile =
@@ -186,6 +190,11 @@ void main() {
       expect(tester.getSize(find.widgetWithText(ChoiceTile, 'Vá lốp')).height,
           greaterThanOrEqualTo(48));
       await capture(tester, key, 'request-${size.width.toInt()}-large');
+      if (captureUi) {
+        await requestStep(tester, 1);
+        await capture(
+            tester, key, 'booking-vehicle-${size.width.toInt()}-large');
+      }
     });
 
     testWidgets(
@@ -203,22 +212,23 @@ void main() {
       final scroll = tester
           .widget<CustomScrollView>(find.byType(CustomScrollView))
           .controller!;
-      scroll.jumpTo(500);
+      await requestStep(tester, 2);
+      scroll.jumpTo(0);
       await tester.pumpAndSettle();
       final address = find.widgetWithText(TextFormField, 'Địa chỉ');
-      await tester.ensureVisible(address);
-      await tester.enterText(address, mobile.longAddress);
+      await revealRequest(tester, address);
+      await enterRequest(tester, address, mobile.longAddress);
       tester.testTextInput.hide();
       scroll.jumpTo(0);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Gửi yêu cầu cứu hộ'));
+      await tapRequest(tester, find.text('XÁC NHẬN ĐẶT CỨU HỘ'));
       await tester.pumpAndSettle();
       expect(controller.submissions, isEmpty);
       await capture(tester, key, 'contact-error-${size.width.toInt()}-large');
       expect(find.text('Vui lòng nhập họ tên'), findsOneWidget);
       tester.view.viewInsets = const FakeViewPadding(bottom: 300);
       await tester.pumpAndSettle();
-      final button = find.widgetWithText(FilledButton, 'Gửi yêu cầu cứu hộ');
+      final button = find.widgetWithText(FilledButton, 'XÁC NHẬN ĐẶT CỨU HỘ');
       expect(
           tester.getRect(button).bottom, lessThanOrEqualTo(size.height - 300));
       expect(tester.takeException(), isNull);
@@ -232,18 +242,19 @@ void main() {
       final scroll = tester
           .widget<CustomScrollView>(find.byType(CustomScrollView))
           .controller!;
+      await requestStep(tester, 2);
       for (var i = 0;
           i < 12 && find.byType(FlutterMap).evaluate().isEmpty;
           i++) {
         scroll.jumpTo(scroll.position.pixels + 160);
         await tester.pumpAndSettle();
       }
-      await tester.ensureVisible(find.byType(FlutterMap));
+      await revealRequest(tester, find.byType(FlutterMap));
       await tester.pumpAndSettle();
       final before = scroll.offset;
-      await tester.drag(find.byType(FlutterMap), const Offset(0, -160));
+      await tester.drag(find.byType(FlutterMap), const Offset(0, 160));
       await tester.pumpAndSettle();
-      expect(scroll.offset, greaterThan(before));
+      expect(scroll.offset, lessThan(before));
     });
 
     testWidgets('history filters and account editor keep real values at $size',
@@ -258,30 +269,41 @@ void main() {
       await mount(
           tester, Scaffold(body: NewHistoryScreen(controller: controller)),
           captureKey: key);
-      expect(find.text('Tiếp nhiên liệu'), findsNWidgets(2));
-      await tester.tap(find.text('Hoàn tất').first);
+      expect(
+          tester.widget<Text>(find.byKey(const ValueKey('history-total'))).data,
+          '2');
+      expect(find.text('Tiếp nhiên liệu'), findsAtLeastNWidgets(1));
+      await tapRequest(tester, find.text('Hoàn tất').first);
       await tester.pumpAndSettle();
       expect(find.text('Tiếp nhiên liệu'), findsOneWidget);
-      final address = tester.widget<Text>(find.text(mobile.longAddress));
-      expect(address.maxLines, 2);
-      expect(address.overflow, TextOverflow.ellipsis);
+      expect(find.text(mobile.longAddress),
+          findsOneWidget); // The trip card now shows the actual location.
+      tester
+          .state<ScrollableState>(find.byType(Scrollable).first)
+          .position
+          .jumpTo(0);
+      await tester.pumpAndSettle();
       await capture(tester, key, 'history-${size.width.toInt()}-large');
       await mount(
           tester,
           Scaffold(
               body: NewAccountScreen(
                   controller: controller,
-                  profileRepository: profile.ProfileFake())),
+                  profileRepository: profile.ProfileFake(),
+                  vehicleRepository: accountVehicles.VehiclesFake()
+                    ..vehicles = [accountVehicles.truck],
+                  addressRepository: accountAddresses.AddressesFake()
+                    ..addresses = [accountAddresses.saved])),
           captureKey: key);
       expect(find.text(profile.original.phone!), findsOneWidget);
       expect(find.text(profile.original.email!), findsOneWidget);
       await capture(tester, key, 'account-${size.width.toInt()}-large');
-      await tester.tap(find.text('Chỉnh sửa thông tin'));
+      await tapRequest(tester, find.text('Chỉnh sửa thông tin'));
       await tester.pumpAndSettle();
       expect(find.byType(AppBar), findsOneWidget);
       tester.view.viewInsets = const FakeViewPadding(bottom: 300);
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Lưu thay đổi'));
+      await revealRequest(tester, find.text('Lưu thay đổi'));
       await tester.pumpAndSettle();
       expect(tester.getRect(find.text('Lưu thay đổi')).bottom,
           lessThanOrEqualTo(size.height - 300));
@@ -304,14 +326,14 @@ void main() {
                   isActive: false,
                   photoRepository: photos.FakePhotos())),
           captureKey: key);
-      expect(find.text('Đang đến vị trí'), findsOneWidget);
-      expect(find.textContaining('Cập nhật '), findsNothing);
+      expect(find.text('Kỹ thuật viên đang di chuyển đến'), findsOneWidget);
+      expect(find.textContaining(RegExp(r'^Cập nhật \d')), findsNothing);
       expect(find.textContaining('ETA'), findsNothing);
       await capture(tester, key, 'tracking-${size.width.toInt()}-large');
       await mount(tester, NewAuthScreen(controller: controller),
           captureKey: key);
       await capture(tester, key, 'auth-${size.width.toInt()}-large');
-      await tester.tap(find.text('Đăng ký').first);
+      await tapRequest(tester, find.text('Đăng ký').first);
       await tester.pumpAndSettle();
       expect(find.widgetWithText(TextFormField, 'Họ và tên'), findsOneWidget);
       expect(tester.takeException(), isNull);
