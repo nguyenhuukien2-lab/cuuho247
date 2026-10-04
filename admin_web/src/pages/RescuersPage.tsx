@@ -1,0 +1,16 @@
+﻿import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Download, Plus, Search, SlidersHorizontal, ArrowRight, Truck } from 'lucide-react'
+import { rescuers, rescuerStats } from '../mocks/mockData'
+import { PageHeader } from '../components/ui/PageHeader'
+import { StatCard } from '../components/ui/StatCard'
+import { SectionCard } from '../components/ui/SectionCard'
+import { StatusBadge } from '../components/ui/StatusBadge'
+import { EmptyState } from '../components/ui/EmptyState'
+export function RescuersPage() {
+  const [query, setQuery] = useState(''); const [status, setStatus] = useState('Tất cả trạng thái')
+  const rows = useMemo(() => rescuers.filter((item) => (item.name + item.person + item.area).toLocaleLowerCase('vi').includes(query.toLocaleLowerCase('vi')) && (status === 'Tất cả trạng thái' || item.status === status)), [query, status])
+  return <><PageHeader eyebrow="HỆ THỐNG ĐỐI TÁC / KHU VỰC ĐÀ NẴNG" title="Đối Tác Cứu Hộ" description="Kiểm duyệt hồ sơ, năng lực phương tiện và quản lý trạng thái sẵn sàng trực chiến của các đội xe cứu hộ cứu nạn." actions={<><button className="button button-white" onClick={() => alert('Báo cáo demo chưa có tệp xuất.')}><Download size={15}/> Xuất báo cáo</button><button className="button button-blue" onClick={() => alert('Chức năng thêm đối tác sẽ khả dụng khi kết nối backend.')}><Plus size={15}/> Thêm đối tác mới</button></>}/><div className="stat-grid cols-5">{rescuerStats.map((item) => <StatCard key={item.label} {...item}/>)}</div><SectionCard title="Danh sách Đối Tác & Đội Xe" subtitle="5 đơn vị hiển thị trong hệ thống demo" action={<span className="soft-pill">Trực tuyến GPS · Ngoại tuyến</span>}><div className="filter-row"><label className="search-field"><Search size={16}/><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tìm tên Gara, Đội cứu hộ, Biển số..." /></label><label className="select-field"><SlidersHorizontal size={15}/><select value={status} onChange={(e) => setStatus(e.target.value)}>{['Tất cả trạng thái','Đang trực tuyến','Ngoại tuyến','Chưa hoạt động'].map((item) => <option key={item}>{item}</option>)}</select></label></div>{rows.length ? <div className="table-scroll"><table><thead><tr><th>Đội / Gara cứu hộ</th><th>Đại diện & Hotline</th><th>Trạng thái sẵn sàng</th><th>Dịch vụ phụ trách</th><th>Phương tiện</th><th>Sản lượng tuần</th><th>Hồ sơ duyệt</th><th></th></tr></thead><tbody>{rows.map((item) => <tr key={item.id}><td><div className="table-person"><span className="avatar blue"><Truck size={17}/></span><div><Link className="row-title" to={'/rescuers/' + item.id}>{item.name}</Link><small>{item.area} · {item.id}</small></div></div></td><td><b>{item.person}</b><small>{item.phone}</small></td><td><StatusBadge>{item.status}</StatusBadge></td><td>{item.service}</td><td>{item.vehicle}</td><td><b>{item.jobs} ca</b><small>★ {item.rating || 'Mới'}</small></td><td><StatusBadge>{item.approval}</StatusBadge></td><td><Link className="icon-button" to={'/rescuers/' + item.id} aria-label={'Xem ' + item.name}><ArrowRight size={16}/></Link></td></tr>)}</tbody></table></div> : <EmptyState/>}<div className="table-footer">Hiển thị {rows.length} trong tổng số 284 đối tác<span>‹ &nbsp; <b>1</b> &nbsp; 2 &nbsp; ... &nbsp; 29 &nbsp; ›</span></div></SectionCard></>
+}
+
+

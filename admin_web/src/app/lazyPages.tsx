@@ -1,0 +1,16 @@
+﻿import { lazy } from 'react'
+export const DashboardPage = lazy(() => import('../pages/DashboardPage').then((m) => ({ default: m.DashboardPage })))
+export const RescueRequestsPage = lazy(() => import('../pages/RescueRequestsPage').then((m) => ({ default: m.RescueRequestsPage })))
+export const RescueRequestDetailPage = lazy(() => import('../pages/RescueRequestDetailPage').then((m) => ({ default: m.RescueRequestDetailPage })))
+export const CustomersPage = lazy(() => import('../pages/CustomersPage').then((m) => ({ default: m.CustomersPage })))
+export const CustomerDetailPage = lazy(() => import('../pages/CustomerDetailPage').then((m) => ({ default: m.CustomerDetailPage })))
+export const RescuersPage = lazy(() => import('../pages/RescuersPage').then((m) => ({ default: m.RescuersPage })))
+export const RescuerDetailPage = lazy(() => import('../pages/RescuerDetailPage').then((m) => ({ default: m.RescuerDetailPage })))
+export const ServicesPage = lazy(() => import('../pages/ServicesPage').then((m) => ({ default: m.ServicesPage })))
+export const QuotesPage = lazy(() => import('../pages/QuotesPage').then((m) => ({ default: m.QuotesPage })))
+export const ReviewsPage = lazy(() => import('../pages/ReviewsPage').then((m) => ({ default: m.ReviewsPage })))
+export const OperationsMapPage = lazy(() => import('../pages/OperationsMapPage').then((m) => ({ default: m.OperationsMapPage })))
+export const NotificationsPage = lazy(() => import('../pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
+export const SettingsPage = lazy(() => import('../pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
+export const LoginPage = lazy(() => import('../pages/LoginPage').then((m) => ({ default: m.LoginPage })))
+
