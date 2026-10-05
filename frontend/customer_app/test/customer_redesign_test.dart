@@ -7,6 +7,7 @@ import 'dart:ui' as ui;
 import 'package:cuu_ho_247/app/app_controller.dart';
 import 'package:cuu_ho_247/app/app_shell.dart';
 import 'package:cuu_ho_247/app/app_theme.dart';
+import 'package:cuu_ho_247/app/mobile_ui.dart';
 import 'package:cuu_ho_247/app/user_session.dart';
 import 'package:cuu_ho_247/screens/new_account_screen.dart';
 import 'package:cuu_ho_247/screens/new_auth_screen.dart';
@@ -15,6 +16,7 @@ import 'package:cuu_ho_247/screens/new_request_screen.dart';
 import 'package:cuu_ho_247/screens/new_tracking_screen.dart';
 import 'package:cuu_ho_247/widgets/customer_ui.dart';
 import 'package:cuu_ho_247/widgets/rescue_widgets.dart';
+import 'package:cuu_ho_247/widgets/tracking_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -314,8 +316,19 @@ void main() {
 
     testWidgets('tracking and auth have no made up content at $size',
         (tester) async {
+      final source = mobile.order(RequestStage.arriving);
       final controller = AppController()
-        ..activeRequest = mobile.order(RequestStage.arriving);
+        ..activeRequest = RescueRequestData(
+            id: source.id,
+            requestCode: 'CH-000042',
+            service: source.service,
+            vehicle: source.vehicle,
+            address: source.address,
+            createdAt: source.createdAt,
+            stage: source.stage,
+            price: source.price,
+            latitude: source.latitude,
+            longitude: source.longitude);
       addTearDown(controller.dispose);
       final key = GlobalKey();
       await mount(
@@ -326,9 +339,55 @@ void main() {
                   isActive: false,
                   photoRepository: photos.FakePhotos())),
           captureKey: key);
-      expect(find.text('Kỹ thuật viên đang di chuyển đến'), findsOneWidget);
+      expect(find.text('Đối tác đang di chuyển đến'), findsOneWidget);
+      expect(
+          find.descendant(
+              of: find.byType(RescueStatusBadge),
+              matching: find.text('Đang đến')),
+          findsOneWidget);
+      expect(find.text('Mã đơn: CH-000042'), findsOneWidget);
+      expect(find.textContaining(source.id), findsNothing);
+      expect(find.text('Cập nhật gần nhất'), findsOneWidget);
+      expect(
+          find.text('Chưa có thời gian cập nhật trạng thái.'), findsOneWidget);
       expect(find.textContaining(RegExp(r'^Cập nhật \d')), findsNothing);
       expect(find.textContaining('ETA'), findsNothing);
+      expect(find.text('Đang cập nhật'), findsNothing);
+      expect(find.text('Trực tiếp'), findsNothing);
+      expect(find.textContaining('Kỹ thuật viên'), findsNothing);
+      expect(find.text('Chưa có dữ liệu'), findsNothing);
+      final action = find.widgetWithText(FilledButton, 'Cập nhật trạng thái');
+      expect(
+          find.descendant(
+              of: find.byType(TrackingStatusCard), matching: action),
+          findsOneWidget);
+      expect(tester.widget<FilledButton>(action).onPressed, isNotNull);
+      expect(
+          tester.getRect(action).bottom, lessThanOrEqualTo(size.height - 20));
+      final scrollable = find.byType(Scrollable).first;
+      await tester.scrollUntilVisible(find.text('Đối tác đã nhận đơn'), 250,
+          scrollable: scrollable);
+      expect(find.text('Chưa có thông tin liên hệ đối tác trong đơn.'),
+          findsOneWidget);
+      expect(find.text('Chưa có đối tác nhận đơn'), findsNothing);
+      expect(find.text('Gọi điện ngay'), findsNothing);
+      expect(find.text('Nhắn tin'), findsNothing);
+      expect(find.text('Chưa có dữ liệu'), findsNothing);
+      await tester.scrollUntilVisible(
+          find.byKey(const ValueKey('rescue-location-marker')), 250,
+          scrollable: scrollable);
+      expect(find.text('Vị trí cứu hộ đã gửi'), findsOneWidget);
+      final markers =
+          tester.widget<MarkerLayer>(find.byType(MarkerLayer)).markers;
+      expect(markers, hasLength(1));
+      expect(markers.single.point.latitude, source.latitude);
+      expect(markers.single.point.longitude, source.longitude);
+      expect(find.textContaining('Vị trí đối tác'), findsNothing);
+      expect(find.textContaining('ETA'), findsNothing);
+      expect(find.textContaining(source.id), findsNothing);
+      tester.state<ScrollableState>(scrollable).position.jumpTo(0);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
       await capture(tester, key, 'tracking-${size.width.toInt()}-large');
       await mount(tester, NewAuthScreen(controller: controller),
           captureKey: key);

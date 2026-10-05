@@ -1,5 +1,4 @@
 import '../app/mobile_ui.dart';
-import '../core/utils/display_code.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -8,7 +7,6 @@ import '../app/app_controller.dart';
 import '../app/app_theme.dart';
 import '../app/navigation.dart';
 import '../app/user_session.dart';
-import '../widgets/rescue_widgets.dart';
 import '../widgets/booking_ui.dart';
 import '../widgets/tracking_ui.dart';
 import '../widgets/customer_ui.dart';
@@ -208,7 +206,7 @@ class _NewTrackingScreenState extends State<NewTrackingScreen>
               child: RescueFeedback(
                   kind: RescueFeedbackKind.loading,
                   title: 'Đang tải yêu cầu',
-                  message: 'Đang cập nhật trạng thái cứu hộ.')));
+                  message: 'Vui lòng chờ trong khi tải yêu cầu cứu hộ.')));
     }
     if (controller.loadError != null && request == null) {
       return SingleChildScrollView(
@@ -228,8 +226,8 @@ class _NewTrackingScreenState extends State<NewTrackingScreen>
           padding: AppSpacing.page,
           child: CustomerEmptyState(
               icon: Icons.route_outlined,
-              title: 'Bạn chưa có yêu cầu đang xử lý',
-              message: 'Tạo yêu cầu để theo dõi trạng thái cứu hộ tại đây.',
+              title: 'Bạn chưa có yêu cầu cứu hộ đang xử lý',
+              message: 'Tạo yêu cầu mới để được hỗ trợ',
               action: PrimaryActionButton(
                   label: 'Tạo yêu cầu cứu hộ',
                   loading: false,
@@ -239,7 +237,19 @@ class _NewTrackingScreenState extends State<NewTrackingScreen>
         key: const PageStorageKey('tracking-scroll'),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
-          TrackingStatusCard(request: request),
+          TrackingStatusCard(
+              request: request,
+              action: RescueButton(
+                  label: request.stage.isTerminal
+                      ? 'Xem lịch sử yêu cầu'
+                      : 'Cập nhật trạng thái',
+                  icon: request.stage.isTerminal
+                      ? Icons.history_rounded
+                      : Icons.refresh_rounded,
+                  loading: controller.loadingRequests,
+                  onPressed: request.stage.isTerminal
+                      ? () => controller.selectTab(3)
+                      : controller.refreshRequests)),
           const SizedBox(height: 16),
           if (controller.loadingRequests) const LinearProgressIndicator(),
           if (_streamError != null) ...[
@@ -256,25 +266,14 @@ class _NewTrackingScreenState extends State<NewTrackingScreen>
                 onRetry: controller.refreshRequests),
             const SizedBox(height: 16),
           ],
-          TrackingMapCard(request: request),
+          TrackingOrderCard(request: request),
           const SizedBox(height: 16),
-          if (request.stage == RequestStage.accepted ||
-              request.stage == RequestStage.arriving ||
-              request.stage == RequestStage.inProgress ||
-              request.stage == RequestStage.completed) ...[
-            const RescuerInfoCard(),
-            const SizedBox(height: 16),
-          ],
           TrackingTimeline(request: request),
           const SizedBox(height: 16),
-          QuoteStatusCard(price: request.price, quoteCode: request.quoteCode),
+          TrackingMapCard(request: request),
           const SizedBox(height: 16),
-          MoreDetails(title: 'Chi tiết yêu cầu & ảnh', children: [
+          MoreDetails(title: 'Liên hệ, mô tả & ảnh yêu cầu', children: [
             const SizedBox(height: 8),
-            InfoRow('Sự cố', request.service.label,
-                icon: serviceIcon(request.service)),
-            InfoRow('Phương tiện', request.vehicle.label,
-                icon: vehicleIcon(request.vehicle)),
             if (request.contactName.isNotEmpty)
               InfoRow('Liên hệ', displayCustomerName(request.contactName),
                   icon: Icons.person_outline),
@@ -283,7 +282,6 @@ class _NewTrackingScreenState extends State<NewTrackingScreen>
                   icon: Icons.phone_outlined),
             if (request.description.isNotEmpty)
               InfoRow('Mô tả', request.description),
-            InfoRow('Mã đơn', displayCode(request.requestCode)),
             const SizedBox(height: 16),
             RequestPhotosCard(
                 requestId: request.id,
@@ -292,13 +290,6 @@ class _NewTrackingScreenState extends State<NewTrackingScreen>
                 repository: widget.photoRepository),
             const SizedBox(height: 16),
           ]),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-              onPressed: controller.loadingRequests
-                  ? null
-                  : controller.refreshRequests,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Cập nhật trạng thái')),
           const SizedBox(height: 16),
           const EmergencySupportCard(),
           if (request.stage == RequestStage.searching ||

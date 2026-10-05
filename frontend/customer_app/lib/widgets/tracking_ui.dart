@@ -11,13 +11,21 @@ import 'request_location_card.dart';
 import 'rescue_widgets.dart';
 
 String trackingHeadline(RequestStage stage) => switch (stage) {
-      RequestStage.searching => 'Đang tìm đối tác gần bạn',
+      RequestStage.searching => 'Đang chờ đối tác nhận đơn',
       RequestStage.accepted => 'Đối tác đã tiếp nhận yêu cầu',
-      RequestStage.arriving => 'Kỹ thuật viên đang di chuyển đến',
+      RequestStage.arriving => 'Đối tác đang di chuyển đến',
       RequestStage.inProgress => 'Đối tác đang hỗ trợ',
       RequestStage.completed => 'Yêu cầu đã hoàn tất',
       RequestStage.cancelled => 'Yêu cầu đã hủy',
     };
+
+// Only public CH/BG codes belong in this screen, never internal identifiers.
+String trackingDisplayCode(String? code, {required String prefix}) {
+  final value = code?.trim();
+  return value != null && RegExp('^$prefix-[0-9]+\$').hasMatch(value)
+      ? displayCode(value)
+      : 'Chưa có mã';
+}
 
 class TrackingCard extends StatelessWidget {
   const TrackingCard(
@@ -29,8 +37,9 @@ class TrackingCard extends StatelessWidget {
 }
 
 class TrackingStatusCard extends StatelessWidget {
-  const TrackingStatusCard({super.key, required this.request});
+  const TrackingStatusCard({super.key, required this.request, this.action});
   final RescueRequestData request;
+  final Widget? action;
   @override
   Widget build(BuildContext context) => TrackingCard(
       kind: RescueCardKind.status,
@@ -43,33 +52,14 @@ class TrackingStatusCard extends StatelessWidget {
                 runSpacing: 8,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                          color: BookingStyle.pale,
-                          borderRadius: BorderRadius.circular(30)),
-                      child: Text('Mã đơn: ${displayCode(request.requestCode)}',
-                          style: RescueType.code)),
-                  if (!request.stage.isTerminal)
-                    Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                            color: const Color(0xFFD1FAE5),
-                            borderRadius: BorderRadius.circular(30)),
-                        child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.circle,
-                                  size: 7, color: BookingStyle.green),
-                              SizedBox(width: 6),
-                              Text('Trực tiếp',
-                                  style: TextStyle(
-                                      color: Color(0xFF00714D),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700))
-                            ])),
+                  RescueStatusBadge(
+                      status: request.stage.databaseValue,
+                      label: request.stage == RequestStage.searching
+                          ? 'Chờ nhận đơn'
+                          : null),
+                  Text(
+                      'Mã đơn: ${trackingDisplayCode(request.requestCode, prefix: 'CH')}',
+                      style: RescueType.code),
                 ]),
             const SizedBox(height: 14),
             AnimatedSwitcher(
@@ -100,37 +90,109 @@ class TrackingStatusCard extends StatelessWidget {
                     'Bạn có thể xem lại yêu cầu trong lịch sử.',
                 },
                 style: const TextStyle(
-                    fontSize: 12, color: BookingStyle.muted, height: 1.5)),
-            if (request.hasServerUpdateTime)
-              Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                      'Cập nhật ${customerDate(request.updatedAt, includeTime: true)}',
-                      style: const TextStyle(
-                          fontSize: 12, color: BookingStyle.muted))),
-            if (!request.stage.isTerminal) ...[
-              const SizedBox(height: 14),
-              const LiveMetricsGrid()
+                    fontSize: 14, color: BookingStyle.muted, height: 1.5)),
+            const SizedBox(height: 12),
+            Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                    color: BookingStyle.pale,
+                    borderRadius: BorderRadius.circular(RescueRadius.control)),
+                child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.update_rounded,
+                          color: BookingStyle.blue, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                            const Text('Cập nhật gần nhất',
+                                style: RescueType.title),
+                            const SizedBox(height: 4),
+                            Text(
+                                request.hasServerUpdateTime
+                                    ? customerDate(request.updatedAt,
+                                        includeTime: true)
+                                    : 'Chưa có thời gian cập nhật trạng thái.',
+                                style: RescueType.caption),
+                          ])),
+                    ])),
+            if (action != null) ...[
+              const SizedBox(height: 12),
+              action!,
             ],
           ]));
 }
 
-/// The current request model has no telemetry; do not simulate a countdown.
-class LiveMetricsGrid extends StatelessWidget {
-  const LiveMetricsGrid({super.key});
+/// Essential order details stay visible instead of hiding in an expansion.
+class TrackingOrderCard extends StatelessWidget {
+  const TrackingOrderCard({super.key, required this.request});
+  final RescueRequestData request;
   @override
-  Widget build(BuildContext context) => Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-          color: BookingStyle.pale, borderRadius: BorderRadius.circular(14)),
-      child: const Row(children: [
-        Icon(Icons.sensors, color: BookingStyle.blue, size: 20),
-        SizedBox(width: 8),
-        Expanded(
-            child: Text('Đang cập nhật',
-                style: TextStyle(color: BookingStyle.muted, fontSize: 12)))
-      ]));
+  Widget build(BuildContext context) => TrackingCard(
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+            const Text('Thông tin yêu cầu', style: RescueType.section),
+            const SizedBox(height: 8),
+            TrackingInfoRow('Mã đơn',
+                trackingDisplayCode(request.requestCode, prefix: 'CH')),
+            TrackingInfoRow('Dịch vụ', request.service.label),
+            TrackingInfoRow('Xe', request.vehicle.label),
+            TrackingInfoRow(
+                'Địa điểm',
+                request.address.trim().isEmpty
+                    ? 'Chưa có địa chỉ cứu hộ'
+                    : request.address),
+            TrackingInfoRow('Thời gian tạo',
+                customerDate(request.createdAt, includeTime: true)),
+            const Divider(height: 24, color: RescueColors.border),
+            TrackingInfoRow(
+                'Báo giá',
+                request.price == null
+                    ? 'Chưa có báo giá'
+                    : money(request.price),
+                emphasized: request.price != null),
+            if (trackingDisplayCode(request.quoteCode, prefix: 'BG') !=
+                'Chưa có mã')
+              TrackingInfoRow('Mã báo giá',
+                  trackingDisplayCode(request.quoteCode, prefix: 'BG')),
+            const Divider(height: 24, color: RescueColors.border),
+            RescuerInfoCard(stage: request.stage, embedded: true),
+          ]));
+}
+
+/// Stack labels on small phones or with large text, so values keep their space.
+class TrackingInfoRow extends StatelessWidget {
+  const TrackingInfoRow(this.label, this.value,
+      {super.key, this.emphasized = false});
+  final String label, value;
+  final bool emphasized;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: LayoutBuilder(builder: (context, constraints) {
+        final labelWidget = Text(label, style: RescueType.caption);
+        final valueWidget = Text(value,
+            style: RescueType.body.copyWith(
+                fontWeight: FontWeight.w600,
+                color: emphasized ? BookingStyle.blue : BookingStyle.ink));
+        if (constraints.maxWidth < 300 ||
+            MediaQuery.textScalerOf(context).scale(14) > 18) {
+          return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [labelWidget, const SizedBox(height: 4), valueWidget]);
+        }
+        return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          SizedBox(width: 100, child: labelWidget),
+          const SizedBox(width: 12),
+          Expanded(child: valueWidget),
+        ]);
+      }));
 }
 
 class TrackingMapCard extends StatelessWidget {
@@ -149,34 +211,56 @@ class TrackingMapCard extends StatelessWidget {
 /// An accepted stage confirms assignment, but the current model exposes no
 /// rescuer profile or phone. Keep the missing-data state explicit and brief.
 class RescuerInfoCard extends StatelessWidget {
-  const RescuerInfoCard({super.key});
+  const RescuerInfoCard(
+      {super.key, required this.stage, this.embedded = false});
+  final RequestStage stage;
+  final bool embedded;
   @override
-  Widget build(BuildContext context) => TrackingCard(
-          child: Row(children: [
-        Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-                color: BookingStyle.pale,
-                borderRadius: BorderRadius.circular(16)),
-            child: const Icon(Icons.engineering_outlined,
-                color: BookingStyle.blue, size: 28)),
-        const SizedBox(width: 12),
-        const Expanded(
-            child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-              Text('Kỹ thuật viên',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: BookingStyle.ink)),
-              SizedBox(height: 4),
-              Text('Chưa có dữ liệu',
-                  style: TextStyle(fontSize: 12, color: BookingStyle.muted)),
-            ])),
-      ]));
+  Widget build(BuildContext context) {
+    final waiting = stage == RequestStage.searching;
+    final content =
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+              color: BookingStyle.pale,
+              borderRadius: BorderRadius.circular(16)),
+          child: Icon(
+              waiting ? Icons.person_search_outlined : Icons.handshake_outlined,
+              color: BookingStyle.blue,
+              size: 22)),
+      const SizedBox(width: 12),
+      Expanded(
+          child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+            const Text('Đối tác hỗ trợ', style: RescueType.caption),
+            const SizedBox(height: 4),
+            Text(
+                switch (stage) {
+                  RequestStage.searching => 'Chưa có đối tác nhận đơn',
+                  RequestStage.accepted ||
+                  RequestStage.arriving ||
+                  RequestStage.inProgress =>
+                    'Đối tác đã nhận đơn',
+                  RequestStage.completed => 'Đối tác đã hoàn tất hỗ trợ',
+                  RequestStage.cancelled => 'Yêu cầu đã hủy',
+                },
+                style: RescueType.title),
+            const SizedBox(height: 4),
+            Text(
+                waiting
+                    ? 'Hệ thống đang chờ đối tác phù hợp'
+                    : stage == RequestStage.cancelled
+                        ? 'Xem lại thông tin yêu cầu trong lịch sử.'
+                        : 'Chưa có thông tin liên hệ đối tác trong đơn.',
+                style: RescueType.caption),
+          ])),
+    ]);
+    return embedded ? content : TrackingCard(child: content);
+  }
 }
 
 class TrackingTimeline extends StatelessWidget {
@@ -184,11 +268,11 @@ class TrackingTimeline extends StatelessWidget {
   final RescueRequestData request;
   static const labels = [
     'Đã gửi yêu cầu',
-    'Đang tìm xe cứu hộ gần nhất',
-    'KTV tiếp nhận đơn',
+    'Chờ đối tác nhận đơn',
+    'Đối tác tiếp nhận đơn',
     'Đang trên đường tới',
     'Đang hỗ trợ tại chỗ',
-    'Hoàn tất & nghiệm thu'
+    'Hoàn tất yêu cầu'
   ];
   static const icons = [
     Icons.send_outlined,
@@ -222,13 +306,14 @@ class TrackingTimeline extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     color: BookingStyle.ink))),
         const SizedBox(width: 8),
-        Text(current < 0 ? 'Đã hủy' : 'Bước ${current + 1} / 6',
-            style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: current < 0
-                    ? const Color(0xFFEF4444)
-                    : const Color(0xFF00714D)))
+        Flexible(
+            child: Text(current < 0 ? 'Đã hủy' : 'Bước ${current + 1} / 6',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: current < 0
+                        ? const Color(0xFFEF4444)
+                        : const Color(0xFF00714D))))
       ]),
       const Divider(height: 24, color: BookingStyle.pale),
       for (var i = 0; i < labels.length; i++)
@@ -263,84 +348,91 @@ class TimelineStep extends StatelessWidget {
   final bool done, current, last;
   final String? time, subtitle;
   @override
-  Widget build(BuildContext context) => Semantics(
-      label: '$title, ${done ? 'đã xong' : current ? 'hiện tại' : 'chưa tới'}',
-      child: Container(
-        margin: EdgeInsets.only(bottom: last ? 0 : 8),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-            color: current ? BookingStyle.pale : Colors.transparent,
-            borderRadius: BorderRadius.circular(14)),
-        child: IntrinsicHeight(
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          SizedBox(
-              width: 32,
-              child: Column(children: [
-                Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: done
-                            ? const Color(0xFFD1FAE5)
-                            : current
-                                ? BookingStyle.blue
-                                : const Color(0xFFE5EEFF)),
-                    child: Icon(done ? Icons.check : icon,
-                        size: 17,
-                        color: done
-                            ? const Color(0xFF00714D)
-                            : current
-                                ? Colors.white
-                                : const Color(0xFF747686))),
-                if (!last)
-                  Expanded(
-                      child: Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Container(
-                              width: 2,
-                              color: done
-                                  ? const Color(0xFFD1FAE5)
-                                  : const Color(0xFFE5EEFF)))),
-              ])),
-          const SizedBox(width: 12),
-          Expanded(
-              child: Padding(
-                  padding: const EdgeInsets.only(top: 3, bottom: 8),
-                  child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(title,
-                            style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: done || current
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                                color: current
-                                    ? BookingStyle.blue
-                                    : done
-                                        ? BookingStyle.ink
-                                        : const Color(0xFF747686))),
-                        if (subtitle != null)
-                          Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: Text(subtitle!,
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      color: BookingStyle.muted))),
-                        if (time != null || current)
-                          Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: Text(current ? 'Hiện tại' : time!,
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      color: current
-                                          ? BookingStyle.blue
-                                          : BookingStyle.muted))),
-                      ]))),
-        ])),
-      ));
+  Widget build(BuildContext context) {
+    final highlighted = current || (done && last);
+    return Semantics(
+        label:
+            '$title, ${done ? 'đã xong' : current ? 'hiện tại' : 'chưa tới'}',
+        child: Container(
+          margin: EdgeInsets.only(bottom: last ? 0 : 8),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+              color: highlighted ? BookingStyle.pale : Colors.transparent,
+              border: highlighted ? Border.all(color: BookingStyle.blue) : null,
+              borderRadius: BorderRadius.circular(14)),
+          child: IntrinsicHeight(
+              child:
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            SizedBox(
+                width: 32,
+                child: Column(children: [
+                  Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: done
+                              ? const Color(0xFFD1FAE5)
+                              : current
+                                  ? BookingStyle.blue
+                                  : const Color(0xFFE5EEFF)),
+                      child: Icon(done ? Icons.check : icon,
+                          size: 17,
+                          color: done
+                              ? const Color(0xFF00714D)
+                              : current
+                                  ? Colors.white
+                                  : const Color(0xFF747686))),
+                  if (!last)
+                    Expanded(
+                        child: Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Container(
+                                width: 2,
+                                color: done
+                                    ? const Color(0xFFD1FAE5)
+                                    : const Color(0xFFE5EEFF)))),
+                ])),
+            const SizedBox(width: 12),
+            Expanded(
+                child: Padding(
+                    padding: const EdgeInsets.only(top: 3, bottom: 8),
+                    child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(title,
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: highlighted
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  color: highlighted
+                                      ? BookingStyle.blue
+                                      : done
+                                          ? BookingStyle.ink
+                                          : const Color(0xFF747686))),
+                          if (subtitle != null)
+                            Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(subtitle!,
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        color: BookingStyle.muted))),
+                          if (time != null || current)
+                            Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                    current ? 'Hiện tại' : 'Đã gửi lúc $time',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: current
+                                            ? BookingStyle.blue
+                                            : BookingStyle.muted))),
+                        ]))),
+          ])),
+        ));
+  }
 }
 
 class QuoteStatusCard extends StatelessWidget {
@@ -370,7 +462,8 @@ class QuoteStatusCard extends StatelessWidget {
                   style: TextStyle(fontSize: 14, color: BookingStyle.muted))
             else ...[
               const Divider(color: BookingStyle.pale),
-              Text('Mã báo giá: ${displayCode(quoteCode)}',
+              Text(
+                  'Mã báo giá: ${trackingDisplayCode(quoteCode, prefix: 'BG')}',
                   style: RescueType.code),
               const Text('Tổng báo giá',
                   style: TextStyle(fontSize: 12, color: BookingStyle.muted)),
