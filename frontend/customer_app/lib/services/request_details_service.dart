@@ -35,8 +35,7 @@ class SupabaseRequestDetailsRepository implements RequestDetailsRepository {
     final db = client ?? Supabase.instance.client;
     final owner = db.auth.currentUser?.id;
     if (owner == null) {
-      throw const AppFailure('Vui lòng đăng nhập lại.',
-          sessionExpired: true);
+      throw const AppFailure('Vui lòng đăng nhập lại.', sessionExpired: true);
     }
     final row = await db
         .from('rescue_requests')
@@ -61,6 +60,11 @@ class SupabaseRequestDetailsRepository implements RequestDetailsRepository {
       throw const AppFailure('Phiên đăng nhập đã thay đổi.',
           sessionExpired: true);
     }
-    return RequestDetails(row, events);
+    final enriched = await SupabaseService.withDisplayCodes([row], client: db);
+    if (db.auth.currentUser?.id != owner) {
+      throw const AppFailure('Phiên đăng nhập đã thay đổi.',
+          sessionExpired: true);
+    }
+    return RequestDetails(enriched.single, events);
   }
 }

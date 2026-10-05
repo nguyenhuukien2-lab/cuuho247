@@ -1,3 +1,4 @@
+import '../core/utils/display_code.dart';
 import 'package:flutter/material.dart';
 
 import '../app/app_controller.dart';
@@ -157,7 +158,8 @@ class _HistoryDetailsScreenState extends State<HistoryDetailsScreen> {
                                   if (stage != null) StatusPill(stage: stage),
                                 ])),
                         const SizedBox(height: 16),
-                        InfoRow('Mã yêu cầu', text(row['id'])),
+                        InfoRow('Mã đơn',
+                            displayCode(row['request_code'] as String?)),
                         InfoRow('Dịch vụ cứu hộ',
                             service?.label ?? 'Chưa có thông tin'),
                         InfoRow(
@@ -192,6 +194,8 @@ class _HistoryDetailsScreenState extends State<HistoryDetailsScreen> {
                           InfoRow('Mô tả', row['description'] as String),
                         if (row['quoted_price'] is num) ...[
                           const Divider(height: 24),
+                          InfoRow('Mã báo giá',
+                              displayCode(row['quote_code'] as String?)),
                           InfoRow('Chi phí / báo giá',
                               money((row['quoted_price'] as num).toInt())),
                         ],

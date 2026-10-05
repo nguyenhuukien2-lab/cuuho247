@@ -11,6 +11,7 @@ import 'request_photos_test.dart' as photos;
 RescueRequestData fixture(RequestStage stage, {int? price}) =>
     RescueRequestData(
       id: 'real-response-id',
+      requestCode: 'CH-000042',
       service: RescueService.towing,
       vehicle: VehicleKind.car,
       address: 'Địa chỉ từ đơn',
@@ -63,7 +64,7 @@ void main() {
     }
   });
 
-  testWidgets('status uses real id, active badge and no simulated telemetry',
+  testWidgets('status displays database code, active badge and no simulated telemetry',
       (tester) async {
     for (final stage in RequestStage.values) {
       await tester.pumpWidget(MaterialApp(
@@ -71,7 +72,8 @@ void main() {
               body: SingleChildScrollView(
                   child: TrackingStatusCard(request: fixture(stage))))));
       await tester.pumpAndSettle();
-      expect(find.text('Mã đơn #real-response-id'), findsOneWidget);
+      expect(find.text('Mã đơn: CH-000042'), findsOneWidget);
+      expect(find.textContaining('real-response-id'), findsNothing);
       expect(find.text(trackingHeadline(stage)), findsOneWidget);
       expect(find.text('Trực tiếp'),
           stage.isTerminal ? findsNothing : findsOneWidget);

@@ -1,5 +1,5 @@
-﻿import { supabase } from './supabase'
-import type { ApiResult, Customer, DashboardStats, MutationResult, Quote, RescueRequest, Rescuer, Review, Service } from './adminTypes'
+import { supabase } from './supabase'
+import type { ApiResult, AdminProfile, Customer, DashboardStats, MutationResult, Quote, RescueRequest, Rescuer, Review, Service } from './adminTypes'
 
 export function apiError(error: unknown): string {
   if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') return error.message
@@ -49,6 +49,7 @@ export function getDashboardStats(signal?: AbortSignal): Promise<ApiResult<Dashb
     return signal ? query.abortSignal(signal) : query
   })
 }
+export const getAdminProfile = (id: string) => detail<AdminProfile>('admin_profiles', 'id', id)
 export const getCustomers = (signal?: AbortSignal) => list<Customer>('admin_customers_view', 'customer_id', signal)
 export const getRescuers = (signal?: AbortSignal) => list<Rescuer>('admin_rescuers_view', 'rescuer_id', signal)
 export const getRescueRequests = (signal?: AbortSignal) => list<RescueRequest>('admin_rescue_requests_view', 'request_id', signal)

@@ -73,9 +73,10 @@ test('bảo vệ route và tự vào dashboard khi session Admin hợp lệ', as
 
 test('hủy đơn chỉ gửi RPC sau khi nhập lý do và reload dữ liệu thật', async ({ page }) => {
   const state = await mockSupabase(page)
-  state.views.admin_rescue_requests_view = [{ request_id: id, request_code: id, customer_name: 'Khách cần hủy', status: 'searching', created_at: createdAt }]
+  state.views.admin_rescue_requests_view = [{ request_id: id, request_code: 'CH-000042', customer_name: 'Khách cần hủy', status: 'searching', created_at: createdAt }]
   await page.goto('/requests')
   const row = page.getByRole('row').filter({ hasText: 'Khách cần hủy' })
+  await expect(row).toContainText('CH-000042')
   await row.getByRole('button', { name: 'Hủy đơn' }).click()
   const dialog = page.getByRole('dialog')
   await dialog.getByRole('textbox', { name: 'Lý do' }).fill('   ')

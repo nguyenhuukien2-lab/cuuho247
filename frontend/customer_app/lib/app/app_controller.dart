@@ -51,6 +51,8 @@ extension RescueServiceText on RescueService {
 class RescueRequestData {
   RescueRequestData(
       {required this.id,
+      this.requestCode,
+      this.quoteCode,
       required this.service,
       required this.vehicle,
       required this.address,
@@ -68,6 +70,7 @@ class RescueRequestData {
       : hasServerUpdateTime = updatedAt != null,
         updatedAt = updatedAt ?? createdAt;
   final String id;
+  final String? requestCode, quoteCode;
   final RescueService service;
   final VehicleKind vehicle;
   final String address;
@@ -87,6 +90,8 @@ class RescueRequestData {
   factory RescueRequestData.fromJson(Map<String, dynamic> json) =>
       RescueRequestData(
         id: json['id'] as String,
+        requestCode: json['request_code'] as String?,
+        quoteCode: json['quote_code'] as String?,
         clientRequestId: json['client_request_id'] as String?,
         vehicleId: json['vehicle_id'] as String?,
         service: RescueService.values.byName(json['service_code'] as String),

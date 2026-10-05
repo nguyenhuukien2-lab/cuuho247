@@ -1,3 +1,5 @@
+import '../../core/utils/display_code.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../app/app_theme.dart';
@@ -160,6 +162,10 @@ class _HistoryPanelState extends State<HistoryPanel> {
           subtitle: customerVehicles[j.vehicle] ?? 'Phương tiện khác',
           icon: Icons.history,
           children: [
+            Text(
+              'Mã đơn: ${displayCode(j.assignment.requestCode)}',
+              style: AppType.caption,
+            ),
             StatusBadge(
               label: j.assignment.stateLabel,
               tone: j.assignment.state == 'completed'
@@ -216,9 +222,14 @@ class _HistoryPanelState extends State<HistoryPanel> {
           icon: Icons.assignment_outlined,
           children: [
             SelectableText(
-              'Mã đơn: ${j.assignment.requestId}',
+              'Mã đơn: ${displayCode(j.assignment.requestCode)}',
               style: AppType.caption,
             ),
+            if (j.assignment.hasQuote)
+              Text(
+                'Mã báo giá: ${displayCode(j.assignment.quoteCode)}',
+                style: AppType.caption,
+              ),
             const SizedBox(height: 12),
             Text(
               formatMoney(j.assignment.totalVnd, j.assignment.currency),

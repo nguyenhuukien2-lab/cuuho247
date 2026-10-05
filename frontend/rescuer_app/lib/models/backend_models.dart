@@ -11,6 +11,7 @@ class RescuerSnapshot {
     this.services = const [],
   });
   final Json? profile;
+  String? get rescuerCode => profile?['rescuer_code'] as String?;
   final List<Json> vehicles;
   final List<Json> capabilities;
   final List<Json> documents;
@@ -88,6 +89,7 @@ class RescuerSnapshot {
 class AvailableRequest {
   const AvailableRequest({
     required this.id,
+    this.requestCode,
     required this.service,
     required this.vehicle,
     required this.latitude,
@@ -104,6 +106,7 @@ class AvailableRequest {
     }
     return AvailableRequest(
       id: json['request_id'] as String,
+      requestCode: json['request_code'] as String?,
       service: json['service_type'] as String,
       vehicle: json['vehicle_type'] as String,
       latitude: (coarse['latitude'] as num).toDouble(),
@@ -112,6 +115,7 @@ class AvailableRequest {
     );
   }
   final String id, service, vehicle;
+  final String? requestCode;
   final double latitude, longitude;
   final int distanceKm;
 }
@@ -125,6 +129,7 @@ class RequestPage {
 class JobAssignment {
   const JobAssignment({
     required this.id,
+    this.requestCode,
     required this.requestId,
     required this.vehicleId,
     required this.state,
@@ -136,6 +141,7 @@ class JobAssignment {
     this.completedAt,
     this.cancelledAt,
     this.currentQuoteId,
+    this.quoteCode,
     this.completionQuoteId,
     this.totalVnd,
     this.currency,
@@ -143,6 +149,8 @@ class JobAssignment {
   factory JobAssignment.fromJson(Json json) => JobAssignment(
     id: json['assignment_id'] as String,
     requestId: json['request_id'] as String,
+    requestCode: json['request_code'] as String?,
+    quoteCode: json['quote_code'] as String?,
     vehicleId: json['vehicle_id'] as String,
     state: json['state'] as String,
     version: (json['version'] as num).toInt(),
@@ -158,6 +166,7 @@ class JobAssignment {
     currency: json['currency'] as String?,
   );
   final String id, requestId, vehicleId, state;
+  final String? requestCode, quoteCode;
   final int version;
   final DateTime? acceptedAt, enRouteAt, arrivedAt, inProgressAt;
   final DateTime? completedAt, cancelledAt;
@@ -233,6 +242,7 @@ class ActiveJob {
 class QuoteDetails {
   const QuoteDetails({
     required this.id,
+    this.quoteCode,
     required this.assignmentId,
     required this.totalVnd,
     required this.status,
@@ -243,6 +253,7 @@ class QuoteDetails {
   });
   factory QuoteDetails.fromJson(Json j) => QuoteDetails(
     id: j['quote_id'] as String,
+    quoteCode: j['quote_code'] as String?,
     assignmentId: j['assignment_id'] as String,
     totalVnd: (j['total_vnd'] as num).toInt(),
     status: j['status'] as String,
@@ -254,6 +265,7 @@ class QuoteDetails {
         .toList(),
   );
   final String id, assignmentId, status;
+  final String? quoteCode;
   final int totalVnd;
   final String? currency, note;
   final List<QuoteItem> items;

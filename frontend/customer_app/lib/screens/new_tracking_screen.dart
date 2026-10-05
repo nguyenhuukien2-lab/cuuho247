@@ -1,3 +1,4 @@
+import '../core/utils/display_code.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -259,7 +260,7 @@ class _NewTrackingScreenState extends State<NewTrackingScreen>
           ],
           TrackingTimeline(request: request),
           const SizedBox(height: 16),
-          QuoteStatusCard(price: request.price),
+          QuoteStatusCard(price: request.price, quoteCode: request.quoteCode),
           const SizedBox(height: 16),
           MoreDetails(title: 'Chi tiết yêu cầu & ảnh', children: [
             const SizedBox(height: 8),
@@ -275,7 +276,7 @@ class _NewTrackingScreenState extends State<NewTrackingScreen>
                   icon: Icons.phone_outlined),
             if (request.description.isNotEmpty)
               InfoRow('Mô tả', request.description),
-            InfoRow('Mã yêu cầu', request.id),
+            InfoRow('Mã đơn', displayCode(request.requestCode)),
             const SizedBox(height: 16),
             RequestPhotosCard(
                 requestId: request.id,

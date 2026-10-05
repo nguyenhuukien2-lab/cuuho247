@@ -1,3 +1,4 @@
+import '../core/utils/display_code.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -58,7 +59,7 @@ class TrackingStatusCard extends StatelessWidget {
                       decoration: BoxDecoration(
                           color: BookingStyle.pale,
                           borderRadius: BorderRadius.circular(30)),
-                      child: Text('Mã đơn #${request.id}',
+                      child: Text('Mã đơn: ${displayCode(request.requestCode)}',
                           style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -356,8 +357,9 @@ class TimelineStep extends StatelessWidget {
 }
 
 class QuoteStatusCard extends StatelessWidget {
-  const QuoteStatusCard({super.key, required this.price});
+  const QuoteStatusCard({super.key, required this.price, this.quoteCode});
   final int? price;
+  final String? quoteCode;
   @override
   Widget build(BuildContext context) => TrackingCard(
           child: Column(
@@ -381,6 +383,9 @@ class QuoteStatusCard extends StatelessWidget {
                   style: TextStyle(fontSize: 14, color: BookingStyle.muted))
             else ...[
               const Divider(color: BookingStyle.pale),
+              Text('Mã báo giá: ${displayCode(quoteCode)}',
+                  style:
+                      const TextStyle(fontSize: 12, color: BookingStyle.muted)),
               const Text('Tổng báo giá',
                   style: TextStyle(fontSize: 12, color: BookingStyle.muted)),
               const SizedBox(height: 4),

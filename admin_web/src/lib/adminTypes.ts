@@ -1,5 +1,8 @@
-﻿export type Numeric = number | string | null
+export type Numeric = number | string | null
 export type ApiResult<T> = { data: T; error: null } | { data: null; error: string }
+export interface AdminProfile {
+  id: string; admin_code: string | null; full_name: string | null
+}
 export interface DashboardStats {
   total_customers?: Numeric; total_rescuers?: Numeric; today_requests?: Numeric
   active_requests?: Numeric; completed_requests?: Numeric; cancelled_requests?: Numeric

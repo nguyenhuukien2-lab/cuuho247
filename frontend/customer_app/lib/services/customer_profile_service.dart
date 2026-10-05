@@ -8,8 +8,10 @@ class CustomerProfile {
       required this.fullName,
       required this.email,
       this.phone,
+      this.customerCode,
       this.accountCreatedAt});
   final String userId;
+  final String? customerCode;
   final String fullName;
   final String? email;
   final String? phone;
@@ -69,6 +71,7 @@ class SupabaseCustomerProfileRepository implements CustomerProfileRepository {
 
   CustomerProfile decode(User user, Map<String, dynamic> row) =>
       CustomerProfile(
+        customerCode: row['customer_code'] as String?,
         userId: user.id, fullName: row['full_name'] as String? ?? '',
         phone: row['phone'] as String?, email: user.email,
         // Account creation belongs to Auth; a recovered profile may be newer.

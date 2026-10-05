@@ -1,4 +1,4 @@
-﻿import { formatCurrency } from './format'
+import { formatCurrency } from './format'
 import type { Numeric } from './adminTypes'
 
 export const missing = 'Chưa có dữ liệu'
@@ -7,7 +7,7 @@ export const numberValue = (value: Numeric | undefined) => Number.isFinite(Numbe
 export const countValue = (value: Numeric | undefined) => numberValue(value).toLocaleString('vi-VN')
 export const moneyValue = (value: Numeric | undefined) => value === null || value === undefined || value === '' ? missing : formatCurrency(numberValue(value))
 export const codeValue = (code: string | null | undefined) =>
-  code && !/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(code) ? code : 'Chưa có mã'
+  code?.trim() && !/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(code) ? code.trim() : 'Chưa có mã'
 export const dateValue = (value: string | null | undefined) => {
   if (!value || Number.isNaN(Date.parse(value))) return missing
   return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(value))

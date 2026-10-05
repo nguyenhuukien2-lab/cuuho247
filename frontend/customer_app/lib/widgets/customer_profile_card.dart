@@ -1,3 +1,4 @@
+import '../core/utils/display_code.dart';
 import 'package:flutter/material.dart';
 import '../app/app_controller.dart';
 import '../app/app_theme.dart';
@@ -158,6 +159,8 @@ class _CustomerProfileCardState extends State<CustomerProfileCard> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                Text('Mã khách hàng: ${displayCode(data?.customerCode)}',
+                    style: const TextStyle(color: AppColors.muted)),
                 Text(name.isEmpty ? 'Thông tin cá nhân' : name,
                     style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 4),

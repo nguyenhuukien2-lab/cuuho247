@@ -70,7 +70,8 @@ void main() {
       photoRepository: PhotosFake(),
     )));
     await tester.pumpAndSettle();
-    expect(find.text('own-id'), findsOneWidget);
+    expect(find.text('own-id'), findsNothing);
+    expect(find.text('Chưa có mã'), findsOneWidget);
     await tester.scrollUntilVisible(
         find.text('Chưa có lịch sử trạng thái.'), 200,
         scrollable: find.byType(Scrollable).first);

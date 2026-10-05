@@ -1,3 +1,5 @@
+import '../../core/utils/display_code.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../app/app_theme.dart';
@@ -151,9 +153,9 @@ class PartnerHero extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 5),
-                    if (profile?['user_id'] is String)
+                    if (profile != null)
                       Text(
-                        'Mã đối tác: ${profile!['user_id']}',
+                        'Mã đối tác: ${displayCode(profile['rescuer_code'] as String?)}',
                         style: const TextStyle(
                           fontSize: 11,
                           color: Colors.white70,

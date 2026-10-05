@@ -1,3 +1,4 @@
+import '../core/utils/display_code.dart';
 import 'package:flutter/material.dart';
 
 import '../app/app_controller.dart';
@@ -470,7 +471,7 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                             ],
                             if (createdRequest != null) ...[
                               InlineNotice(
-                                'Đơn #${createdRequest!.id} đã tạo. Đã gửi ${uploadedPhotos.length}/${photos.length} ảnh. Thử lại sẽ chỉ gửi ảnh còn thiếu.',
+                                'Đơn ${displayCode(createdRequest!.requestCode)} đã tạo. Đã gửi ${uploadedPhotos.length}/${photos.length} ảnh. Thử lại sẽ chỉ gửi ảnh còn thiếu.',
                                 isError: false,
                               ),
                               const SizedBox(height: 24),

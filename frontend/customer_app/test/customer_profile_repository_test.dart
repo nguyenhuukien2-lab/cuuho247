@@ -30,6 +30,7 @@ void main() {
       expect(request.url.queryParameters['user_id'], 'eq.${support.customer}');
       return support.jsonResponse(request, {
         'full_name': 'Nguyễn An',
+        'customer_code': 'KH-000037',
         'phone': '0901234567',
         'created_at': '2026-10-02T00:00:00Z'
       });
@@ -37,6 +38,7 @@ void main() {
     final profile =
         await SupabaseCustomerProfileRepository(client: client).load();
     expect(profile.fullName, 'Nguyễn An');
+    expect(profile.customerCode, 'KH-000037');
     expect(profile.accountCreatedAt!.toUtc(), DateTime.utc(2026, 10, 1));
   });
 

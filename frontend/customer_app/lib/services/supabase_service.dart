@@ -129,6 +129,43 @@ class SupabaseService {
     }
   }
 
+  static Future<List<Map<String, dynamic>>> withDisplayCodes(
+      List<Map<String, dynamic>> rows,
+      {SupabaseClient? client}) async {
+    if (rows.isEmpty) return rows;
+    final database = client ?? _client;
+    final owner = database.auth.currentUser?.id;
+    if (owner == null) {
+      throw const AppFailure('Vui lòng đăng nhập lại.', sessionExpired: true);
+    }
+    try {
+      final codes =
+          await database.rpc('customer_request_display_codes', params: {
+        'p_request_ids': rows.map((row) => row['id']).toList(),
+      }).timeout(const Duration(seconds: 5));
+      if (database.auth.currentUser?.id != owner) {
+        throw const AppFailure('Phiên đăng nhập đã thay đổi.',
+            sessionExpired: true);
+      }
+      final byId = {
+        for (final code in codes as List)
+          code['request_id']: code['quote_code'],
+      };
+      return rows
+          .map((row) => <String, dynamic>{
+                ...row,
+                'quote_code': byId[row['id']],
+              })
+          .toList();
+    } on AppFailure {
+      rethrow;
+    } catch (error, stackTrace) {
+      logRequestFailure('service.withDisplayCodes', error, stackTrace,
+          client: database);
+      return rows;
+    }
+  }
+
   static Future<RescueRequestData?> fetchActiveRequest() async {
     final user = _requireUser();
     try {
@@ -142,7 +179,9 @@ class SupabaseService {
           .limit(1)
           .maybeSingle()
           .timeout(const Duration(seconds: 20));
-      return row == null ? null : RescueRequestData.fromJson(row);
+      if (row == null) return null;
+      final enriched = await withDisplayCodes([row]);
+      return RescueRequestData.fromJson(enriched.single);
     } on PostgrestException catch (error) {
       throw _databaseFailure(error);
     } on http.ClientException {
@@ -163,7 +202,8 @@ class SupabaseService {
           .order('created_at', ascending: false)
           .limit(100)
           .timeout(const Duration(seconds: 20));
-      return rows
+      final enriched = await withDisplayCodes(rows);
+      return enriched
           .map<RescueRequestData>(RescueRequestData.fromJson)
           .toList(growable: false);
     } on PostgrestException catch (error) {
@@ -285,14 +325,23 @@ class SupabaseService {
     bool getCanEmit() =>
         !stopped && !stream.isClosed && client.auth.currentUser?.id == user.id;
 
-    void emit(Map<String, dynamic> row) {
+    Future<void> emit(Map<String, dynamic> row, int version) async {
       if (!getCanEmit() ||
           row['id'] != requestId ||
           row['customer_id'] != user.id) return;
       try {
+        // Status delivery must not wait for optional quote-code metadata.
         stream.add(RescueRequestData.fromJson(row));
+        final enriched = await withDisplayCodes([row]);
+        if (getCanEmit() && version == changeVersion &&
+            enriched.single['quote_code'] != null) {
+          stream.add(RescueRequestData.fromJson(enriched.single));
+        }
       } catch (_) {
-        stream.addError(const AppFailure('Không đọc được trạng thái yêu cầu.'));
+        if (getCanEmit() && version == changeVersion) {
+          stream
+              .addError(const AppFailure('Không đọc được trạng thái yêu cầu.'));
+        }
       }
     }
 
@@ -306,7 +355,8 @@ class SupabaseService {
             .eq('customer_id', user.id)
             .maybeSingle()
             .timeout(const Duration(seconds: 20));
-        if (getCanEmit() && version == changeVersion && row != null) emit(row);
+        if (getCanEmit() && version == changeVersion && row != null)
+          await emit(row, version);
       } catch (_) {
         if (getCanEmit() && version == changeVersion) {
           stream.addError(_networkFailure);
@@ -332,8 +382,8 @@ class SupabaseService {
                   column: 'id',
                   value: requestId),
               callback: (payload) {
-                changeVersion++;
-                emit(payload.newRecord);
+                final version = ++changeVersion;
+                unawaited(emit(payload.newRecord, version));
               },
             )
             .subscribe((status, error) {

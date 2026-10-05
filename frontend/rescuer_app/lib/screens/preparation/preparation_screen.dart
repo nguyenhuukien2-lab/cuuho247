@@ -1,3 +1,5 @@
+import '../../core/utils/display_code.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -537,7 +539,10 @@ class _PreparationScreenState extends State<PreparationScreen> {
               const SizedBox(height: 14),
               Text(customerVehicles[r.vehicle] ?? 'Phương tiện khác'),
               const SizedBox(height: 8),
-              Text('Mã đơn: ${r.id}', style: AppType.caption),
+              Text(
+                'Mã đơn: ${displayCode(r.requestCode)}',
+                style: AppType.caption,
+              ),
               const SizedBox(height: 6),
               Container(
                 width: double.infinity,

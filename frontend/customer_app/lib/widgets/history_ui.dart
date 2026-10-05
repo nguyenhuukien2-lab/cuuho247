@@ -1,3 +1,4 @@
+import '../core/utils/display_code.dart';
 import 'package:flutter/material.dart';
 import '../app/app_controller.dart';
 import 'booking_ui.dart';
@@ -224,10 +225,9 @@ class HistoryTripCard extends StatelessWidget {
                                         color: statusColor,
                                         fontSize: 12,
                                         fontWeight: FontWeight.w700))),
-                            if (request.id.trim().isNotEmpty)
-                              Text('#${request.id}',
-                                  style: _caption.copyWith(
-                                      color: BookingStyle.blue)),
+                            Text('Mã đơn: ${displayCode(request.requestCode)}',
+                                style: _caption.copyWith(
+                                    color: BookingStyle.blue)),
                           ]),
                       const SizedBox(height: 12),
                       Container(

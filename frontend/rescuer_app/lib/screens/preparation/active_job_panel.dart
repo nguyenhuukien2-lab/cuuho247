@@ -1,3 +1,5 @@
+import '../../core/utils/display_code.dart';
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -49,7 +51,7 @@ class ActiveJobPanel extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'MÃ ĐƠN · ${assignment.requestId}',
+                        'MÃ ĐƠN · ${displayCode(assignment.requestCode)}',
                         style: const TextStyle(
                           fontSize: 11,
                           color: Colors.white70,
@@ -125,7 +127,7 @@ class ActiveJobPanel extends StatelessWidget {
               ],
               const SizedBox(height: 12),
               SelectableText(
-                'Mã đơn: ${assignment.requestId}',
+                'Mã đơn: ${displayCode(assignment.requestCode)}',
                 style: AppType.caption,
               ),
               if (assignment.acceptedAt != null) ...[
