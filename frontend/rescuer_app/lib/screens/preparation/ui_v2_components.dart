@@ -13,27 +13,30 @@ class PartnerHeader extends StatelessWidget implements PreferredSizeWidget {
     super.key,
     required this.page,
     required this.onRefresh,
-    required this.onLogout,
+    required this.online,
+    this.onBack,
   });
   final String page;
-  final VoidCallback? onRefresh, onLogout;
+  final bool online;
+  final VoidCallback? onRefresh, onBack;
   @override
-  Size get preferredSize => const Size.fromHeight(80);
+  Size get preferredSize => const Size.fromHeight(64);
   @override
   Widget build(BuildContext context) => AppBar(
     automaticallyImplyLeading: false,
-    toolbarHeight: 80,
+    toolbarHeight: 64,
+    leading: onBack == null ? null : BackButton(onPressed: onBack),
     titleSpacing: 16,
     title: Row(
       children: [
-        const BrandMark(size: 34),
+        const BrandMark(size: 30),
         const SizedBox(width: 9),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Cứu Hộ 24/7 - Đối Tác',
+                'Cứu Hộ 24/7',
                 maxLines: 2,
                 style: TextStyle(
                   fontSize: 13,
@@ -44,10 +47,14 @@ class PartnerHeader extends StatelessWidget implements PreferredSizeWidget {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  const Icon(Icons.circle, size: 6, color: AppColors.orange),
+                  Icon(
+                    Icons.circle,
+                    size: 7,
+                    color: online ? AppColors.success : AppColors.warning,
+                  ),
                   const SizedBox(width: 5),
                   Text(
-                    page,
+                    online ? 'Online' : 'Offline',
                     style: const TextStyle(
                       fontSize: 12,
                       color: RescueColors.muted,
@@ -65,11 +72,6 @@ class PartnerHeader extends StatelessWidget implements PreferredSizeWidget {
         tooltip: 'Tải lại',
         onPressed: onRefresh,
         icon: const Icon(Icons.refresh_rounded, size: 22),
-      ),
-      IconButton(
-        tooltip: 'Đăng xuất',
-        onPressed: onLogout,
-        icon: const Icon(Icons.logout_rounded, size: 21),
       ),
       const SizedBox(width: 4),
     ],

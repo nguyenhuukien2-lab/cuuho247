@@ -8,10 +8,26 @@ import 'package:uuid/uuid.dart';
 
 import '../models/backend_models.dart';
 
+class PartnerSignUpResult {
+  const PartnerSignUpResult(
+    this.userId, {
+    required this.needsEmailConfirmation,
+  });
+  final String? userId;
+  final bool needsEmailConfirmation;
+}
+
 abstract class RescuerService {
   String? get userId;
   Stream<String?> get authChanges;
   Future<void> signIn(String email, String password);
+  Future<PartnerSignUpResult> signUp({
+    required String email,
+    required String password,
+    required String name,
+    required String phone,
+  });
+  Json? get registrationProfile;
   Future<void> signOut();
   Future<RescuerSnapshot> loadSnapshot();
   Future<Json> mutate(String name, Json params);
@@ -93,6 +109,48 @@ class SupabaseRescuerService implements RescuerService {
   }
 
   @override
+  Future<PartnerSignUpResult> signUp({
+    required String email,
+    required String password,
+    required String name,
+    required String phone,
+  }) async {
+    final result = await client.auth.signUp(
+      email: email.trim(),
+      password: password,
+      data: {
+        'partner_registration': true,
+        'full_name': name.trim(),
+        'contact_phone': phone.trim(),
+      },
+    );
+    if (result.user == null) {
+      throw const RescuerFailure(
+        'Chưa xác nhận được đăng ký. Kiểm tra kết nối rồi thử lại.',
+      );
+    }
+    return PartnerSignUpResult(
+      result.user?.id,
+      needsEmailConfirmation: result.session == null,
+    );
+  }
+
+  // Metadata only restores entered contact details; it never grants permissions.
+  @override
+  Json? get registrationProfile {
+    final data = client.auth.currentUser?.userMetadata;
+    if (data?['partner_registration'] != true ||
+        data?['full_name'] is! String ||
+        data?['contact_phone'] is! String) {
+      return null;
+    }
+    return {
+      'full_name': data!['full_name'],
+      'contact_phone': data['contact_phone'],
+    };
+  }
+
+  @override
   Future<void> signOut() async {
     await client.auth.signOut(scope: SignOutScope.local);
     _pendingOperations.clear();
@@ -106,7 +164,9 @@ class SupabaseRescuerService implements RescuerService {
     final results = await Future.wait<dynamic>([
       client
           .from('rescuer_profiles')
-          .select('user_id,rescuer_code,full_name,contact_phone,verification_status,version')
+          .select(
+            'user_id,rescuer_code,full_name,contact_phone,verification_status,version',
+          )
           .eq('user_id', uid)
           .maybeSingle(),
       client

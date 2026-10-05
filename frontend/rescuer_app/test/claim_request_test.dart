@@ -261,7 +261,7 @@ void main() {
   });
 
   testWidgets(
-    'claim button loads, disables duplicate tap and shows postclaim details/snackbar',
+    'preview requires confirmation then claim disables duplicate tap and shows postclaim details',
     (tester) async {
       final service = ClaimFake();
       final c = RescuerController(service, FakeLocation());
@@ -273,13 +273,25 @@ void main() {
       expect(find.text('Khách sau nhận'), findsNothing);
       expect(find.text('0901234567'), findsNothing);
       await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('claim-request')),
+        find.byKey(const ValueKey('preview-request')),
         250,
         scrollable: find.byType(Scrollable).first,
       );
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.byKey(const ValueKey('claim-request')));
+      await tester.ensureVisible(find.byKey(const ValueKey('preview-request')));
       await tester.pumpAndSettle();
+      expect(find.text('Nhận đơn'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('preview-request')));
+      await tester.pumpAndSettle();
+      expect(find.text('Xem trước yêu cầu'), findsOneWidget);
+      expect(find.text('Quyền riêng tư của khách hàng'), findsOneWidget);
+      expect(find.text('Khách sau nhận'), findsNothing);
+      expect(find.text('0901234567'), findsNothing);
+      expect(find.text('Điểm cứu hộ chính xác'), findsNothing);
+      expect(
+        service.calls.where((x) => x.$1 == 'rescuer_claim_request'),
+        isEmpty,
+      );
       service.pendingClaim = Completer<Json>();
       await tester.tap(find.byKey(const ValueKey('claim-request')));
       await tester.pump();
@@ -304,7 +316,9 @@ void main() {
       service.pendingClaim!.complete(assignmentJson());
       await tester.pumpAndSettle();
       expect(find.text('Đã nhận đơn thành công.'), findsWidgets);
-      expect(find.text('Chuyến đang xử lý'), findsOneWidget);
+      expect(find.text('Xem trước yêu cầu'), findsNothing);
+      expect(find.text('Hành động'), findsOneWidget);
+      expect(find.byKey(const ValueKey('advance-job')), findsOneWidget);
       await tester.scrollUntilVisible(
         find.text('0901234567'),
         300,

@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../../app/app_theme.dart';
 import '../../app/rescuer_controller.dart';
 import '../../models/backend_models.dart';
+import '../../services/partner_auth_validation.dart';
 import '../../widgets/app_components.dart';
 import 'preparation_components.dart';
+import 'partner_registration_screen.dart';
 
 class PreparationLogin extends StatefulWidget {
   const PreparationLogin({super.key, required this.c});
@@ -75,6 +77,8 @@ class _PreparationLoginState extends State<PreparationLogin> {
               style: AppType.body,
             ),
             const SizedBox(height: 24),
+            const Text(partnerSeparateAccountMessage, style: AppType.body),
+            const SizedBox(height: 16),
             AppCard(
               child: Form(
                 key: form,
@@ -89,9 +93,7 @@ class _PreparationLoginState extends State<PreparationLogin> {
                           labelText: 'Email',
                           prefixIcon: Icon(Icons.alternate_email),
                         ),
-                        validator: (v) => v == null || !v.trim().contains('@')
-                            ? 'Nhập email hợp lệ'
-                            : null,
+                        validator: partnerEmailError,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -128,11 +130,26 @@ class _PreparationLoginState extends State<PreparationLogin> {
                         label: 'Đăng nhập',
                         icon: Icons.login,
                         loading: widget.c.working,
-                        onPressed: () {
-                          if (form.currentState!.validate()) {
-                            widget.c.signIn(email.text, password.text);
-                          }
-                        },
+                        onPressed: widget.c.working
+                            ? null
+                            : () {
+                                if (form.currentState!.validate()) {
+                                  widget.c.signIn(email.text, password.text);
+                                }
+                              },
+                      ),
+                      const SizedBox(height: 12),
+                      TextButton(
+                        key: const ValueKey('open-partner-registration'),
+                        onPressed: widget.c.working
+                            ? null
+                            : () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) =>
+                                      PartnerRegistrationScreen(c: widget.c),
+                                ),
+                              ),
+                        child: const Text('Đăng ký đối tác'),
                       ),
                     ],
                   ),
@@ -160,12 +177,17 @@ class PreparationProfile extends StatefulWidget {
 }
 
 class _PreparationProfileState extends State<PreparationProfile> {
+  String? _initialContact(String field) {
+    final value =
+        widget.c.snapshot.profile?[field] ??
+        widget.c.service.registrationProfile?[field];
+    return value is String ? value : null;
+  }
+
   final form = GlobalKey<FormState>();
-  late final name = TextEditingController(
-    text: widget.c.snapshot.profile?['full_name'] as String?,
-  );
+  late final name = TextEditingController(text: _initialContact('full_name'));
   late final phone = TextEditingController(
-    text: widget.c.snapshot.profile?['contact_phone'] as String?,
+    text: _initialContact('contact_phone'),
   );
   @override
   void dispose() {

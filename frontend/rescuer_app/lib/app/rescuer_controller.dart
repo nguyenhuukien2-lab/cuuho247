@@ -7,10 +7,13 @@ import '../models/backend_models.dart';
 import '../services/location_service.dart';
 import '../services/document_picker.dart';
 import '../services/rescuer_service.dart';
+import '../services/partner_auth_validation.dart';
 
 enum FeedStatus { unavailable, loading, empty, ready, error }
 
 enum JobStatus { unavailable, loading, empty, ready, error }
+
+enum PartnerRegistration { confirmationRequired, profileReady }
 
 class RescuerController extends ChangeNotifier {
   RescuerController(this.service, this.location, {DocumentPicker? documents})
@@ -21,6 +24,7 @@ class RescuerController extends ChangeNotifier {
   StreamSubscription<String?>? _auth;
   Timer? _timer;
   bool _disposed = false, _foreground = true;
+  bool authenticating = false;
   int _epoch = 0;
   String? userId, selectedVehicle, sessionId, error, feedError;
   RescuerSnapshot snapshot = const RescuerSnapshot();
@@ -239,7 +243,8 @@ class RescuerController extends ChangeNotifier {
     if (_auth != null) return;
     _auth = service.authChanges.listen(
       (_) {
-        unawaited(_syncAuth());
+        // Auth forms await their own sync, including profile creation.
+        if (!authenticating) unawaited(_syncAuth());
       },
       onError: (Object e) {
         _epoch++;
@@ -296,7 +301,7 @@ class RescuerController extends ChangeNotifier {
     error = null;
     tab = 0;
     loading = signedIn;
-    working = false;
+    working = authenticating;
     _notify();
     if (!signedIn) return;
     try {
@@ -789,7 +794,7 @@ class RescuerController extends ChangeNotifier {
   }
 
   Future<void> _run(Future<void> Function(int epoch) action) async {
-    if (working || loading || _disposed) return;
+    if (working || loading || authenticating || _disposed) return;
     final epoch = _epoch;
     working = true;
     error = null;
@@ -815,21 +820,122 @@ class RescuerController extends ChangeNotifier {
   }
 
   Future<void> signIn(String email, String password) async {
-    if (working) return;
+    if (working || authenticating || _disposed) return;
+    authenticating = true;
     working = true;
     error = null;
     _notify();
     try {
       await service.signIn(email, password);
-      await _syncAuth();
+      if (_disposed) return;
+      await _syncAuth(force: true);
+      final details = service.registrationProfile;
+      if (details != null && snapshotLoaded && snapshot.profile == null) {
+        final name = details['full_name'], phone = details['contact_phone'];
+        if (name is String &&
+            phone is String &&
+            partnerNameError(name) == null &&
+            partnerPhoneError(phone) == null) {
+          await _createPartnerProfile(name, phone);
+        }
+      }
     } catch (e) {
       error = rescuerError(e);
     } finally {
+      authenticating = false;
       if (!_disposed) {
         working = false;
+        if (userId != service.userId) await _syncAuth();
         _notify();
       }
     }
+  }
+
+  Future<PartnerRegistration?> signUp({
+    required String email,
+    required String password,
+    required String name,
+    required String phone,
+  }) async {
+    if (working ||
+        loading ||
+        authenticating ||
+        _disposed ||
+        service.userId != null) {
+      return null;
+    }
+    final invalid =
+        partnerEmailError(email) ??
+        partnerNameError(name) ??
+        partnerPhoneError(phone) ??
+        partnerPasswordError(password);
+    if (invalid != null) {
+      error = invalid;
+      _notify();
+      return null;
+    }
+    authenticating = true;
+    working = true;
+    error = null;
+    notice = null;
+    _notify();
+    try {
+      final result = await service.signUp(
+        email: email,
+        password: password,
+        name: name,
+        phone: phone,
+      );
+      if (_disposed) return null;
+      if (result.needsEmailConfirmation) {
+        return PartnerRegistration.confirmationRequired;
+      }
+      if (result.userId == null || service.userId != result.userId) {
+        throw const RescuerFailure(
+          'Phiên đăng ký đã thay đổi. Đăng nhập lại để hoàn thiện hồ sơ.',
+        );
+      }
+      await _syncAuth(force: true);
+      await _createPartnerProfile(name, phone);
+      return PartnerRegistration.profileReady;
+    } catch (e) {
+      if (!_disposed) {
+        error = e is AuthException
+            ? 'Chưa thể tạo tài khoản. Kiểm tra email, mật khẩu hoặc thử lại sau.'
+            : rescuerError(e);
+      }
+      return null;
+    } finally {
+      authenticating = false;
+      if (!_disposed) {
+        working = false;
+        if (userId != service.userId) await _syncAuth();
+        _notify();
+      }
+    }
+  }
+
+  Future<void> _createPartnerProfile(String name, String phone) async {
+    final epoch = _epoch;
+    _guard(epoch);
+    if (!snapshotLoaded) {
+      throw const RescuerFailure(
+        'Tài khoản đã tạo nhưng chưa tải được hồ sơ. Tải lại để tiếp tục.',
+      );
+    }
+    if (snapshot.profile != null) return;
+    await service.mutate('rescuer_register_profile', {
+      'p_full_name': name.trim(),
+      'p_contact_phone': phone.trim(),
+    });
+    _guard(epoch);
+    await _load(epoch);
+    if (snapshot.profile == null) {
+      throw const RescuerFailure(
+        'Chưa xác nhận được hồ sơ đã tạo. Tải lại hoặc hoàn thiện hồ sơ để tiếp tục.',
+      );
+    }
+    notice = 'Tài khoản đối tác cần được quản trị viên duyệt trước khi bật online và nhận đơn. Bổ sung xe, dịch vụ và giấy tờ rồi gửi hồ sơ duyệt.';
   }
 
   Future<void> signOut() => _run((epoch) async {

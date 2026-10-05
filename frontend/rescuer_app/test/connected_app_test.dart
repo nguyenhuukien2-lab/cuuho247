@@ -26,6 +26,17 @@ class FakeLocation implements LocationService {
 
 class FakeService implements RescuerService {
   @override
+  Json? get registrationProfile => null;
+  @override
+  Future<PartnerSignUpResult> signUp({
+    required String email,
+    required String password,
+    required String name,
+    required String phone,
+  }) async => throw const RescuerFailure(
+    'Đăng ký chưa được thiết lập trong fixture này.',
+  );
+  @override
   Future<HistoryPage> history({Json? cursor}) async =>
       const HistoryPage([], null);
   @override
@@ -409,8 +420,13 @@ void main() {
       expect(find.text('Đơn mới'), findsNothing);
       await c.signIn('test@example.invalid', 'password');
       await tester.pumpAndSettle();
-      expect(find.text('Tạo hồ sơ người cứu hộ'), findsOneWidget);
+      expect(find.text('Hoàn thiện hồ sơ đối tác'), findsOneWidget);
       expect(find.text('Tạo hồ sơ'), findsOneWidget);
+      expect(find.widgetWithText(TextFormField, 'Họ và tên'), findsOneWidget);
+      expect(
+        find.widgetWithText(TextFormField, 'Số điện thoại liên hệ'),
+        findsOneWidget,
+      );
       await tester.pumpWidget(const SizedBox());
       await service.changes.close();
     },
@@ -428,11 +444,13 @@ void main() {
     final c = RescuerController(service, FakeLocation());
     await mount(tester, c);
     expect(find.text('Đang chờ duyệt'), findsOneWidget);
-    await tester.scrollUntilVisible(find.byType(SwitchListTile), 400);
-    expect(
-      tester.widget<SwitchListTile>(find.byType(SwitchListTile)).onChanged,
-      isNull,
+    final toggle = find.descendant(
+      of: find.byKey(const ValueKey('toggle-online')),
+      matching: find.byType(FilledButton),
     );
+    await tester.scrollUntilVisible(toggle, 200);
+    expect(tester.widget<FilledButton>(toggle).onPressed, isNull);
+    expect(find.byType(SwitchListTile), findsNothing);
     await c.setOnline(true);
     expect(service.calls, isEmpty);
     await tester.pumpWidget(const SizedBox());
@@ -475,7 +493,21 @@ void main() {
       expect(service.calls[1].$2['p_session_id'], 'session');
       c.selectTab(1);
       await tester.pumpAndSettle();
-      expect(find.text('Chưa có đơn mới phù hợp'), findsOneWidget);
+      expect(find.text('Chưa có yêu cầu phù hợp'), findsOneWidget);
+      expect(find.text('Hãy bật online và giữ GPS sẵn sàng'), findsOneWidget);
+      final beforeReload = service.calls
+          .where((call) => call.$1 == 'rescuer_list_available_requests')
+          .length;
+      final reload = find.text('Cập nhật đơn mới');
+      await tester.ensureVisible(reload);
+      await tester.tap(reload);
+      await tester.pumpAndSettle();
+      expect(
+        service.calls
+            .where((call) => call.$1 == 'rescuer_list_available_requests')
+            .length,
+        beforeReload + 1,
+      );
       await tester.pumpWidget(const SizedBox());
       await service.changes.close();
     },
@@ -528,7 +560,21 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Vá/thay lốp'), findsOneWidget);
     expect(find.textContaining('SECRET'), findsNothing);
-    expect(find.text('NHẬN ĐƠN NGAY'), findsOneWidget);
+    expect(find.text('NHẬN ĐƠN NGAY'), findsNothing);
+    final preview = find.byKey(const ValueKey('preview-r'));
+    await tester.ensureVisible(preview);
+    await tester.pumpAndSettle();
+    await tester.tap(preview);
+    await tester.pumpAndSettle();
+    expect(find.text('Xem trước yêu cầu'), findsOneWidget);
+    expect(find.textContaining('SECRET'), findsNothing);
+    expect(find.text('Nhận đơn'), findsOneWidget);
+    expect(
+      service.calls.where((call) => call.$1 == 'rescuer_claim_request'),
+      isEmpty,
+    );
+    await tester.tap(find.text('Để sau'));
+    await tester.pumpAndSettle();
     service.feedFailure = const PostgrestException(
       message: 'permission denied',
       code: '42501',

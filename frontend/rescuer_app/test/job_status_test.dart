@@ -71,8 +71,7 @@ Future<RescuerController> start(JobFake service) async {
 }
 
 Future<void> showAction(WidgetTester tester) async {
-  // The V2 action is at the bottom; let the floating success snackbar dismiss
-  // before testing the next real tap on that action.
+  // Let success feedback dismiss before testing the next action in the header.
   await tester.pump(const Duration(seconds: 4));
   await tester.pumpAndSettle();
   final action = find.byKey(const ValueKey('advance-job'));
@@ -259,11 +258,23 @@ void main() {
       final c = RescuerController(service, FakeLocation());
       addTearDown(() => service.changes.close());
       await mount(tester, c);
-      expect(find.byKey(const ValueKey('job-step-accepted')), findsOneWidget);
+      final action = find.byKey(const ValueKey('advance-job'));
       expect(
-        find.text('Cập nhật trạng thái để khách hàng theo dõi tiến độ'),
+        find.descendant(
+          of: find.byKey(const ValueKey('active-job-header')),
+          matching: action,
+        ),
         findsOneWidget,
       );
+      expect(
+        tester
+            .getRect(find.byType(ListView))
+            .contains(tester.getCenter(action)),
+        isTrue,
+      );
+      expect(find.text('Đang đến điểm cứu hộ'), findsWidgets);
+      expect(find.byKey(const ValueKey('job-step-accepted')), findsOneWidget);
+      expect(find.text('Tiến trình'), findsOneWidget);
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('advance-job')),
         250,
@@ -307,7 +318,7 @@ void main() {
       expect(find.byKey(const ValueKey('advance-job')), findsNothing);
       expect(find.byIcon(Icons.check_rounded), findsNWidgets(3));
       expect(find.text('Đang hỗ trợ khách'), findsWidgets);
-      expect(find.text('Hoàn tất chuyến'), findsNothing);
+      expect(find.byKey(const ValueKey('complete-job')), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );

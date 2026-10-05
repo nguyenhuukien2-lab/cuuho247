@@ -97,11 +97,18 @@ class AvailableRequest {
     required this.distanceKm,
   });
   factory AvailableRequest.fromJson(Json json) {
-    final coarse = Map<String, dynamic>.from(
-      json['approximate_location'] as Map,
-    );
-    if (coarse['precision'] != 'coarse' ||
-        (coarse['cell_size_degrees'] as num) < 0.01) {
+    final coarse = json['approximate_location'] == null
+        ? null
+        : Map<String, dynamic>.from(json['approximate_location'] as Map);
+    final latitude = (coarse?['latitude'] as num?)?.toDouble();
+    final longitude = (coarse?['longitude'] as num?)?.toDouble();
+    final cellSize = coarse?['cell_size_degrees'] as num?;
+    // Missing GPS is valid. Coordinates still require the safe pre-claim projection.
+    if ((latitude != null || longitude != null) &&
+        (coarse?['precision'] != 'coarse' ||
+            cellSize == null ||
+            !cellSize.isFinite ||
+            cellSize < 0.01)) {
       throw const FormatException('Invalid coarse location');
     }
     return AvailableRequest(
@@ -109,15 +116,27 @@ class AvailableRequest {
       requestCode: json['request_code'] as String?,
       service: json['service_type'] as String,
       vehicle: json['vehicle_type'] as String,
-      latitude: (coarse['latitude'] as num).toDouble(),
-      longitude: (coarse['longitude'] as num).toDouble(),
-      distanceKm: (json['estimated_distance_km'] as num).toInt(),
+      latitude: latitude,
+      longitude: longitude,
+      distanceKm: (json['estimated_distance_km'] as num?)?.toInt(),
     );
   }
   final String id, service, vehicle;
   final String? requestCode;
-  final double latitude, longitude;
-  final int distanceKm;
+  final double? latitude, longitude;
+  final int? distanceKm;
+  bool get hasApproximateLocation =>
+      latitude != null &&
+      longitude != null &&
+      latitude!.isFinite &&
+      longitude!.isFinite &&
+      latitude!.abs() <= 90 &&
+      longitude!.abs() <= 180;
+
+  int? get availableDistanceKm =>
+      hasApproximateLocation && distanceKm != null && distanceKm! >= 0
+      ? distanceKm
+      : null;
 }
 
 class RequestPage {

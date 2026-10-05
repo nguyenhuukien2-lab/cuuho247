@@ -568,10 +568,17 @@ class _RequestCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(_customerVehicles[request.vehicle] ?? 'Phương tiện khác'),
-          Text('Khoảng ${request.distanceKm} km'),
           Text(
-            'Khu vực gần đúng: ${request.latitude.toStringAsFixed(3)}, ${request.longitude.toStringAsFixed(3)}',
+            request.availableDistanceKm == null
+                ? 'Chưa có khoảng cách ước tính'
+                : 'Khoảng ${request.availableDistanceKm} km',
           ),
+          if (request.hasApproximateLocation)
+            Text(
+              'Khu vực gần đúng: ${request.latitude!.toStringAsFixed(3)}, ${request.longitude!.toStringAsFixed(3)}',
+            )
+          else
+            const Text('Chưa có tọa độ GPS'),
           const SizedBox(height: 8),
           const Text('Vị trí chỉ mang tính gần đúng.', style: AppType.caption),
         ],

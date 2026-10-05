@@ -365,6 +365,26 @@ void main() {
       await mount(tester, c);
       // Mount starts controller and restores the active tab.
       expect(c.tab, 2);
+      final openQuote = find.byKey(const ValueKey('open-quote'));
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('active-job-header')),
+          matching: openQuote,
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Chưa có báo giá'), findsOneWidget);
+      await tester.tap(openQuote);
+      await tester.pumpAndSettle();
+      expect(s.calls, isEmpty);
+      expect(
+        tester
+            .getRect(find.byType(ListView))
+            .contains(
+              tester.getCenter(find.byKey(const ValueKey('quote-main'))),
+            ),
+        isTrue,
+      );
       Future<void> showKey(String key) async {
         await tester.pumpAndSettle();
         final finder = find.byKey(ValueKey(key));
@@ -390,6 +410,15 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Báo giá đã gửi'), findsOneWidget);
       expect(find.text('120.000 ₫'), findsOneWidget);
+      expect(find.text('Tổng báo giá'), findsOneWidget);
+      expect(find.byKey(const ValueKey('open-quote')), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('active-job-header')),
+          matching: find.byKey(const ValueKey('complete-job')),
+        ),
+        findsOneWidget,
+      );
       await showKey('complete-job');
       await tester.tap(find.byKey(const ValueKey('complete-job')));
       await tester.pumpAndSettle();
