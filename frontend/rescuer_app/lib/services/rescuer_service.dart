@@ -106,7 +106,7 @@ class SupabaseRescuerService implements RescuerService {
     final results = await Future.wait<dynamic>([
       client
           .from('rescuer_profiles')
-          .select('user_id,full_name,contact_phone,verification_status,version')
+          .select('user_id,rescuer_code,full_name,contact_phone,verification_status,version')
           .eq('user_id', uid)
           .maybeSingle(),
       client
