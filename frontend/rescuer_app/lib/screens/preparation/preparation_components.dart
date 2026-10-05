@@ -1,3 +1,5 @@
+import '../../app/mobile_ui.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../app/app_theme.dart';
@@ -55,12 +57,15 @@ class PreparationCard extends StatelessWidget {
     required this.subtitle,
     required this.icon,
     required this.children,
+    this.kind = RescueCardKind.information,
   });
   final String title, subtitle;
   final IconData icon;
   final List<Widget> children;
+  final RescueCardKind kind;
   @override
   Widget build(BuildContext context) => AppCard(
+    kind: kind,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -69,7 +74,7 @@ class PreparationCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.orangeSoft,
+                color: RescueColors.selected,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: AppColors.navy),
@@ -80,7 +85,7 @@ class PreparationCard extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(subtitle, style: AppType.caption),
-        const SizedBox(height: 18),
+        const SizedBox(height: RescueSpace.lg),
         ...children,
       ],
     ),
@@ -93,15 +98,7 @@ class ReviewBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Align(
     alignment: Alignment.centerLeft,
-    child: StatusBadge(
-      label: reviewLabels[status] ?? 'Chưa nộp',
-      icon: status == 'approved' ? Icons.verified : Icons.schedule,
-      tone: status == 'approved'
-          ? BadgeTone.green
-          : ['rejected', 'suspended', 'expired'].contains(status)
-          ? BadgeTone.red
-          : BadgeTone.orange,
-    ),
+    child: RescueStatusBadge(status: status, label: reviewLabels[status]),
   );
 }
 
@@ -111,26 +108,22 @@ class PreparationEmpty extends StatelessWidget {
     required this.title,
     required this.message,
     this.icon = Icons.inbox_outlined,
+    this.kind = RescueFeedbackKind.empty,
+    this.action,
   });
   final String title, message;
   final IconData icon;
+  final RescueFeedbackKind kind;
+  final Widget? action;
   @override
   Widget build(BuildContext context) => AppCard(
-    child: Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(22),
-          decoration: const BoxDecoration(
-            color: AppColors.orangeSoft,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, size: 42, color: AppColors.orange),
-        ),
-        const SizedBox(height: 18),
-        Text(title, textAlign: TextAlign.center, style: AppType.section),
-        const SizedBox(height: 8),
-        Text(message, textAlign: TextAlign.center, style: AppType.body),
-      ],
+    padding: EdgeInsets.zero,
+    child: RescueFeedback(
+      title: title,
+      message: message,
+      icon: icon,
+      kind: kind,
+      action: action,
     ),
   );
 }

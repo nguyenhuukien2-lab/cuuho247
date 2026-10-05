@@ -1,15 +1,11 @@
+import '../app/mobile_ui.dart';
 import 'package:flutter/material.dart';
 import '../app/app_controller.dart';
 import '../services/location_service.dart';
 import 'booking_ui.dart';
 
-const _title = TextStyle(
-    fontSize: 18,
-    height: 1.35,
-    fontWeight: FontWeight.w700,
-    color: BookingStyle.ink);
-const _caption =
-    TextStyle(fontSize: 12, height: 1.5, color: BookingStyle.muted);
+const _title = RescueType.section;
+const _caption = RescueType.caption;
 
 class HomeGreetingLocation extends StatelessWidget {
   const HomeGreetingLocation(
@@ -57,7 +53,7 @@ class HomeGreetingLocation extends StatelessWidget {
           tooltip: 'Làm mới vị trí',
           onPressed: loading ? null : onRefresh,
           style: IconButton.styleFrom(
-              backgroundColor: const Color(0xFFDCE9FF),
+              backgroundColor: RescueColors.selected,
               foregroundColor: BookingStyle.blue,
               minimumSize: const Size(48, 48)),
           icon: loading
@@ -79,7 +75,7 @@ class ActiveOrderBanner extends StatelessWidget {
   Widget build(BuildContext context) => Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(RescueRadius.card),
           gradient: const LinearGradient(
               colors: [Color(0xFFD3E4FE), Color(0xFFE1F7ED)])),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -136,16 +132,16 @@ class EmergencyHeroCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(RescueRadius.card),
           gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [BookingStyle.blue, Color(0xFF2563EB)]),
+              colors: [RescueColors.navy, RescueColors.navySoft]),
           boxShadow: [
             BoxShadow(
-                color: BookingStyle.blue.withValues(alpha: .18),
-                blurRadius: 20,
-                offset: const Offset(0, 6))
+                color: BookingStyle.blue.withValues(alpha: .06),
+                blurRadius: 8,
+                offset: const Offset(0, 2))
           ]),
       child: Stack(children: [
         Positioned(
@@ -173,9 +169,9 @@ class EmergencyHeroCard extends StatelessWidget {
               const SizedBox(height: 16),
               const Text('Bạn cần cứu hộ khẩn cấp?',
                   style: TextStyle(
-                      fontSize: 26,
+                      fontSize: 24,
                       height: 1.25,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                       color: Colors.white)),
               const SizedBox(height: 8),
               const Text('Hệ thống tìm đối tác gần bạn trong vài giây.',
@@ -186,22 +182,16 @@ class EmergencyHeroCard extends StatelessWidget {
                   width: double.infinity,
                   child: FilledButton(
                       onPressed: onRequest,
-                      style: FilledButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: BookingStyle.blue,
-                          minimumSize: const Size(0, 56),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 14),
-                          shape: const StadiumBorder()),
+                      style: RescueButtons.style(RescueButtonKind.primary),
                       child: const Row(children: [
-                        Icon(Icons.circle, color: Color(0xFFEF4444), size: 10),
+                        Icon(Icons.circle, color: Colors.white, size: 10),
                         SizedBox(width: 8),
                         Expanded(
                             child: Text('YÊU CẦU CỨU HỘ NGAY',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                     fontSize: 16,
-                                    fontWeight: FontWeight.w800))),
+                                    fontWeight: FontWeight.w700))),
                         SizedBox(width: 8),
                         Icon(Icons.sos_rounded)
                       ]))),
@@ -303,7 +293,7 @@ class ServiceCard extends StatelessWidget {
   Widget build(BuildContext context) => _Surface(
       child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(RescueRadius.card),
           child: Padding(
               padding: const EdgeInsets.all(14),
               child: Column(
@@ -329,7 +319,8 @@ class TrustCommitmentCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          color: BookingStyle.pale, borderRadius: BorderRadius.circular(20)),
+          color: BookingStyle.pale,
+          borderRadius: BorderRadius.circular(RescueRadius.card)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Row(children: [
           Icon(Icons.shield_outlined, color: BookingStyle.green),
@@ -432,19 +423,8 @@ class _Surface extends StatelessWidget {
   const _Surface({required this.child});
   final Widget child;
   @override
-  Widget build(BuildContext context) => Container(
-      decoration:
-          BoxDecoration(borderRadius: BorderRadius.circular(20), boxShadow: [
-        BoxShadow(
-            color: BookingStyle.blue.withValues(alpha: .06),
-            blurRadius: 20,
-            offset: const Offset(0, 4))
-      ]),
-      child: Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          clipBehavior: Clip.antiAlias,
-          child: child));
+  Widget build(BuildContext context) => RescueCard(
+      kind: RescueCardKind.information, padding: EdgeInsets.zero, child: child);
 }
 
 class _Badge extends StatelessWidget {
@@ -457,8 +437,8 @@ class _Badge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
           color: background ?? color.withValues(alpha: .1),
-          borderRadius: BorderRadius.circular(20)),
+          borderRadius: BorderRadius.circular(RescueRadius.card)),
       child: Text(label,
           style: TextStyle(
-              color: color, fontSize: 11, fontWeight: FontWeight.w700)));
+              color: color, fontSize: 12, fontWeight: FontWeight.w600)));
 }

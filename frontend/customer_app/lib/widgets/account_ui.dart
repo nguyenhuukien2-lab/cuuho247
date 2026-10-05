@@ -1,3 +1,4 @@
+import '../app/mobile_ui.dart';
 import '../app/app_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -5,53 +6,29 @@ import '../services/customer_vehicle_service.dart';
 import '../services/customer_saved_address_service.dart';
 import 'booking_ui.dart';
 
-const accountTitle = TextStyle(
-    fontSize: 18,
-    height: 1.35,
-    fontWeight: FontWeight.w700,
-    color: BookingStyle.ink);
-const accountCaption =
-    TextStyle(fontSize: 12, height: 1.5, color: BookingStyle.muted);
+const accountTitle = RescueType.section;
+const accountCaption = RescueType.caption;
 
 class CustomerAccountHeaderCard extends StatelessWidget {
   const CustomerAccountHeaderCard(
       {super.key,
       required this.name,
       this.phone,
+      this.customerCode,
       this.email,
       this.onEdit,
       this.onReload,
       this.vehicleCount,
       this.completedCount});
   final String name;
-  final String? phone, email;
+  final String? phone, email, customerCode;
   final VoidCallback? onEdit, onReload;
   final int? vehicleCount, completedCount;
   @override
   Widget build(BuildContext context) => Container(
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [BookingStyle.blue, Color(0xFF2563EB)]),
-          boxShadow: [
-            BoxShadow(
-                color: BookingStyle.blue.withValues(alpha: .15),
-                blurRadius: 20,
-                offset: const Offset(0, 4))
-          ]),
+      decoration: RescueSurfaces.decoration(RescueCardKind.profile),
       child: Stack(children: [
-        Positioned(
-            right: -40,
-            bottom: -40,
-            child: Container(
-                width: 170,
-                height: 170,
-                decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: BookingStyle.green.withValues(alpha: .15)))),
         Padding(
             padding: const EdgeInsets.all(16),
             child:
@@ -59,27 +36,33 @@ class CustomerAccountHeaderCard extends StatelessWidget {
               Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const CircleAvatar(
                     radius: 32,
-                    backgroundColor: Color(0x26FFFFFF),
+                    backgroundColor: RescueColors.selected,
                     child: Icon(Icons.person_outline_rounded,
-                        color: Colors.white, size: 36)),
+                        color: RescueColors.ink, size: 36)),
                 const SizedBox(width: 12),
                 Expanded(
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                       Text(name.isEmpty ? 'Thông tin cá nhân' : name,
-                          style: accountTitle.copyWith(color: Colors.white)),
+                          style:
+                              accountTitle.copyWith(color: RescueColors.ink)),
+                      if (customerCode != null) ...[
+                        const SizedBox(height: RescueSpace.xs),
+                        Text('Mã khách hàng: $customerCode',
+                            style: RescueType.code),
+                      ],
                       if (phone?.trim().isNotEmpty == true) ...[
                         const SizedBox(height: 6),
                         Text(phone!,
                             style: const TextStyle(
-                                color: Colors.white, fontSize: 14))
+                                color: RescueColors.ink, fontSize: 14))
                       ],
                       if (email?.trim().isNotEmpty == true) ...[
                         const SizedBox(height: 4),
                         Text(email!,
                             style: const TextStyle(
-                                color: Color(0xFFCAD3FF), fontSize: 12))
+                                color: RescueColors.muted, fontSize: 12))
                       ],
                     ])),
               ]),
@@ -90,8 +73,9 @@ class CustomerAccountHeaderCard extends StatelessWidget {
                       child: OutlinedButton.icon(
                           onPressed: onEdit,
                           style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: const BorderSide(color: Color(0x66FFFFFF)),
+                              foregroundColor: RescueColors.ink,
+                              side:
+                                  const BorderSide(color: RescueColors.border),
                               minimumSize: const Size(0, 48)),
                           icon: const Icon(Icons.edit_outlined),
                           label: const Text('Chỉnh sửa thông tin'))),
@@ -99,7 +83,7 @@ class CustomerAccountHeaderCard extends StatelessWidget {
                     IconButton(
                         tooltip: 'Tải lại hồ sơ',
                         onPressed: onReload,
-                        color: Colors.white,
+                        color: RescueColors.ink,
                         icon: const Icon(Icons.refresh_rounded)),
                 ])
               ],
@@ -108,7 +92,7 @@ class CustomerAccountHeaderCard extends StatelessWidget {
                 Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: .1),
+                        color: RescueColors.background,
                         borderRadius: BorderRadius.circular(16)),
                     child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,11 +122,11 @@ class AccountMetricTile extends StatelessWidget {
   Widget build(BuildContext context) => Column(children: [
         Text('$value',
             style: const TextStyle(
-                color: Colors.white,
+                color: RescueColors.ink,
                 fontSize: 22,
                 fontWeight: FontWeight.w800)),
         Text(label,
-            style: const TextStyle(color: Color(0xFFCAD3FF), fontSize: 11),
+            style: const TextStyle(color: RescueColors.muted, fontSize: 12),
             textAlign: TextAlign.center),
       ]);
 }
@@ -156,7 +140,7 @@ class AccountVehicleCard extends StatelessWidget {
   Widget build(BuildContext context) => AccountSurface(
       child: InkWell(
           onTap: onManage,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(RescueRadius.card),
           child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -308,12 +292,7 @@ class LogoutButton extends StatelessWidget {
       width: double.infinity,
       child: FilledButton.icon(
           onPressed: loading ? null : onPressed,
-          style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFFEE2E2),
-              foregroundColor: const Color(0xFFB91C1C),
-              minimumSize: const Size(0, 56),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16))),
+          style: RescueButtons.style(RescueButtonKind.danger),
           icon: loading
               ? const SizedBox.square(
                   dimension: 20,
@@ -326,17 +305,6 @@ class AccountSurface extends StatelessWidget {
   const AccountSurface({super.key, required this.child});
   final Widget child;
   @override
-  Widget build(BuildContext context) => Container(
-      decoration:
-          BoxDecoration(borderRadius: BorderRadius.circular(22), boxShadow: [
-        BoxShadow(
-            color: BookingStyle.blue.withValues(alpha: .06),
-            blurRadius: 20,
-            offset: const Offset(0, 4))
-      ]),
-      child: Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          clipBehavior: Clip.antiAlias,
-          child: child));
+  Widget build(BuildContext context) => RescueCard(
+      kind: RescueCardKind.profile, padding: EdgeInsets.zero, child: child);
 }

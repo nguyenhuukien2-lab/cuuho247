@@ -1,3 +1,4 @@
+import '../../app/mobile_ui.dart';
 import '../../core/utils/display_code.dart';
 
 import 'package:flutter/material.dart';
@@ -92,7 +93,7 @@ class _JobFinanceSectionState extends State<JobFinanceSection> {
           const StatusBadge(label: 'Báo giá đã gửi'),
           Text(
             'Mã báo giá: ${displayCode(a.quoteCode)}',
-            style: AppType.caption,
+            style: RescueType.code,
           ),
           const SizedBox(height: 12),
           Text(

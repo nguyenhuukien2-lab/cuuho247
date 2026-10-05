@@ -1,3 +1,4 @@
+import '../app/mobile_ui.dart';
 import 'package:flutter/material.dart';
 import '../app/app_controller.dart';
 import '../app/user_session.dart';
@@ -270,10 +271,7 @@ class _NewAccountScreenState extends State<NewAccountScreen> {
                     const SizedBox(height: 8),
                     FilledButton.tonalIcon(
                         onPressed: _manageVehicles,
-                        style: FilledButton.styleFrom(
-                            minimumSize: const Size(0, 52),
-                            backgroundColor: const Color(0xFFDCE9FF),
-                            foregroundColor: BookingStyle.blue),
+                        style: RescueButtons.style(RescueButtonKind.secondary),
                         icon: const Icon(Icons.add_circle_outline),
                         label: const Text('Thêm phương tiện mới')),
                     TextButton(

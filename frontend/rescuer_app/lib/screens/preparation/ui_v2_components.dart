@@ -1,3 +1,4 @@
+import '../../app/mobile_ui.dart';
 import '../../core/utils/display_code.dart';
 
 import 'package:flutter/material.dart';
@@ -25,7 +26,7 @@ class PartnerHeader extends StatelessWidget implements PreferredSizeWidget {
     titleSpacing: 16,
     title: Row(
       children: [
-        const BrandMark(size: 34, light: true),
+        const BrandMark(size: 34),
         const SizedBox(width: 9),
         Expanded(
           child: Column(
@@ -36,8 +37,8 @@ class PartnerHeader extends StatelessWidget implements PreferredSizeWidget {
                 maxLines: 2,
                 style: TextStyle(
                   fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  color: RescueColors.ink,
                 ),
               ),
               const SizedBox(height: 4),
@@ -47,7 +48,10 @@ class PartnerHeader extends StatelessWidget implements PreferredSizeWidget {
                   const SizedBox(width: 5),
                   Text(
                     page,
-                    style: const TextStyle(fontSize: 12, color: Colors.white70),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: RescueColors.muted,
+                    ),
                   ),
                 ],
               ),
@@ -73,36 +77,19 @@ class PartnerHeader extends StatelessWidget implements PreferredSizeWidget {
 }
 
 class NavyPanel extends StatelessWidget {
-  const NavyPanel({super.key, required this.child});
+  const NavyPanel({
+    super.key,
+    required this.child,
+    this.kind = RescueCardKind.status,
+  });
   final Widget child;
+  final RescueCardKind kind;
   @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,
-    padding: const EdgeInsets.all(22),
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [AppColors.navy, AppColors.navySoft],
-      ),
-      borderRadius: BorderRadius.circular(24),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x240B2540),
-          blurRadius: 20,
-          offset: Offset(0, 7),
-        ),
-      ],
-    ),
-    child: DefaultTextStyle(
-      style: const TextStyle(
-        fontFamily: 'Roboto',
-        color: Colors.white,
-        fontSize: 14,
-        height: 1.4,
-      ),
-      child: child,
-    ),
+    padding: const EdgeInsets.all(RescueSpace.lg),
+    decoration: RescueSurfaces.decoration(kind),
+    child: DefaultTextStyle(style: RescueType.body, child: child),
   );
 }
 
@@ -120,6 +107,7 @@ class PartnerHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final profile = c.snapshot.profile;
     return NavyPanel(
+      kind: RescueCardKind.profile,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -130,13 +118,13 @@ class PartnerHero extends StatelessWidget {
                 width: 54,
                 height: 54,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .12),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.white24),
+                  color: RescueColors.selected,
+                  borderRadius: BorderRadius.circular(RescueRadius.control),
+                  border: Border.all(color: RescueColors.border),
                 ),
                 child: const Icon(
                   Icons.person_rounded,
-                  color: Colors.white,
+                  color: RescueColors.ink,
                   size: 32,
                 ),
               ),
@@ -147,29 +135,26 @@ class PartnerHero extends StatelessWidget {
                   children: [
                     Text(
                       profile?['full_name'] as String? ?? 'Đối tác mới',
-                      style: const TextStyle(
-                        fontSize: 21,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: RescueType.section,
                     ),
                     const SizedBox(height: 5),
                     if (profile != null)
                       Text(
                         'Mã đối tác: ${displayCode(profile['rescuer_code'] as String?)}',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.white70,
-                        ),
+                        style: RescueType.code,
                       ),
                     if (account && profile?['contact_phone'] is String)
                       Text(
                         profile!['contact_phone'] as String,
-                        style: const TextStyle(color: Colors.white70),
+                        style: const TextStyle(color: RescueColors.muted),
                       ),
                     if (!account)
                       const Text(
                         'Đồng hành trên mọi hành trình',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                        style: TextStyle(
+                          color: RescueColors.muted,
+                          fontSize: 12,
+                        ),
                       ),
                   ],
                 ),
@@ -186,8 +171,8 @@ class PartnerHero extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: .18),
-              borderRadius: BorderRadius.circular(14),
+              color: RescueColors.background,
+              borderRadius: BorderRadius.circular(RescueRadius.control),
             ),
             child: Row(
               children: [
@@ -236,7 +221,7 @@ class GpsSignalCard extends StatelessWidget {
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       color: AppColors.blueSoft,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(RescueRadius.card),
     ),
     child: Row(
       children: [
@@ -261,7 +246,7 @@ class GpsSignalCard extends StatelessWidget {
                 c.online && c.locationReady
                     ? 'Radar cứu hộ hoạt động'
                     : 'Radar đang chờ tín hiệu',
-                style: AppType.body.copyWith(fontWeight: FontWeight.w800),
+                style: AppType.body.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 4),
               Text(
@@ -309,7 +294,7 @@ class LocalFilterBar extends StatelessWidget {
               selected: selected == entry.key,
               labelStyle: TextStyle(
                 fontFamily: 'Roboto',
-                color: selected == entry.key ? Colors.white : AppColors.navy,
+                color: selected == entry.key ? AppColors.navy : AppColors.muted,
                 fontWeight: FontWeight.w700,
               ),
               onSelected: (_) => onSelect(entry.key),

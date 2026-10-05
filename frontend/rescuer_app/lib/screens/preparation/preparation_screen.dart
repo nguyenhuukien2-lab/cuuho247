@@ -1,3 +1,4 @@
+import '../../app/mobile_ui.dart';
 import '../../core/utils/display_code.dart';
 
 import 'dart:async';
@@ -186,7 +187,7 @@ class _PreparationScreenState extends State<PreparationScreen> {
                       physics: const AlwaysScrollableScrollPhysics(),
                       keyboardDismissBehavior:
                           ScrollViewKeyboardDismissBehavior.onDrag,
-                      padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+                      padding: RescueSpace.page,
                       children: [
                         if (c.working) ...[
                           const LinearProgressIndicator(),
@@ -212,12 +213,14 @@ class _PreparationScreenState extends State<PreparationScreen> {
                         ],
                         if (!c.snapshotLoaded) ...[
                           const PreparationEmpty(
+                            kind: RescueFeedbackKind.error,
                             title: 'Chưa tải được hồ sơ',
                             message: 'Kiểm tra mạng hoặc phiên đăng nhập rồi thử tải lại.',
                             icon: Icons.cloud_off,
                           ),
                           const SizedBox(height: 16),
                           AppButton(
+                            kind: ButtonStyleKind.secondary,
                             label: 'Thử tải lại hồ sơ',
                             onPressed: c.working ? null : c.refreshProfile,
                           ),
@@ -358,8 +361,8 @@ class _PreparationScreenState extends State<PreparationScreen> {
                   labelStyle: TextStyle(
                     fontFamily: 'Roboto',
                     color: c.accountSection == e.key
-                        ? Colors.white
-                        : AppColors.navy,
+                        ? AppColors.navy
+                        : AppColors.muted,
                   ),
                   onSelected: (_) => _editSection(e.key),
                 ),
@@ -421,6 +424,7 @@ class _PreparationScreenState extends State<PreparationScreen> {
         ),
         const SizedBox(height: 16),
         AppButton(
+          kind: ButtonStyleKind.secondary,
           label: 'Kiểm tra lại chuyến',
           loading: c.jobStatus == JobStatus.loading,
           onPressed: c.working ? null : c.refreshActiveJob,
@@ -484,6 +488,7 @@ class _PreparationScreenState extends State<PreparationScreen> {
           label: const Text('Hiện lại đơn đã bỏ qua trên thiết bị'),
         ),
       AppButton(
+        kind: ButtonStyleKind.secondary,
         label: 'Cập nhật đơn mới',
         icon: Icons.refresh,
         onPressed: c.working ? null : c.refreshRequests,
@@ -491,6 +496,7 @@ class _PreparationScreenState extends State<PreparationScreen> {
       const SizedBox(height: 18),
       if (c.feedStatus == FeedStatus.loading)
         const PreparationEmpty(
+          kind: RescueFeedbackKind.loading,
           title: 'Đang tìm yêu cầu phù hợp',
           message: 'Đang đồng bộ vị trí và danh sách đơn mới.',
           icon: Icons.radar,
@@ -502,6 +508,7 @@ class _PreparationScreenState extends State<PreparationScreen> {
         ),
       if (c.feedStatus == FeedStatus.error)
         PreparationEmpty(
+          kind: RescueFeedbackKind.error,
           title: 'Chưa tải được đơn mới',
           message: c.feedError ?? 'Thử cập nhật GPS và tải lại.',
           icon: Icons.cloud_off,
@@ -514,6 +521,7 @@ class _PreparationScreenState extends State<PreparationScreen> {
         ),
       for (final r in c.requests.where(_showRequest)) ...[
         AppCard(
+          kind: RescueCardKind.order,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -541,7 +549,7 @@ class _PreparationScreenState extends State<PreparationScreen> {
               const SizedBox(height: 8),
               Text(
                 'Mã đơn: ${displayCode(r.requestCode)}',
-                style: AppType.caption,
+                style: RescueType.code,
               ),
               const SizedBox(height: 6),
               Container(
@@ -851,6 +859,7 @@ class PreparationGps extends StatelessWidget {
       ),
       const SizedBox(height: 16),
       AppButton(
+        kind: ButtonStyleKind.secondary,
         label: 'Kiểm tra GPS',
         icon: Icons.gps_fixed,
         onPressed: c.working ? null : c.checkGps,

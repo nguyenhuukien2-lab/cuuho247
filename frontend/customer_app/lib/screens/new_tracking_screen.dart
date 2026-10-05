@@ -1,3 +1,4 @@
+import '../app/mobile_ui.dart';
 import '../core/utils/display_code.dart';
 import 'dart:async';
 
@@ -202,12 +203,18 @@ class _NewTrackingScreenState extends State<NewTrackingScreen>
   Widget _buildContent(BuildContext context) {
     final request = controller.activeRequest;
     if (controller.loadingRequests && request == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+          child: SingleChildScrollView(
+              child: RescueFeedback(
+                  kind: RescueFeedbackKind.loading,
+                  title: 'Đang tải yêu cầu',
+                  message: 'Đang cập nhật trạng thái cứu hộ.')));
     }
     if (controller.loadError != null && request == null) {
       return SingleChildScrollView(
           padding: AppSpacing.page,
           child: CustomerEmptyState(
+              kind: RescueFeedbackKind.error,
               icon: Icons.cloud_off_rounded,
               title: 'Chưa tải được yêu cầu',
               message: controller.loadError!,
@@ -308,8 +315,7 @@ class _NewTrackingScreenState extends State<NewTrackingScreen>
                         child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.close_rounded),
                 label: Text(cancelling ? 'Đang hủy…' : 'Hủy yêu cầu'),
-                style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFFEF4444))),
+                style: RescueButtons.style(RescueButtonKind.danger)),
           ],
         ]);
   }

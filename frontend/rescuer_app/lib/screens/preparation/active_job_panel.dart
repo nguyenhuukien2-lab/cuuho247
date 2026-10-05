@@ -1,3 +1,4 @@
+import '../../app/mobile_ui.dart';
 import '../../core/utils/display_code.dart';
 
 import 'package:flutter/material.dart';
@@ -52,10 +53,7 @@ class ActiveJobPanel extends StatelessWidget {
                     children: [
                       Text(
                         'MÃ ĐƠN · ${displayCode(assignment.requestCode)}',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.white70,
-                        ),
+                        style: RescueType.code,
                       ),
                       const SizedBox(height: 7),
                       Text(
@@ -74,6 +72,7 @@ class ActiveJobPanel extends StatelessWidget {
           const SizedBox(height: 18),
         ],
         AppButton(
+          kind: ButtonStyleKind.secondary,
           label: 'Tải lại chuyến',
           icon: Icons.refresh,
           loading: c.jobStatus == JobStatus.loading,
@@ -84,12 +83,14 @@ class ActiveJobPanel extends StatelessWidget {
         const SizedBox(height: 18),
         if (c.jobStatus == JobStatus.loading)
           const PreparationEmpty(
+            kind: RescueFeedbackKind.loading,
             title: 'Đang tải chuyến',
             message: 'Đang kiểm tra thông tin chuyến đã nhận.',
             icon: Icons.sync,
           ),
         if (c.jobStatus == JobStatus.error)
           PreparationEmpty(
+            kind: RescueFeedbackKind.error,
             title: 'Chưa tải được thông tin chuyến',
             message: c.jobError ?? 'Kiểm tra kết nối rồi thử tải lại.',
             icon: Icons.cloud_off,
@@ -113,7 +114,10 @@ class ActiveJobPanel extends StatelessWidget {
             subtitle: 'Cập nhật trạng thái để khách hàng theo dõi tiến độ',
             icon: Icons.route_outlined,
             children: [
-              StatusBadge(label: assignment.stateLabel),
+              RescueStatusBadge(
+                status: assignment.state,
+                label: assignment.stateLabel,
+              ),
               const SizedBox(height: 18),
               JobProgressTimeline(assignment: assignment),
               if (assignment.state == 'in_progress') ...[
@@ -128,7 +132,7 @@ class ActiveJobPanel extends StatelessWidget {
               const SizedBox(height: 12),
               SelectableText(
                 'Mã đơn: ${displayCode(assignment.requestCode)}',
-                style: AppType.caption,
+                style: RescueType.code,
               ),
               if (assignment.acceptedAt != null) ...[
                 const SizedBox(height: 8),
@@ -216,6 +220,7 @@ class ActiveJobPanel extends StatelessWidget {
               if (job.latitude != null && job.longitude != null) ...[
                 const SizedBox(height: 8),
                 AppButton(
+                  kind: ButtonStyleKind.secondary,
                   label: 'Mở Google Maps',
                   icon: Icons.map_outlined,
                   onPressed: () => _open(

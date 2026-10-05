@@ -1,3 +1,4 @@
+import '../app/mobile_ui.dart';
 import '../core/utils/display_code.dart';
 import 'package:flutter/material.dart';
 import '../app/app_controller.dart';
@@ -112,6 +113,7 @@ class _CustomerProfileCardState extends State<CustomerProfileCard> {
       return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         CustomerAccountHeaderCard(
             name: name,
+            customerCode: displayCode(data?.customerCode),
             phone: data?.phone ?? UserSession.phoneNumber,
             email: data?.email ?? UserSession.email,
             onEdit: data != null && !loading ? edit : null,
@@ -160,7 +162,7 @@ class _CustomerProfileCardState extends State<CustomerProfileCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                 Text('Mã khách hàng: ${displayCode(data?.customerCode)}',
-                    style: const TextStyle(color: AppColors.muted)),
+                    style: RescueType.code),
                 Text(name.isEmpty ? 'Thông tin cá nhân' : name,
                     style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 4),

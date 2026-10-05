@@ -1,3 +1,4 @@
+import '../../app/mobile_ui.dart';
 import '../../core/utils/display_code.dart';
 
 import 'package:flutter/material.dart';
@@ -27,12 +28,13 @@ class _HistoryPanelState extends State<HistoryPanel> {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       NavyPanel(
+        kind: RescueCardKind.history,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Row(
               children: [
-                Icon(Icons.calendar_month_outlined, color: Colors.white70),
+                Icon(Icons.calendar_month_outlined, color: RescueColors.muted),
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -68,7 +70,7 @@ class _HistoryPanelState extends State<HistoryPanel> {
                       .every((j) => j.assignment.currency == 'VND')) ...[
                 const Text(
                   'Chi phí ghi nhận · các chuyến hoàn tất',
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                  style: TextStyle(color: RescueColors.muted, fontSize: 12),
                 ),
                 Text(
                   formatMoney(
@@ -92,12 +94,12 @@ class _HistoryPanelState extends State<HistoryPanel> {
                 c.historyCursor != null
                     ? 'Còn lịch sử chưa tải. Số liệu chỉ tính danh sách đã tải.'
                     : 'Theo lịch sử đã đồng bộ. Chưa bao gồm thanh toán.',
-                style: const TextStyle(color: Colors.white70, fontSize: 11),
+                style: RescueType.caption,
               ),
             ] else
               const Text(
                 'Tải lịch sử để xem chuyến và chi phí được ghi nhận.',
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(color: RescueColors.muted),
               ),
           ],
         ),
@@ -121,6 +123,7 @@ class _HistoryPanelState extends State<HistoryPanel> {
       ),
       const SizedBox(height: 16),
       AppButton(
+        kind: ButtonStyleKind.secondary,
         label: 'Tải lại lịch sử',
         icon: Icons.refresh,
         onPressed: c.working ? null : c.refreshHistory,
@@ -128,6 +131,7 @@ class _HistoryPanelState extends State<HistoryPanel> {
       const SizedBox(height: 16),
       if (c.historyStatus == FeedStatus.loading)
         const PreparationEmpty(
+          kind: RescueFeedbackKind.loading,
           title: 'Đang tải lịch sử',
           message: 'Đang lấy các chuyến của bạn.',
           icon: Icons.sync,
@@ -140,6 +144,7 @@ class _HistoryPanelState extends State<HistoryPanel> {
         ),
       if (c.historyStatus == FeedStatus.error)
         PreparationEmpty(
+          kind: RescueFeedbackKind.error,
           title: 'Chưa tải được lịch sử',
           message: c.historyError ?? 'Kiểm tra mạng và thử lại.',
           icon: Icons.cloud_off,
@@ -158,22 +163,18 @@ class _HistoryPanelState extends State<HistoryPanel> {
       for (final j in _visible) ...[
         PreparationCard(
           key: ValueKey('history-${j.assignment.id}'),
+          kind: RescueCardKind.history,
           title: serviceLabels[j.service] ?? 'Dịch vụ cứu hộ',
           subtitle: customerVehicles[j.vehicle] ?? 'Phương tiện khác',
           icon: Icons.history,
           children: [
             Text(
               'Mã đơn: ${displayCode(j.assignment.requestCode)}',
-              style: AppType.caption,
+              style: RescueType.code,
             ),
-            StatusBadge(
+            RescueStatusBadge(
+              status: j.assignment.state,
               label: j.assignment.stateLabel,
-              tone: j.assignment.state == 'completed'
-                  ? BadgeTone.green
-                  : BadgeTone.red,
-              icon: j.assignment.state == 'completed'
-                  ? Icons.check_circle_outline
-                  : Icons.cancel_outlined,
             ),
             const SizedBox(height: 12),
             Text(
@@ -199,17 +200,20 @@ class _HistoryPanelState extends State<HistoryPanel> {
       ],
       if (c.historyCursor != null)
         AppButton(
+          kind: ButtonStyleKind.secondary,
           label: 'Xem thêm lịch sử',
           onPressed: c.working ? null : () => c.refreshHistory(more: true),
         ),
       if (c.historyDetailLoading)
         const PreparationEmpty(
+          kind: RescueFeedbackKind.loading,
           title: 'Đang tải chi tiết',
           message: 'Đang kiểm tra thông tin chuyến.',
           icon: Icons.sync,
         ),
       if (c.historyDetailError != null)
         PreparationEmpty(
+          kind: RescueFeedbackKind.error,
           title: 'Chưa tải được chi tiết',
           message: c.historyDetailError!,
           icon: Icons.cloud_off,
@@ -218,17 +222,18 @@ class _HistoryPanelState extends State<HistoryPanel> {
         const SizedBox(height: 16),
         PreparationCard(
           title: 'Chi tiết chuyến đã kết thúc',
+          kind: RescueCardKind.history,
           subtitle: j.assignment.stateLabel,
           icon: Icons.assignment_outlined,
           children: [
             SelectableText(
               'Mã đơn: ${displayCode(j.assignment.requestCode)}',
-              style: AppType.caption,
+              style: RescueType.code,
             ),
             if (j.assignment.hasQuote)
               Text(
                 'Mã báo giá: ${displayCode(j.assignment.quoteCode)}',
-                style: AppType.caption,
+                style: RescueType.code,
               ),
             const SizedBox(height: 12),
             Text(

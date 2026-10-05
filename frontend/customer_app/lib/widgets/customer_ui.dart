@@ -1,3 +1,4 @@
+import '../app/mobile_ui.dart';
 import 'package:flutter/material.dart';
 import '../app/app_controller.dart';
 import '../app/app_theme.dart';
@@ -33,27 +34,21 @@ class ScreenHeader extends StatelessWidget {
         width: double.infinity,
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-            color: AppColors.navy, borderRadius: BorderRadius.circular(20)),
+        decoration: RescueSurfaces.decoration(),
         child: Row(children: [
           const Icon(Icons.health_and_safety_outlined,
-              color: Colors.white, size: 26),
+              color: RescueColors.navy, size: 26),
           const SizedBox(width: 12),
           Expanded(
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                Text(title,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700)),
+                Text(title, style: RescueType.page),
                 if (subtitle != null)
                   Text(subtitle!,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style:
-                          const TextStyle(color: Colors.white70, fontSize: 12)),
+                      style: RescueType.caption),
               ])),
           if (trailing != null) trailing!,
         ]),
@@ -62,7 +57,12 @@ class ScreenHeader extends StatelessWidget {
 
 /// Natural tile height allows Vietnamese labels to wrap at large text sizes.
 class ServiceGrid extends StatelessWidget {
-  const ServiceGrid({super.key, this.selected, required this.onSelected, this.selectedColor = AppColors.navy, this.selectedBackground = AppColors.selected});
+  const ServiceGrid(
+      {super.key,
+      this.selected,
+      required this.onSelected,
+      this.selectedColor = AppColors.navy,
+      this.selectedBackground = AppColors.selected});
   final RescueService? selected;
   final ValueChanged<RescueService>? onSelected;
   final Color selectedColor, selectedBackground;
@@ -117,7 +117,9 @@ class InfoRow extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
             child: SelectableText(value,
-                style: const TextStyle(fontWeight: FontWeight.w600))),
+                style: label.startsWith('Mã')
+                    ? RescueType.code
+                    : RescueType.body.copyWith(fontWeight: FontWeight.w600))),
       ]));
 }
 
@@ -135,24 +137,29 @@ class InlineNotice extends StatelessWidget {
       liveRegion: true,
       child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(RescueSpace.md),
           decoration: BoxDecoration(
-              color: isError ? const Color(0xFFFFF3F2) : AppColors.selected,
-              borderRadius: BorderRadius.circular(8),
-              border: Border(
-                  left: BorderSide(
-                      width: 3,
-                      color: isError ? AppColors.error : AppColors.navy))),
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(message,
-                style: TextStyle(
-                    color: isError ? AppColors.error : AppColors.navy)),
-            if (onRetry != null)
-              TextButton.icon(
-                  onPressed: onRetry,
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: Text(retryLabel)),
+              color: isError ? RescueColors.dangerSoft : RescueColors.selected,
+              borderRadius: BorderRadius.circular(RescueRadius.control)),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(isError ? Icons.error_outline : Icons.info_outline,
+                color: isError ? RescueColors.danger : RescueColors.navy,
+                size: 22),
+            const SizedBox(width: RescueSpace.sm),
+            Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Text(isError ? 'Chưa thể hoàn tất' : 'Thông tin',
+                      style: RescueType.title),
+                  const SizedBox(height: RescueSpace.xs),
+                  Text(message, style: RescueType.body),
+                  if (onRetry != null)
+                    TextButton.icon(
+                        onPressed: onRetry,
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: Text(retryLabel)),
+                ])),
           ])));
 }
 
@@ -162,30 +169,15 @@ class CustomerEmptyState extends StatelessWidget {
       required this.icon,
       required this.title,
       required this.message,
-      this.action});
+      this.action,
+      this.kind = RescueFeedbackKind.empty});
   final IconData icon;
   final String title, message;
   final Widget? action;
+  final RescueFeedbackKind kind;
   @override
-  Widget build(BuildContext context) => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 32),
-      child: Column(children: [
-        Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-                color: AppColors.selected,
-                borderRadius: BorderRadius.circular(12)),
-            child: Icon(icon, size: 32, color: AppColors.navy)),
-        const SizedBox(height: 16),
-        Text(title,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 8),
-        Text(message,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.muted)),
-        if (action != null) ...[const SizedBox(height: 24), action!],
-      ]));
+  Widget build(BuildContext context) => RescueFeedback(
+      icon: icon, title: title, message: message, action: action, kind: kind);
 }
 
 class SettingsRow extends StatelessWidget {
@@ -202,7 +194,7 @@ class SettingsRow extends StatelessWidget {
   Widget build(BuildContext context) => ListTile(
         onTap: onTap,
         leading: Icon(icon),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        title: Text(title, style: RescueType.title),
         subtitle: Text(subtitle),
         trailing: const Icon(Icons.chevron_right_rounded),
       );

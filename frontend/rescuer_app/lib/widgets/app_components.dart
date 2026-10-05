@@ -1,29 +1,24 @@
+import '../app/mobile_ui.dart';
+
 import 'package:flutter/material.dart';
 
 import '../app/app_theme.dart';
 
 class AppCard extends StatelessWidget {
-  const AppCard({super.key, required this.child, this.padding});
+  const AppCard({
+    super.key,
+    required this.child,
+    this.padding,
+    this.kind = RescueCardKind.information,
+  });
   final Widget child;
   final EdgeInsetsGeometry? padding;
-
+  final RescueCardKind kind;
   @override
-  Widget build(BuildContext context) => Container(
-    width: double.infinity,
-    padding: padding ?? const EdgeInsets.all(AppSpace.xl),
-    decoration: BoxDecoration(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(AppRadii.lg),
-      border: Border.all(color: AppColors.line),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x0D0B2540),
-          blurRadius: 18,
-          offset: Offset(0, 5),
-        ),
-      ],
-    ),
-    child: Material(type: MaterialType.transparency, child: child),
+  Widget build(BuildContext context) => RescueCard(
+    kind: kind,
+    padding: padding ?? const EdgeInsets.all(RescueSpace.lg),
+    child: child,
   );
 }
 
@@ -48,96 +43,20 @@ class AppButton extends StatelessWidget {
   final bool expand;
 
   @override
-  Widget build(BuildContext context) {
-    final disabled = onPressed == null || loading;
-    final child = Row(
-      mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        if (loading)
-          const SizedBox.square(
-            dimension: 18,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          )
-        else if (icon != null) ...[
-          Icon(icon, size: 19),
-          const SizedBox(width: 9),
-        ],
-        Flexible(child: Text(label, textAlign: TextAlign.center)),
-      ],
-    );
-
-    final style = ButtonStyle(
-      minimumSize: WidgetStateProperty.all(const Size(48, 56)),
-      padding: WidgetStateProperty.all(
-        const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
-      ),
-      shape: WidgetStateProperty.all(
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      ),
-      textStyle: WidgetStateProperty.all(
-        const TextStyle(
-          fontFamily: 'Roboto',
-          fontSize: 14,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-
-    final Widget button = switch (kind) {
-      ButtonStyleKind.primary => FilledButton(
-        onPressed: disabled ? null : onPressed,
-        style: style.copyWith(
-          backgroundColor: WidgetStateProperty.resolveWith(
-            (states) => states.contains(WidgetState.disabled)
-                ? AppColors.line
-                : AppColors.orange,
-          ),
-          foregroundColor: WidgetStateProperty.resolveWith(
-            (states) => states.contains(WidgetState.disabled)
-                ? AppColors.muted
-                : Colors.white,
-          ),
-        ),
-        child: child,
-      ),
-      ButtonStyleKind.secondary => FilledButton.tonal(
-        onPressed: disabled ? null : onPressed,
-        style: style.copyWith(
-          backgroundColor: WidgetStateProperty.all(AppColors.orangeSoft),
-          foregroundColor: WidgetStateProperty.all(AppColors.navy),
-        ),
-        child: child,
-      ),
-      ButtonStyleKind.outline => OutlinedButton(
-        onPressed: disabled ? null : onPressed,
-        style: style.copyWith(
-          foregroundColor: WidgetStateProperty.all(AppColors.navy),
-          side: WidgetStateProperty.all(
-            const BorderSide(color: AppColors.line),
-          ),
-        ),
-        child: child,
-      ),
-      ButtonStyleKind.quiet => TextButton(
-        onPressed: disabled ? null : onPressed,
-        style: style.copyWith(
-          foregroundColor: WidgetStateProperty.all(AppColors.navy),
-        ),
-        child: child,
-      ),
-      ButtonStyleKind.danger => FilledButton.tonal(
-        onPressed: disabled ? null : onPressed,
-        style: style.copyWith(
-          backgroundColor: WidgetStateProperty.all(AppColors.dangerSoft),
-          foregroundColor: WidgetStateProperty.all(AppColors.danger),
-        ),
-        child: child,
-      ),
-    };
-
-    return button;
-  }
+  Widget build(BuildContext context) => RescueButton(
+    label: label,
+    onPressed: onPressed,
+    icon: icon,
+    loading: loading,
+    expand: expand,
+    kind: switch (kind) {
+      ButtonStyleKind.primary => RescueButtonKind.primary,
+      ButtonStyleKind.secondary => RescueButtonKind.secondary,
+      ButtonStyleKind.outline => RescueButtonKind.outline,
+      ButtonStyleKind.quiet => RescueButtonKind.quiet,
+      ButtonStyleKind.danger => RescueButtonKind.danger,
+    },
+  );
 }
 
 enum BadgeTone { neutral, blue, orange, green, red }
@@ -176,15 +95,7 @@ class StatusBadge extends StatelessWidget {
             const SizedBox(width: 5),
           ],
           Flexible(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 12,
-                height: 1.1,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+            child: Text(label, style: RescueType.status.copyWith(color: color)),
           ),
         ],
       ),
@@ -213,77 +124,28 @@ class StatePanel extends StatelessWidget {
   final bool compact;
 
   @override
-  Widget build(BuildContext context) {
-    final (icon, color, background) = switch (kind) {
-      PanelKind.loading => (
-        Icons.more_horiz_rounded,
-        AppColors.blue,
-        AppColors.blueSoft,
-      ),
-      PanelKind.empty => (
-        Icons.inbox_outlined,
-        AppColors.muted,
-        AppColors.background,
-      ),
-      PanelKind.unavailable => (
-        Icons.cloud_off_outlined,
-        AppColors.warning,
-        AppColors.warningSoft,
-      ),
-      PanelKind.error => (
-        Icons.error_outline_rounded,
-        AppColors.danger,
-        AppColors.dangerSoft,
-      ),
-      PanelKind.success => (
-        Icons.check_circle_outline_rounded,
-        AppColors.success,
-        AppColors.successSoft,
-      ),
-    };
-    return AppCard(
-      padding: EdgeInsets.all(compact ? AppSpace.lg : AppSpace.xxl),
-      child: Column(
-        children: [
-          if (kind == PanelKind.loading)
-            const SizedBox.square(
-              dimension: 34,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                color: AppColors.navy,
-              ),
-            )
-          else
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: background,
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Icon(icon, size: 25, color: color),
-            ),
-          const SizedBox(height: AppSpace.md),
-          Text(title, textAlign: TextAlign.center, style: AppType.section),
-          const SizedBox(height: AppSpace.xs),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: AppType.body.copyWith(color: AppColors.muted),
-          ),
-          if (actionLabel != null && onAction != null) ...[
-            const SizedBox(height: AppSpace.lg),
-            AppButton(
+  Widget build(BuildContext context) => AppCard(
+    padding: EdgeInsets.zero,
+    child: RescueFeedback(
+      title: title,
+      message: message,
+      compact: compact,
+      kind: switch (kind) {
+        PanelKind.loading => RescueFeedbackKind.loading,
+        PanelKind.empty => RescueFeedbackKind.empty,
+        PanelKind.unavailable => RescueFeedbackKind.unavailable,
+        PanelKind.error => RescueFeedbackKind.error,
+        PanelKind.success => RescueFeedbackKind.success,
+      },
+      action: actionLabel != null && onAction != null
+          ? AppButton(
               label: actionLabel!,
               onPressed: onAction,
               kind: ButtonStyleKind.outline,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
+            )
+          : null,
+    ),
+  );
 }
 
 class InfoBanner extends StatelessWidget {
@@ -326,20 +188,12 @@ class InfoBanner extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    color: foreground,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                  ),
+                  style: RescueType.title.copyWith(color: foreground),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   message,
-                  style: TextStyle(
-                    color: foreground,
-                    fontSize: 12,
-                    height: 1.45,
-                  ),
+                  style: RescueType.body.copyWith(color: foreground),
                 ),
               ],
             ),
@@ -406,11 +260,13 @@ class LabeledValue extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: AppType.caption.copyWith(fontSize: 11)),
+            Text(label, style: AppType.caption),
             const SizedBox(height: 2),
             Text(
               value,
-              style: AppType.body.copyWith(fontWeight: FontWeight.w600),
+              style: label.startsWith('Mã')
+                  ? AppType.code
+                  : AppType.body.copyWith(fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -464,7 +320,7 @@ class MapPlaceholder extends StatelessWidget {
                   child: const Text(
                     'Khu vực gần đúng',
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
                       color: AppColors.navy,
                     ),
@@ -490,7 +346,7 @@ class MapPlaceholder extends StatelessWidget {
                   Text(
                     'Bản đồ khu vực',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       color: AppColors.navy,
                       fontWeight: FontWeight.w600,
                     ),
@@ -673,7 +529,7 @@ class ScreenContent extends StatelessWidget {
     super.key,
     required this.children,
     this.bottomAction,
-    this.padding = const EdgeInsets.fromLTRB(20, 16, 20, 28),
+    this.padding = RescueSpace.page,
   });
   final List<Widget> children;
   final Widget? bottomAction;

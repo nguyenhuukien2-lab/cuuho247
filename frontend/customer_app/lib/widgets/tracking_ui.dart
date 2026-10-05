@@ -1,3 +1,4 @@
+import '../app/mobile_ui.dart';
 import '../core/utils/display_code.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -19,24 +20,12 @@ String trackingHeadline(RequestStage stage) => switch (stage) {
     };
 
 class TrackingCard extends StatelessWidget {
-  const TrackingCard({super.key, required this.child});
+  const TrackingCard(
+      {super.key, required this.child, this.kind = RescueCardKind.information});
   final Widget child;
+  final RescueCardKind kind;
   @override
-  Widget build(BuildContext context) => Container(
-        decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: const [
-              BoxShadow(
-                  color: Color(0x0F1D4ED8),
-                  blurRadius: 20,
-                  offset: Offset(0, 4))
-            ]),
-        child: Material(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(22),
-            child: Padding(padding: const EdgeInsets.all(16), child: child)),
-      );
+  Widget build(BuildContext context) => RescueCard(kind: kind, child: child);
 }
 
 class TrackingStatusCard extends StatelessWidget {
@@ -44,10 +33,11 @@ class TrackingStatusCard extends StatelessWidget {
   final RescueRequestData request;
   @override
   Widget build(BuildContext context) => TrackingCard(
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
+      kind: RescueCardKind.status,
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
             Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -60,10 +50,7 @@ class TrackingStatusCard extends StatelessWidget {
                           color: BookingStyle.pale,
                           borderRadius: BorderRadius.circular(30)),
                       child: Text('Mã đơn: ${displayCode(request.requestCode)}',
-                          style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: BookingStyle.muted))),
+                          style: RescueType.code)),
                   if (!request.stage.isTerminal)
                     Container(
                         padding: const EdgeInsets.symmetric(
@@ -80,7 +67,7 @@ class TrackingStatusCard extends StatelessWidget {
                               Text('Trực tiếp',
                                   style: TextStyle(
                                       color: Color(0xFF00714D),
-                                      fontSize: 11,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.w700))
                             ])),
                 ]),
@@ -237,7 +224,7 @@ class TrackingTimeline extends StatelessWidget {
         const SizedBox(width: 8),
         Text(current < 0 ? 'Đã hủy' : 'Bước ${current + 1} / 6',
             style: TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w700,
                 color: current < 0
                     ? const Color(0xFFEF4444)
@@ -347,7 +334,7 @@ class TimelineStep extends StatelessWidget {
                               padding: const EdgeInsets.only(top: 4),
                               child: Text(current ? 'Hiện tại' : time!,
                                   style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 12,
                                       color: current
                                           ? BookingStyle.blue
                                           : BookingStyle.muted))),
@@ -384,8 +371,7 @@ class QuoteStatusCard extends StatelessWidget {
             else ...[
               const Divider(color: BookingStyle.pale),
               Text('Mã báo giá: ${displayCode(quoteCode)}',
-                  style:
-                      const TextStyle(fontSize: 12, color: BookingStyle.muted)),
+                  style: RescueType.code),
               const Text('Tổng báo giá',
                   style: TextStyle(fontSize: 12, color: BookingStyle.muted)),
               const SizedBox(height: 4),
@@ -412,10 +398,10 @@ class EmergencySupportCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Material(
       color: const Color(0xFFFEF2F2),
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(RescueRadius.card),
       child: InkWell(
           onTap: () => _call(context),
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(RescueRadius.card),
           child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(children: [

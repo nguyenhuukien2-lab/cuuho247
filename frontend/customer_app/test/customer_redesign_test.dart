@@ -59,9 +59,9 @@ void main() {
 
   test('brand palette and principal text meet readable contrast', () {
     expect(AppColors.navy, const Color(0xFF0B2540));
-    expect(AppColors.orange, const Color(0xFFFF5A1F));
+    expect(AppColors.orange, const Color(0xFFC2410C));
     for (final pair in [
-      (AppColors.text, AppColors.orange),
+      (Colors.white, AppColors.orange),
       (Colors.white, AppColors.orangePressed),
       (Colors.white, AppColors.navy),
       (AppColors.muted, AppColors.background),

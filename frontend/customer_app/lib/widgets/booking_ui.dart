@@ -1,3 +1,4 @@
+import '../app/mobile_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -7,68 +8,13 @@ import '../services/location_service.dart';
 import '../services/request_photo_service.dart';
 import 'rescue_widgets.dart';
 
+// Compatibility adapter: booking screens now inherit the app-wide theme.
 abstract final class BookingStyle {
-  static const blue = Color(0xFF1D4ED8);
-  static const green = Color(0xFF10B981);
-  static const background = Color(0xFFF8F9FF);
-  static const pale = Color(0xFFEFF4FF);
-  static const ink = Color(0xFF0B1C30);
-  static const muted = Color(0xFF434655);
-
-  static ThemeData theme(BuildContext context) {
-    final base = Theme.of(context);
-    return base.copyWith(
-      colorScheme: base.colorScheme.copyWith(
-        primary: blue,
-        secondary: green,
-        onPrimary: Colors.white,
-        primaryContainer: pale,
-        onPrimaryContainer: blue,
-        surface: Colors.white,
-        onSurface: ink,
-      ),
-      textTheme: base.textTheme.copyWith(
-        titleLarge: base.textTheme.titleLarge?.copyWith(
-          fontSize: 18,
-          height: 1.35,
-          fontWeight: FontWeight.w700,
-          color: ink,
-        ),
-      ),
-      cardTheme: CardThemeData(
-        color: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        elevation: 2,
-        shadowColor: blue.withValues(alpha: .12),
-        margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-      ),
-      inputDecorationTheme: base.inputDecorationTheme.copyWith(
-        fillColor: pale,
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: blue, width: 1.5),
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: blue,
-          minimumSize: const Size(48, 48),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-      ),
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: blue),
-      ),
-      progressIndicatorTheme: const ProgressIndicatorThemeData(color: blue),
-    );
-  }
+  static const blue = RescueColors.navy, green = RescueColors.success;
+  static const background = RescueColors.background,
+      pale = RescueColors.selected;
+  static const ink = RescueColors.ink, muted = RescueColors.muted;
+  static ThemeData theme(BuildContext context) => Theme.of(context);
 }
 
 class CustomerAppHeader extends StatelessWidget {
@@ -128,7 +74,7 @@ class CustomerAppHeader extends StatelessWidget {
                     'Khách Hàng',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11, color: BookingStyle.muted),
+                    style: TextStyle(fontSize: 12, color: BookingStyle.muted),
                   ),
                 ],
               ),
@@ -234,7 +180,7 @@ class CustomerStepIndicator extends StatelessWidget {
                                         child: Text(
                                           '${entry.key + 1}',
                                           style: TextStyle(
-                                            fontSize: 11,
+                                            fontSize: 12,
                                             fontWeight: FontWeight.w700,
                                             color: entry.key == step
                                                 ? Colors.white
@@ -251,7 +197,7 @@ class CustomerStepIndicator extends StatelessWidget {
                               entry.value,
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: entry.key < step
                                     ? BookingStyle.green
@@ -384,7 +330,7 @@ class VehicleSelectCard extends StatelessWidget {
           child: Material(
             color: selected ? BookingStyle.pale : Colors.white,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(RescueRadius.card),
               side: BorderSide(
                 color: selected ? BookingStyle.blue : const Color(0xFFE5EEFF),
                 width: selected ? 2 : 1,
@@ -392,7 +338,7 @@ class VehicleSelectCard extends StatelessWidget {
             ),
             child: InkWell(
               onTap: onTap,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(RescueRadius.card),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
@@ -507,7 +453,7 @@ class RouteCard extends StatelessWidget {
                   const Text(
                     'ĐIỂM ĐÓN XE',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
                       color: BookingStyle.blue,
                     ),
@@ -526,7 +472,7 @@ class RouteCard extends StatelessWidget {
                   const Text(
                     'KÉO XE VỀ GARAGE',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
                       color: BookingStyle.green,
                     ),
@@ -623,7 +569,7 @@ class PhotoPickerGrid extends StatelessWidget {
                                 const Text(
                                   'Thêm ảnh',
                                   style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: 12,
                                     color: BookingStyle.blue,
                                   ),
                                 ),
@@ -664,34 +610,11 @@ class PrimaryActionButton extends StatelessWidget {
   final bool loading;
   final VoidCallback? onPressed;
   @override
-  Widget build(BuildContext context) => SizedBox(
-        width: double.infinity,
-        child: FilledButton.icon(
-          onPressed: loading ? null : onPressed,
-          style: FilledButton.styleFrom(
-            backgroundColor: BookingStyle.blue,
-            foregroundColor: Colors.white,
-            minimumSize: const Size(48, 56),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          ),
-          icon: loading
-              ? const SizedBox.square(
-                  dimension: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : const Icon(Icons.crisis_alert),
-          label: Text(
-            loading ? 'Đang xử lý...' : label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-        ),
-      );
+  Widget build(BuildContext context) => RescueButton(
+      label: loading ? 'Đang xử lý...' : label,
+      loading: loading,
+      icon: Icons.crisis_alert,
+      onPressed: onPressed);
 }
 
 class CustomerBottomNav extends StatelessWidget {
@@ -700,15 +623,9 @@ class CustomerBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) => DecoratedBox(
         decoration: const BoxDecoration(
-          color: BookingStyle.background,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x0F0B1C30),
-              blurRadius: 24,
-              offset: Offset(0, -4),
-            ),
-          ],
+          color: RescueColors.surface,
+          border: Border(top: BorderSide(color: RescueColors.border)),
+          boxShadow: RescueSurfaces.shadow,
         ),
         child: SafeArea(
           top: false,
@@ -729,39 +646,27 @@ class CustomerBottomNav extends StatelessWidget {
                       button: true,
                       child: InkWell(
                         onTap: () => controller.selectTab(item.$1),
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(RescueRadius.card),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 4),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Container(
-                                width: item.$1 == 1 ? 56 : 40,
-                                height: item.$1 == 1 ? 56 : 32,
+                                width: 48,
+                                height: 32,
                                 decoration: BoxDecoration(
-                                  color: item.$1 == 1
-                                      ? BookingStyle.blue
-                                      : controller.tabIndex == item.$1
-                                          ? BookingStyle.pale
-                                          : Colors.transparent,
-                                  shape: BoxShape.circle,
-                                  boxShadow: item.$1 == 1
-                                      ? const [
-                                          BoxShadow(
-                                            color: Color(0x591D4ED8),
-                                            blurRadius: 20,
-                                            offset: Offset(0, 6),
-                                          ),
-                                        ]
-                                      : null,
+                                  color: controller.tabIndex == item.$1
+                                      ? RescueColors.selected
+                                      : Colors.transparent,
+                                  borderRadius:
+                                      BorderRadius.circular(RescueRadius.pill),
                                 ),
                                 child: Icon(
                                   item.$2,
-                                  color: item.$1 == 1
-                                      ? Colors.white
-                                      : controller.tabIndex == item.$1
-                                          ? BookingStyle.blue
-                                          : BookingStyle.muted,
+                                  color: controller.tabIndex == item.$1
+                                      ? BookingStyle.blue
+                                      : BookingStyle.muted,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -769,7 +674,7 @@ class CustomerBottomNav extends StatelessWidget {
                                 item.$3,
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   fontWeight: controller.tabIndex == item.$1
                                       ? FontWeight.w700
                                       : FontWeight.w500,

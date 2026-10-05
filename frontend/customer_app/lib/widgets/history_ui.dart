@@ -1,3 +1,4 @@
+import '../app/mobile_ui.dart';
 import '../core/utils/display_code.dart';
 import 'package:flutter/material.dart';
 import '../app/app_controller.dart';
@@ -5,13 +6,8 @@ import 'booking_ui.dart';
 import 'customer_ui.dart';
 import 'rescue_widgets.dart';
 
-const _title = TextStyle(
-    fontSize: 18,
-    height: 1.35,
-    fontWeight: FontWeight.w700,
-    color: BookingStyle.ink);
-const _caption =
-    TextStyle(fontSize: 12, height: 1.5, color: BookingStyle.muted);
+const _title = RescueType.section;
+const _caption = RescueType.caption;
 
 class HistorySummaryCard extends StatelessWidget {
   const HistorySummaryCard({super.key, required this.count});
@@ -19,49 +15,29 @@ class HistorySummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [BookingStyle.blue, Color(0xFF2563EB)]),
-          boxShadow: [
-            BoxShadow(
-                color: BookingStyle.blue.withValues(alpha: .15),
-                blurRadius: 20,
-                offset: const Offset(0, 4))
-          ]),
+      decoration: RescueSurfaces.decoration(RescueCardKind.history),
       child: Stack(children: [
-        Positioned(
-            top: -40,
-            right: -40,
-            child: Container(
-                width: 150,
-                height: 150,
-                decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: BookingStyle.green.withValues(alpha: .2)))),
         Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(RescueSpace.lg),
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Row(children: [
-                Icon(Icons.shield_outlined, color: Color(0xFF6CF8BB)),
+                Icon(Icons.shield_outlined, color: RescueColors.navy),
                 SizedBox(width: 10),
                 Expanded(
                     child: Text('Nhật Ký Cứu Hộ An Toàn',
                         style: TextStyle(
-                            color: Color(0xFFCAD3FF),
+                            color: RescueColors.muted,
                             fontSize: 14,
                             fontWeight: FontWeight.w700)))
               ]),
               const SizedBox(height: 20),
               const Text('Tổng chuyến',
-                  style: TextStyle(color: Colors.white, fontSize: 18)),
+                  style: TextStyle(color: RescueColors.ink, fontSize: 18)),
               const SizedBox(height: 4),
               if (count == null)
                 const Text('Chưa có dữ liệu',
-                    style: TextStyle(color: Colors.white))
+                    style: TextStyle(color: RescueColors.ink))
               else
                 Wrap(
                     spacing: 8,
@@ -70,17 +46,17 @@ class HistorySummaryCard extends StatelessWidget {
                       Text('$count',
                           key: const ValueKey('history-total'),
                           style: const TextStyle(
-                              fontSize: 32,
+                              fontSize: 24,
                               height: 1.2,
-                              color: Colors.white,
+                              color: RescueColors.ink,
                               fontWeight: FontWeight.w800)),
                       const Text('chuyến',
                           style: TextStyle(
-                              color: Color(0xFFCAD3FF), fontSize: 16)),
+                              color: RescueColors.muted, fontSize: 16)),
                     ]),
               const SizedBox(height: 8),
               const Text('Trong lịch sử đã tải',
-                  style: TextStyle(color: Color(0xFFCAD3FF), fontSize: 12)),
+                  style: TextStyle(color: RescueColors.muted, fontSize: 12)),
             ])),
       ]));
 }
@@ -98,8 +74,8 @@ class HistoryFilterTabs extends StatelessWidget {
   Widget build(BuildContext context) => Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-          color: const Color(0xFFDCE9FF),
-          borderRadius: BorderRadius.circular(24)),
+          color: RescueColors.selected,
+          borderRadius: BorderRadius.circular(RescueRadius.card)),
       child: Row(children: [
         for (var i = 0; i < 3; i++)
           Expanded(
@@ -120,7 +96,8 @@ class HistoryFilterTabs extends StatelessWidget {
                           ? BookingStyle.blue
                           : Colors.transparent,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20))),
+                          borderRadius:
+                              BorderRadius.circular(RescueRadius.card))),
                   child: Wrap(
                       alignment: WrapAlignment.center,
                       spacing: 5,
@@ -142,7 +119,7 @@ class HistoryFilterTabs extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(12)),
                               child: Text('${counts![i]}',
                                   key: ValueKey('history-count-$i'),
-                                  style: const TextStyle(fontSize: 11))),
+                                  style: const TextStyle(fontSize: 12))),
                       ])),
             ),
           )),
@@ -161,23 +138,10 @@ class HistoryTripCard extends StatelessWidget {
       RescueService.tire => const Color(0xFF0E7490),
       _ => BookingStyle.blue,
     };
-    final status = switch (request.stage) {
-      RequestStage.completed => 'Hoàn tất',
-      RequestStage.cancelled => 'Đã hủy',
-      RequestStage.searching => 'Đang tìm cứu hộ',
-      RequestStage.accepted => 'Đã tiếp nhận',
-      RequestStage.arriving => 'Đang đến',
-      RequestStage.inProgress => 'Đang hỗ trợ',
-    };
-    final statusColor = request.stage == RequestStage.cancelled
-        ? const Color(0xFFB91C1C)
-        : request.stage == RequestStage.completed
-            ? const Color(0xFF00714D)
-            : BookingStyle.blue;
     return _HistorySurface(
         child: InkWell(
             onTap: onDetails,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(RescueRadius.card),
             child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -214,20 +178,9 @@ class HistoryTripCard extends StatelessWidget {
                           runSpacing: 8,
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                    color: statusColor.withValues(alpha: .1),
-                                    borderRadius: BorderRadius.circular(20)),
-                                child: Text(status,
-                                    style: TextStyle(
-                                        color: statusColor,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700))),
+                            StatusPill(stage: request.stage),
                             Text('Mã đơn: ${displayCode(request.requestCode)}',
-                                style: _caption.copyWith(
-                                    color: BookingStyle.blue)),
+                                style: RescueType.code),
                           ]),
                       const SizedBox(height: 12),
                       Container(
@@ -294,13 +247,8 @@ class HistoryTripCard extends StatelessWidget {
                                   ]),
                             FilledButton.tonal(
                                 onPressed: onDetails,
-                                style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(0xFFDCE9FF),
-                                    foregroundColor: BookingStyle.blue,
-                                    minimumSize: const Size(0, 48),
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12))),
+                                style: RescueButtons.style(
+                                    RescueButtonKind.secondary),
                                 child: const Text('Xem chi tiết')),
                           ]),
                     ]))));
@@ -348,7 +296,7 @@ class WarrantyBanner extends StatelessWidget {
   Widget build(BuildContext context) => Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(RescueRadius.card),
           gradient: const LinearGradient(
               colors: [Color(0xFFDCE9FF), Color(0xFFE1F7ED)])),
       child: const Row(children: [
@@ -374,17 +322,6 @@ class _HistorySurface extends StatelessWidget {
   const _HistorySurface({required this.child});
   final Widget child;
   @override
-  Widget build(BuildContext context) => Container(
-      decoration:
-          BoxDecoration(borderRadius: BorderRadius.circular(24), boxShadow: [
-        BoxShadow(
-            color: BookingStyle.blue.withValues(alpha: .06),
-            blurRadius: 20,
-            offset: const Offset(0, 4))
-      ]),
-      child: Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          clipBehavior: Clip.antiAlias,
-          child: child));
+  Widget build(BuildContext context) => RescueCard(
+      kind: RescueCardKind.history, padding: EdgeInsets.zero, child: child);
 }
