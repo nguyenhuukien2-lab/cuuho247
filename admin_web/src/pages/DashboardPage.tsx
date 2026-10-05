@@ -1,21 +1,49 @@
 ﻿import { Link } from 'react-router-dom'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-import { ArrowRight, CircleHelp, Radio, Siren, Sparkles } from 'lucide-react'
-import { activityFeed, chartData, dashboardStats, rescueRequests, statusDistribution, serviceRanking } from '../mocks/mockData'
-import { StatCard } from '../components/ui/StatCard'
+import { getDashboardStats, getRescueRequests } from '../lib/adminApi'
+import { useAdminData } from '../hooks/useAdminData'
+import { codeValue, countValue, dateValue, moneyValue, newestFirst, statusValue, textValue } from '../lib/adminFormat'
+import type { DashboardStats } from '../lib/adminTypes'
 import { PageHeader } from '../components/ui/PageHeader'
 import { SectionCard } from '../components/ui/SectionCard'
+import { StatCard } from '../components/ui/StatCard'
 import { StatusBadge } from '../components/ui/StatusBadge'
+import { EmptyState } from '../components/ui/EmptyState'
+import { DataState, DataTable, ReloadButton } from '../components/ui/AdminData'
+
+async function loadDashboard(signal?: AbortSignal) {
+  const [stats, requests] = await Promise.all([getDashboardStats(signal), getRescueRequests(signal)])
+  if (stats.error) return { data: null, error: stats.error }
+  return { data: { stats: stats.data ?? {}, requests: newestFirst(requests.data ?? []).slice(0, 5), requestsError: requests.error }, error: null }
+}
+const cards: { key: keyof DashboardStats; label: string; icon: string }[] = [
+  { key: 'total_customers', label: 'Tổng khách hàng', icon: 'users' },
+  { key: 'total_rescuers', label: 'Tổng đối tác', icon: 'truck' },
+  { key: 'today_requests', label: 'Yêu cầu hôm nay', icon: 'clipboard' },
+  { key: 'active_requests', label: 'Đang xử lý', icon: 'clock' },
+  { key: 'completed_requests', label: 'Đã hoàn tất', icon: 'check' },
+  { key: 'cancelled_requests', label: 'Đã hủy', icon: 'x' },
+  { key: 'today_revenue', label: 'Giá trị báo giá hôm nay', icon: 'wallet' },
+  { key: 'online_rescuers', label: 'Đối tác sẵn sàng trực tuyến', icon: 'truck' },
+  { key: 'pending_rescuers', label: 'Đối tác chờ duyệt', icon: 'shield' },
+  { key: 'average_rating', label: 'Đánh giá trung bình', icon: 'check' },
+]
 export function DashboardPage() {
-  return <><PageHeader title="Tổng quan hệ thống" description="Theo dõi hoạt động cứu hộ, đối tác và doanh thu theo thời gian thực trên mạng lưới Toàn quốc." actions={<><span className="soft-pill"><Radio size={14}/> Live telemetry</span><Link className="button button-danger" to="/requests">SOS · Điều phối khẩn cấp</Link></>}/>
-    <div className="stat-grid">{dashboardStats.map((item) => <StatCard key={item.label} {...item}/>)}</div>
-    <div className="dashboard-charts"><SectionCard title="Xu hướng đơn cứu hộ 7 ngày gần nhất" subtitle="So sánh lượt điều phối thành công và lượng yêu cầu cứu hộ xuất phát" action={<span className="soft-pill">Trung bình: 92 ca/ngày</span>}>
-      <div className="chart-wrap"><ResponsiveContainer width="100%" height="100%"><BarChart data={chartData} barSize={36}><XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#8a93a8', fontSize: 12 }}/><YAxis hide/><Tooltip cursor={{ fill: '#f0f4ff' }} contentStyle={{ border: '1px solid #edf0f7', borderRadius: 12, boxShadow: '0 12px 28px rgba(23,35,64,.08)' }}/><Bar isAnimationActive={false} dataKey="orders" radius={[7,7,0,0]} fill="#3d6ce9">{chartData.map((entry) => <Cell key={entry.day} fill={entry.day === 'Thứ 7' ? '#0844cb' : '#3d6ce9'}/>)}</Bar></BarChart></ResponsiveContainer></div>
-      <div className="chart-foot"><Sparkles size={15}/> Giờ cao điểm của lịch trình: 17:30 – 20:00 (Trục trung tâm Đà Nẵng).</div>
-    </SectionCard><SectionCard title="Phân bổ trạng thái" subtitle="Thời gian thực"><div className="donut-wrap"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie isAnimationActive={false} data={statusDistribution} dataKey="value" nameKey="name" innerRadius={69} outerRadius={87} stroke="none">{statusDistribution.map((item) => <Cell key={item.name} fill={item.color}/>)}</Pie></PieChart></ResponsiveContainer><div className="donut-label"><strong>78%</strong><small>TỈ LỆ XỬ LÝ</small></div></div><div className="legend-list">{statusDistribution.map((item) => <div key={item.name}><i style={{ background: item.color }}/><span>{item.name}</span><b>{item.value}%</b></div>)}</div><div className="mini-heading">TOP DỊCH VỤ YÊU CẦU NHIỀU NHẤT</div><div className="service-bars">{serviceRanking.map(({label, value}) => <div key={label}><span>{label}</span><b>{value}%</b><i style={{ width: value + '%' }}/></div>)}</div></SectionCard></div>
-    <div className="dashboard-bottom"><SectionCard title="Đơn cứu hộ thời gian thực" subtitle="5 đơn khẩn cấp mới nhất đang luân chuyển trên hệ thống tổng đài" action={<Link className="text-link" to="/requests">Xem tất cả đơn cứu hộ <ArrowRight size={14}/></Link>}><div className="table-scroll"><table><thead><tr><th>Mã ca</th><th>Khách hàng</th><th>Dịch vụ & phương tiện</th><th>Đội cứu hộ tiếp nhận</th><th>Trạng thái</th><th>Cập nhật</th></tr></thead><tbody>{rescueRequests.map((request) => <tr key={request.id}><td><Link className="id-link" to={'/requests/' + request.id}>{request.id}</Link></td><td><b>{request.customer}</b><small>{request.phone}</small></td><td><b>{request.service}</b><small>{request.vehicle}</small></td><td>{request.team}</td><td><StatusBadge>{request.status}</StatusBadge></td><td>{request.time}</td></tr>)}</tbody></table></div></SectionCard><SectionCard title="Hoạt động trực tiếp" subtitle="Dòng sự kiện vận hành mới nhất" action={<span className="feed-label">Feed</span>}><div className="activity-list">{activityFeed.map((item) => <div className="activity-item" key={item.title}><span className={'activity-icon ' + item.tone}><Radio size={14}/></span><div><b>{item.title}</b><small>{item.detail}</small><em>{item.time}</em></div></div>)}</div><Link className="button button-soft full-width" to="/notifications">Xem tất cả thông báo</Link></SectionCard></div>
-    <div className="bottom-banner"><span className="banner-icon"><CircleHelp size={22}/></span><div><b>Hệ Thống Bản Đồ Điều Vận Vệ Tinh (GIS)</b><small>Hiện có 142 xe cứu hộ đang phản hồi theo dõi GPS trên 8 quận huyện trọng điểm Đà Nẵng & Quảng Nam.</small></div><Link className="button button-outline-light" to="/map">Xem radar ngành giao thông <ArrowRight size={15}/></Link><Link className="button button-blue" to="/map"><Siren size={15}/> Mở bản đồ điều hành</Link></div>
+  const resource = useAdminData(loadDashboard, ['rescue_requests', 'rescuer_online_status', 'rescuer_profiles', 'customer_profiles', 'rescue_quotes', 'customer_request_reviews'])
+  const stats = resource.data?.stats ?? {}
+  return <><PageHeader title="Tổng quan hệ thống" description="Theo dõi hoạt động cứu hộ và đối tác trên toàn mạng lưới." actions={<><ReloadButton resource={resource}/><Link className="button button-danger" to="/requests">SOS · Điều phối khẩn cấp</Link></>}/>
+    <DataState resource={resource}>
+      <div className="stat-grid cols-5">{cards.map(({ key, label, icon }) => <StatCard key={key} label={label} icon={icon} value={key === 'today_revenue' ? moneyValue(stats.today_revenue ?? 0) : countValue(stats[key] as number | null | undefined)} note={key === 'today_revenue' ? (stats.revenue_visible === false ? 'Tài khoản không có quyền xem số tiền' : 'Báo giá phát hành, chưa phải tiền đã thu') : undefined}/>)}</div>
+      <div className="dashboard-charts"><SectionCard title="Xu hướng đơn cứu hộ 7 ngày gần nhất"><EmptyState title="Chưa có dữ liệu biểu đồ thật" description="Biểu đồ sẽ hiển thị khi nguồn thống kê được kết nối."/></SectionCard><SectionCard title="Phân bổ trạng thái"><EmptyState title="Chưa có dữ liệu biểu đồ thật" description="Xem số lượng hiện tại trên các thẻ tổng quan."/></SectionCard></div>
+      <div className="dashboard-bottom"><SectionCard title="Yêu cầu cứu hộ mới nhất" action={<Link className="text-link" to="/requests">Xem tất cả yêu cầu</Link>}>
+        {resource.data?.requestsError ? <div className="data-error" role="alert">{resource.data.requestsError}<ReloadButton resource={resource}/></div> : <DataTable rows={resource.data?.requests ?? []} rowKey={(row) => row.request_id} emptyTitle="Chưa có yêu cầu cứu hộ" columns={[
+          { label: 'Mã ca', render: (row) => <Link className="id-link" to={'/requests/' + row.request_id}>{codeValue(row.request_code)}</Link> },
+          { label: 'Khách hàng', render: (row) => textValue(row.customer_name) },
+          { label: 'Đối tác', render: (row) => textValue(row.rescuer_name) },
+          { label: 'Trạng thái', render: (row) => <StatusBadge>{statusValue(row.status)}</StatusBadge> },
+          { label: 'Thời gian tạo', render: (row) => dateValue(row.created_at) },
+        ]}/>}
+      </SectionCard><SectionCard title="Hoạt động điều hành"><EmptyState title="Chưa kết nối dòng sự kiện" description="Xem yêu cầu cứu hộ để theo dõi trạng thái mới nhất."/><Link className="button button-soft full-width" to="/audit-logs">Nhật ký quản trị</Link></SectionCard></div>
+      <div className="bottom-banner"><div><b>Bản đồ điều hành cứu hộ</b><small>Bản đồ đang chờ kết nối dữ liệu GPS thật</small></div><Link className="button button-outline-light" to="/map">Mở bản đồ điều hành</Link></div>
+    </DataState>
   </>
 }
-
-

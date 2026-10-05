@@ -1,21 +1,38 @@
 ﻿import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Download, Plus, Search, SlidersHorizontal, ArrowRight } from 'lucide-react'
-import { customers, customerStats } from '../mocks/mockData'
-import { formatCurrency, initials } from '../lib/format'
+import { getCustomers } from '../lib/adminApi'
+import { codeValue, countValue, dateValue, matchesSearch, moneyValue, newestFirst, numberValue, statusValue, textValue } from '../lib/adminFormat'
+import { initials } from '../lib/format'
+import { useAdminData } from '../hooks/useAdminData'
+import { DataState, DataTable, ReloadButton, SearchFilter, UnsupportedButton } from '../components/ui/AdminData'
 import { PageHeader } from '../components/ui/PageHeader'
-import { StatCard } from '../components/ui/StatCard'
 import { SectionCard } from '../components/ui/SectionCard'
+import { StatCard } from '../components/ui/StatCard'
 import { StatusBadge } from '../components/ui/StatusBadge'
-import { EmptyState } from '../components/ui/EmptyState'
+
 export function CustomersPage() {
   const [query, setQuery] = useState('')
-  const [tier, setTier] = useState('Hạng: Tất cả')
-  const rows = useMemo(() => customers.filter((item) => (item.name + item.phone + item.email).toLocaleLowerCase('vi').includes(query.toLocaleLowerCase('vi')) && (tier === 'Hạng: Tất cả' || item.tier === tier)), [query, tier])
-  const exportCsv = () => { const csv = ['Mã khách,Tên,Số điện thoại,Email', ...rows.map((item) => [item.id,item.name,item.phone,item.email].join(','))].join('\n'); const url = URL.createObjectURL(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })); const a = document.createElement('a'); a.href = url; a.download = 'khach-hang-demo.csv'; a.click(); URL.revokeObjectURL(url) }
-  return <><PageHeader eyebrow="MODULE KHÁCH HÀNG / CƠ SỞ DỮ LIỆU" title="Quản lý Khách hàng" description="Theo dõi tài khoản khách hàng, lịch sử cứu hộ và thông tin xe đã đăng ký trên hệ thống Cứu Hộ 24/7." actions={<><button className="button button-white" onClick={exportCsv}><Download size={15}/> Xuất danh sách</button><button className="button button-blue" onClick={() => alert('Chức năng thêm khách hàng sẽ khả dụng khi kết nối backend.')}><Plus size={15}/> Thêm khách hàng</button></>}/>
-  <div className="stat-grid cols-4">{customerStats.map((item) => <StatCard key={item.label} {...item}/>)}</div>
-  <SectionCard title="Danh sách khách hàng" subtitle="Thông tin được cập nhật từ hệ thống tài khoản"><div className="filter-row"><label className="search-field"><Search size={16}/><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tìm theo tên khách hàng, SĐT, Email, biển số xe..." /></label><label className="select-field"><SlidersHorizontal size={15}/><select value={tier} onChange={(e) => setTier(e.target.value)}>{['Hạng: Tất cả','Hội viên Vàng','Hội viên','Thành viên'].map((item) => <option key={item}>{item}</option>)}</select></label></div>{rows.length ? <div className="table-scroll"><table><thead><tr><th>Khách hàng</th><th>Liên hệ</th><th>Hạng thành viên</th><th>Phương tiện đã lưu</th><th>Đơn cứu hộ</th><th>Tổng chi tiêu</th><th>Trạng thái</th><th></th></tr></thead><tbody>{rows.map((item) => <tr key={item.id}><td><div className="table-person"><span className="avatar">{initials(item.name)}</span><div><Link className="row-title" to={'/customers/' + item.id}>{item.name}</Link><small>{item.id}</small></div></div></td><td><b>{item.phone}</b><small>{item.email}</small></td><td><span className="tier-pill">{item.tier}</span></td><td><b>{item.vehicle.split(' · ')[0]}</b><small>{item.vehicle.split(' · ')[1]}</small></td><td><span className="number-pill">{item.orders}</span></td><td><b>{formatCurrency(item.spent)}</b></td><td><StatusBadge>{item.status}</StatusBadge></td><td><Link to={'/customers/' + item.id} className="icon-button" aria-label={'Xem ' + item.name}><ArrowRight size={16}/></Link></td></tr>)}</tbody></table></div> : <EmptyState/>}<div className="table-footer">Hiển thị {rows.length} trong tổng số 12,480 khách hàng <span>‹ &nbsp; <b>1</b> &nbsp; 2 &nbsp; 3 &nbsp; ... &nbsp; 125 &nbsp; ›</span></div></SectionCard><div className="info-ribbon"><span>ⓘ</span><div><b>Cần đồng bộ hóa dữ liệu Khách hàng từ Tổng đài?</b><small>Lịch sử dịch vụ, GPS sự cố và thông tin hợp đồng bảo hiểm xe được tự động cập nhật một khi kết nối API thật.</small></div><button className="button button-white" onClick={() => alert('Dữ liệu demo đang được sử dụng.')}>Xem báo cáo đồng bộ</button></div></>
+  const resource = useAdminData(getCustomers, ['customer_profiles', 'customer_vehicles', 'customer_saved_addresses', 'rescue_requests'])
+  const all = useMemo(() => newestFirst(resource.data ?? []), [resource.data])
+  const rows = useMemo(() => all.filter((row) => matchesSearch(query, row.full_name, row.phone, row.email, codeValue(row.customer_code))), [all, query])
+  return <><PageHeader eyebrow="KHÁCH HÀNG / CƠ SỞ DỮ LIỆU" title="Quản lý Khách hàng" description="Thông tin tài khoản và hoạt động cứu hộ của khách hàng." actions={<><ReloadButton resource={resource}/><UnsupportedButton>Xuất danh sách</UnsupportedButton><UnsupportedButton>Thêm khách hàng</UnsupportedButton></>}/>
+    <DataState resource={resource}><div className="stat-grid">
+      <StatCard label="Khách hàng" value={String(all.length)} icon="users"/>
+      <StatCard label="Phương tiện đã lưu" value={countValue(all.reduce((sum, row) => sum + numberValue(row.vehicle_count), 0))} icon="truck"/>
+      <StatCard label="Địa chỉ đã lưu" value={countValue(all.reduce((sum, row) => sum + numberValue(row.address_count), 0))}/>
+      <StatCard label="Yêu cầu cứu hộ" value={countValue(all.reduce((sum, row) => sum + numberValue(row.request_count), 0))}/>
+    </div><SectionCard title="Danh sách khách hàng" subtitle="Thông tin được cập nhật từ hệ thống tài khoản">
+      <SearchFilter query={query} onQuery={setQuery} placeholder="Tìm tên, số điện thoại, email, mã khách..."/>
+      <DataTable rows={rows} rowKey={(row) => row.customer_id} emptyTitle="Chưa có khách hàng" columns={[
+        { label: 'Khách hàng', render: (row) => <div className="table-person"><span className="avatar">{initials(row.full_name || '?')}</span><div><Link className="row-title" to={'/customers/' + row.customer_id}>{textValue(row.full_name)}</Link><small>{codeValue(row.customer_code)}</small></div></div> },
+        { label: 'Liên hệ', render: (row) => <>{textValue(row.phone)}<small>{textValue(row.email)}</small></> },
+        { label: 'Số xe', render: (row) => countValue(row.vehicle_count) },
+        { label: 'Số địa chỉ', render: (row) => countValue(row.address_count) },
+        { label: 'Yêu cầu / Hoàn tất', render: (row) => countValue(row.request_count) + ' / ' + countValue(row.completed_count) },
+        { label: 'Tổng chi tiêu', render: (row) => moneyValue(row.total_spent) },
+        { label: 'Ngày tạo', render: (row) => dateValue(row.created_at) },
+        { label: 'Trạng thái', render: (row) => <StatusBadge>{statusValue(row.status)}</StatusBadge> },
+        { label: 'Thao tác', render: (row) => <Link className="small-button" to={'/customers/' + row.customer_id}>Xem chi tiết</Link> },
+      ]}/>
+    </SectionCard><div className="info-ribbon"><span>ⓘ</span><div><b>Thông tin chi tiêu</b><small>Tổng chi tiêu hiện chưa có sổ giao dịch thanh toán để đối soát.</small></div></div></DataState></>
 }
-
-

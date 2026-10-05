@@ -1,16 +1,33 @@
 ﻿import { useMemo, useState } from 'react'
-import { Check, History, Search, Settings2, SlidersHorizontal } from 'lucide-react'
-import { services, serviceStats } from '../mocks/mockData'
-import { formatCurrency } from '../lib/format'
+import { getServices, toggleService } from '../lib/adminApi'
+import { codeValue, countValue, matchesSearch, moneyValue, numberValue, textValue } from '../lib/adminFormat'
+import { useAdminData } from '../hooks/useAdminData'
+import { DataState, ReloadButton, SearchFilter, UnsupportedButton } from '../components/ui/AdminData'
+import { useAdminAction } from '../hooks/useAdminAction'
 import { PageHeader } from '../components/ui/PageHeader'
-
 import { StatCard, ServiceIcon } from '../components/ui/StatCard'
 import { EmptyState } from '../components/ui/EmptyState'
+
 export function ServicesPage() {
-  const [query, setQuery] = useState(''); const [filter, setFilter] = useState('Tất cả'); const [enabled, setEnabled] = useState<Record<string, boolean>>({})
-  const rows = useMemo(() => services.filter((item) => item.name.toLocaleLowerCase('vi').includes(query.toLocaleLowerCase('vi')) && (filter === 'Tất cả' || (filter === 'Đang hoạt động' ? enabled[item.id] !== false : enabled[item.id] === false))), [query, filter, enabled])
-  return <><PageHeader eyebrow="CATALOG / 6 DỊCH VỤ" title="Quản lý Dịch vụ Cứu Hộ" description="Cấu hình danh mục dịch vụ khẩn cấp, bảng cước quy định, thiết bị cứu hộ chuyên dụng và năng lực hỗ trợ trên toàn hệ thống." actions={<button className="button button-blue" onClick={() => alert('Tính năng thêm dịch vụ sẽ khả dụng khi kết nối backend.')}>+ Thêm dịch vụ mới</button>}/><div className="stat-grid cols-4">{serviceStats.map((item) => <StatCard key={item.label} {...item}/>)}</div><div className="filter-row service-filter"><label className="search-field"><Search size={16}/><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tìm dịch vụ, mã cước, thiết bị cứu hộ..." /></label><label className="select-field"><SlidersHorizontal size={15}/><select value={filter} onChange={(e) => setFilter(e.target.value)}>{['Tất cả','Đang hoạt động','Đã tắt'].map((item) => <option key={item}>{item}</option>)}</select></label><span className="soft-pill">Tất cả ({services.length})</span></div><div className="services-grid">{rows.map((item) => <article className="service-card" key={item.id}><div className="service-card-top"><span className="icon-box blue"><ServiceIcon name={item.icon}/></span><div><small>Mã: {item.id}</small><span>{enabled[item.id] === false ? 'Đã tạm tắt' : 'Đang hoạt động'}</span></div><button className={'toggle ' + (enabled[item.id] === false ? '' : 'on')} onClick={() => setEnabled({ ...enabled, [item.id]: enabled[item.id] === false })} aria-label={'Bật tắt ' + item.name}><i/></button></div><h3>{item.name}</h3><p>{item.description}</p><div className="service-price"><small>Giá dịch vụ tham khảo</small><strong>{formatCurrency(item.price)} <em>/ {item.unit}</em></strong></div><div className="service-detail"><span><Check size={14}/> Thiết bị tiêu chuẩn</span><b>{item.equipment}</b></div><div className="service-meta"><span>Đã thực hiện: <b>{item.jobs.toLocaleString('vi-VN')} đơn</b></span><span>★ <b>{item.rating.toFixed(1)} / 5.0</b></span></div><div className="service-actions"><button onClick={() => alert('Lịch sử cước demo: ' + item.name)}><History size={14}/> Xem lịch sử cước</button><button onClick={() => alert('Cấu hình demo: ' + item.name)}><Settings2 size={14}/> Sửa cấu hình</button></div></article>)}</div>{!rows.length && <EmptyState/>}<div className="info-ribbon"><span>◉</span><div><b>Chính Sách Phụ Thu Giờ Cao Điểm & Thời Tiết Cực Đoan</b><small>Tự động điều chỉnh hệ số cước từ 1.2x – 1.5x vào khung giờ 22:00 – 05:00 sáng hoặc khi có cảnh báo mưa lớn, mật độ giao thông tăng cao.</small></div><button className="button button-white" onClick={() => alert('Thiết lập phụ thu là dữ liệu demo.')}>Thiết lập quy tắc</button></div></>
+  const [query, setQuery] = useState('')
+  const [status, setStatus] = useState('')
+  const resource = useAdminData(getServices, ['rescue_services', 'admin_service_catalog'])
+  const action = useAdminAction(resource.reload)
+  const all = resource.data ?? []
+  const rows = useMemo(() => (resource.data ?? []).filter((row) => matchesSearch(query, row.name, row.code, row.admin_code, row.app_service_code) && (!status || row.is_active === (status === 'Đang hoạt động'))).sort((a, b) => numberValue(a.sort_order) - numberValue(b.sort_order)), [resource.data, query, status])
+  return <><PageHeader eyebrow="DANH MỤC DỊCH VỤ" title="Quản lý Dịch vụ Cứu Hộ" description="Danh mục và trạng thái dịch vụ được dùng trong hệ thống cứu hộ." actions={<><ReloadButton resource={resource}/><UnsupportedButton>Thêm dịch vụ</UnsupportedButton></>}/>{action.notice}
+    <DataState resource={resource}><div className="stat-grid">
+      <StatCard label="Tổng dịch vụ" value={String(all.length)} icon="wrench"/>
+      <StatCard label="Đang hoạt động" value={String(all.filter((row) => row.is_active).length)} tone="green"/>
+      <StatCard label="Đã tắt" value={String(all.filter((row) => !row.is_active).length)} tone="slate"/>
+      <StatCard label="Nổi bật" value={String(all.filter((row) => row.is_featured).length)}/>
+    </div><div className="service-filter"><SearchFilter query={query} onQuery={setQuery} status={status} onStatus={setStatus} options={['Đang hoạt động', 'Đã tắt']} placeholder="Tìm tên hoặc mã dịch vụ..."/></div>
+      <div className="services-grid">{rows.map((row) => <article className="service-card" key={row.service_id}>
+        <div className="service-card-top"><span className="icon-box blue"><ServiceIcon name={row.icon || 'wrench'}/></span><div><small>{codeValue(row.code || row.admin_code)}</small><span>{row.is_active ? 'Đang hoạt động' : 'Đã tắt'}</span></div><button className={'toggle ' + (row.is_active ? 'on' : '')} role="switch" aria-checked={row.is_active} aria-label={'Bật tắt ' + textValue(row.name)} onClick={() => action.open({ title: row.is_active ? 'Tắt dịch vụ' : 'Bật dịch vụ', description: textValue(row.name), run: () => toggleService(row.service_id, !row.is_active) })}><i/></button></div>
+        <h3>{textValue(row.name)}</h3><p>{row.description || 'Chưa có mô tả'}</p>
+        <div className="service-price"><small>Giá tham khảo</small><strong>{moneyValue(row.base_price)} <em>/ {textValue(row.price_unit)}</em></strong></div>
+        <div className="service-meta"><span>{row.is_featured ? 'Dịch vụ nổi bật' : 'Dịch vụ tiêu chuẩn'}</span><span>Thứ tự: <b>{countValue(row.sort_order)}</b></span></div>
+        <div className="service-actions"><button disabled>Lịch sử giá · Chưa hỗ trợ</button><button disabled>Sửa cấu hình · Chưa hỗ trợ</button></div>
+      </article>)}</div>{!rows.length && <EmptyState title="Chưa có dịch vụ" description="Không có dịch vụ phù hợp với bộ lọc hiện tại."/>}
+    </DataState>{action.dialog}</>
 }
-
-
-

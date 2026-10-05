@@ -1,10 +1,9 @@
-﻿import { useState } from 'react'
-import { Bell, CheckCheck } from 'lucide-react'
-import { notifications } from '../mocks/mockData'
-import { PageHeader } from '../components/ui/PageHeader'
+﻿import { PageHeader } from '../components/ui/PageHeader'
 import { SectionCard } from '../components/ui/SectionCard'
-import { StatusBadge } from '../components/ui/StatusBadge'
+import { EmptyState } from '../components/ui/EmptyState'
+import { UnsupportedButton } from '../components/ui/AdminData'
 export function NotificationsPage() {
-  const [read, setRead] = useState<string[]>([])
-  return <><PageHeader title="Thông báo" description="Dòng sự kiện và cảnh báo mới nhất từ trung tâm điều hành." actions={<button className="button button-white" onClick={() => setRead(notifications.map((item) => item.title))}><CheckCheck size={15}/> Đánh dấu tất cả đã đọc</button>}/><SectionCard title="Trung tâm thông báo" subtitle="Những sự kiện cần theo dõi"><div className="notification-page-list">{notifications.map((item) => <button key={item.title} className={read.includes(item.title) ? 'read' : ''} onClick={() => setRead([...read, item.title])}><span className="icon-box blue"><Bell size={17}/></span><span><b>{item.title}</b><small>{item.description}</small></span><StatusBadge>{item.type}</StatusBadge><em>{item.time}</em></button>)}</div></SectionCard></>
+  return <><PageHeader title="Thông báo" description="Trung tâm thông báo điều hành." actions={<UnsupportedButton>Đánh dấu đã đọc</UnsupportedButton>}/>
+    <div className="settings-grid"><SectionCard title="Trung tâm thông báo"><EmptyState title="Chưa kết nối dữ liệu thông báo" description="Thông báo sẽ hiển thị khi nguồn dữ liệu được kết nối."/></SectionCard>
+      <SectionCard title="Gửi thông báo" subtitle="Chưa hỗ trợ gửi thật"><div className="broadcast"><label>Tiêu đề<input disabled placeholder="Chưa hỗ trợ"/></label><label>Nội dung<textarea disabled placeholder="Chưa hỗ trợ"/></label><div className="button-pair"><UnsupportedButton>Gửi thông báo</UnsupportedButton><UnsupportedButton>Hẹn giờ</UnsupportedButton></div></div></SectionCard></div></>
 }

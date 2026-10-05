@@ -1,6 +1,6 @@
 ﻿import type { LucideIcon } from 'lucide-react'
 import { ArrowUpRight, Bell, CheckCircle2, Clock3, ShieldCheck, Truck, Users, Wallet, XCircle, ClipboardList, BatteryCharging, CircleDot, Fuel, KeyRound, Wrench } from 'lucide-react'
-import type { Tone } from '../../mocks/mockData'
+import type { Tone } from '../../lib/uiTypes'
 const icons: Record<string, LucideIcon> = { users: Users, shield: ShieldCheck, clipboard: ClipboardList, clock: Clock3, check: CheckCircle2, x: XCircle, wallet: Wallet, truck: Truck, battery: BatteryCharging, disc: CircleDot, fuel: Fuel, key: KeyRound, wrench: Wrench, bell: Bell }
 export function StatCard({ label, value, note, tone = 'blue', icon = 'clipboard' }: { label: string; value: string; note?: string; tone?: Tone; icon?: string }) {
   const Icon = icons[icon] ?? ClipboardList

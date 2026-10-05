@@ -1,17 +1,32 @@
-﻿import { useState } from 'react'
-import { Bell, ChevronDown, LogOut, Menu, Search, ShieldCheck } from 'lucide-react'
+﻿import { useEffect, useState } from 'react'
+import { Bell, LogOut, Menu, Search, ShieldCheck } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
-import { notifications } from '../../mocks/mockData'
+import { supabase } from '../../lib/supabase'
 export function Topbar({ onMenu }: { onMenu: () => void }) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
+  const [email, setEmail] = useState('')
+  const [loggingOut, setLoggingOut] = useState(false)
+  const [error, setError] = useState('')
   const navigate = useNavigate()
+  useEffect(() => {
+    let active = true
+    void supabase.auth.getSession().then(({ data }) => { if (active) setEmail(data.session?.user.email ?? '') }).catch(() => {})
+    return () => { active = false }
+  }, [])
   return <header className="topbar"><button className="mobile-menu icon-button" onClick={onMenu} aria-label="Mở menu"><Menu size={20}/></button>
     <div className="breadcrumb"><span className="topbar-shield"><ShieldCheck size={18}/></span><span>Điều Hành</span><span className="slash">/</span><b>Trung Tâm Cứu Hộ</b></div>
-    <form className="top-search" onSubmit={(event) => { event.preventDefault(); navigate('/requests?search=' + encodeURIComponent(query)) }}><Search size={16}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tra cứu ca cứu hộ, xe kéo, tài xế..." /></form>
-    <span className="shift-badge"><span className="pulse-dot"/> Trực ban: 24/7 Sẵn sàng</span>
-    <div className="top-notification"><button className="icon-button notification-button" onClick={() => setOpen(!open)} aria-label="Thông báo"><Bell size={18}/><i/></button>{open && <div className="notification-popover"><strong>Thông báo mới</strong>{notifications.map((item) => <Link key={item.title} to="/notifications" onClick={() => setOpen(false)}><b>{item.title}</b><small>{item.description}</small></Link>)}</div>}</div>
-    <div className="admin-profile"><span className="admin-avatar">A</span><span><strong>Nguyễn Văn Quản Trị</strong><small>Super Admin</small></span><ChevronDown size={14}/></div>
-    <Link to="/login" className="icon-button logout-button" aria-label="Đăng xuất"><LogOut size={18}/></Link>
+    <form className="top-search" onSubmit={(event) => { event.preventDefault(); navigate('/requests?search=' + encodeURIComponent(query)) }}><Search size={16}/><input aria-label="Tra cứu yêu cầu" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tra cứu ca cứu hộ, xe, khách hàng..." /></form>
+    <div className="top-notification"><button className="icon-button notification-button" onClick={() => setOpen(!open)} aria-label="Thông báo" aria-expanded={open}><Bell size={18}/></button>{open && <div className="notification-popover"><strong>Thông báo</strong><p>Chưa kết nối dữ liệu thông báo.</p><Link to="/notifications" onClick={() => setOpen(false)}>Mở trung tâm thông báo</Link></div>}</div>
+    <div className="admin-profile"><span className="admin-avatar">A</span><span><strong>{email || 'Quản trị viên'}</strong><small>Admin</small></span></div>
+    <button className="icon-button logout-button" disabled={loggingOut} aria-label="Đăng xuất" onClick={async () => {
+      setLoggingOut(true); setError('')
+      try {
+        const { error: signOutError } = await supabase.auth.signOut()
+        if (signOutError) { setError('Không thể đăng xuất. Vui lòng thử lại.'); return }
+        navigate('/login', { replace: true })
+      } catch { setError('Không thể đăng xuất. Vui lòng thử lại.') }
+      finally { setLoggingOut(false) }
+    }}><LogOut size={18}/></button>{error && <span role="alert">{error}</span>}
   </header>
 }

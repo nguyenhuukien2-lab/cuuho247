@@ -14,3 +14,4 @@ export const NotificationsPage = lazy(() => import('../pages/NotificationsPage')
 export const SettingsPage = lazy(() => import('../pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 export const LoginPage = lazy(() => import('../pages/LoginPage').then((m) => ({ default: m.LoginPage })))
 
+export const AuditLogsPage = lazy(() => import('../pages/AuditLogsPage').then((m) => ({ default: m.AuditLogsPage })))

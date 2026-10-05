@@ -1,19 +1,40 @@
 ﻿import { useMemo, useState } from 'react'
-import { Bar, Line, XAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart } from 'recharts'
-import { CalendarDays, Download, Search, SlidersHorizontal } from 'lucide-react'
-import { chartData, quotes, quoteStats, revenueSources } from '../mocks/mockData'
-import { formatCurrency } from '../lib/format'
+import { getQuotes } from '../lib/adminApi'
+import { codeValue, dateValue, matchesSearch, moneyValue, newestFirst, numberValue, serviceValue, statusValue, textValue } from '../lib/adminFormat'
+import { useAdminData } from '../hooks/useAdminData'
+import { DataState, DataTable, ReloadButton, SearchFilter, UnsupportedButton } from '../components/ui/AdminData'
 import { PageHeader } from '../components/ui/PageHeader'
 import { SectionCard } from '../components/ui/SectionCard'
 import { StatCard } from '../components/ui/StatCard'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import { EmptyState } from '../components/ui/EmptyState'
+
 export function QuotesPage() {
-  const [query, setQuery] = useState(''); const [status, setStatus] = useState('Tất cả trạng thái')
-  const rows = useMemo(() => quotes.filter((item) => (item.id + item.customer + item.team).toLocaleLowerCase('vi').includes(query.toLocaleLowerCase('vi')) && (status === 'Tất cả trạng thái' || item.status === status)), [query, status])
-  return <><PageHeader eyebrow="TÀI CHÍNH & QUẢN TRỊ / THÁNG 10/2024" title="Báo giá & Doanh thu Cứu Hộ" description="Theo dõi dòng tiền, quyết toán cước phí cứu hộ, đối soát chiết khấu đối tác gara và kế hoạch tăng trưởng." actions={<><button className="button button-white"><CalendarDays size={15}/> Tháng này</button><button className="button button-white" onClick={() => alert('Báo cáo tài chính demo chưa có tệp xuất.')}><Download size={15}/> Xuất Excel</button></>}/><div className="stat-grid cols-4">{quoteStats.map((item) => <StatCard key={item.label} {...item}/>)}</div><div className="dashboard-charts"><SectionCard title="Doanh thu theo tuần & ngày" subtitle="Cuộc điều khiển so sánh trực tiếp các tháng" action={<span className="soft-pill">Tháng 10/2024</span>}><div className="chart-wrap revenue-chart"><ResponsiveContainer width="100%" height="100%"><ComposedChart data={chartData}><XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#8a93a8', fontSize: 12 }}/><Tooltip contentStyle={{ border: '1px solid #edf0f7', borderRadius: 12 }}/><Bar isAnimationActive={false} dataKey="revenue" fill="#1553df" barSize={30} radius={[4,4,0,0]}/><Line isAnimationActive={false} type="monotone" dataKey="orders" stroke="#5b8cf8" strokeWidth={2} dot={{ r: 3 }}/></ComposedChart></ResponsiveContainer></div><div className="chart-foot">Doanh thu tăng 28% vào khung giờ 17:00 – 22:00 hàng ngày.</div></SectionCard><SectionCard title="Cơ cấu nguồn thu" subtitle="Phân bổ doanh thu theo loại dịch vụ"><div className="donut-wrap"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie isAnimationActive={false} data={revenueSources} dataKey="value" innerRadius={65} outerRadius={88} stroke="none">{revenueSources.map((item) => <Cell key={item.name} fill={item.color}/>)}</Pie></PieChart></ResponsiveContainer><div className="donut-label"><strong>62%</strong><small>KÉO XE SÀN</small></div></div><div className="legend-list">{revenueSources.map((item) => <div key={item.name}><i style={{ background: item.color }}/><span>{item.name}</span><b>{item.value}%</b></div>)}</div></SectionCard></div><SectionCard title="Bảng Chi Tiết Báo Giá & Dòng Tiền" subtitle="1,420 báo giá" action={<span className="soft-pill">Tất cả trạng thái</span>}><div className="filter-row"><label className="search-field"><Search size={16}/><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tìm mã báo giá, khách hàng..." /></label><label className="select-field"><SlidersHorizontal size={15}/><select value={status} onChange={(e) => setStatus(e.target.value)}>{['Tất cả trạng thái','Đã thanh toán','Chờ khách duyệt'].map((item) => <option key={item}>{item}</option>)}</select></label></div>{rows.length ? <div className="table-scroll"><table><thead><tr><th>Mã báo giá</th><th>Khách hàng</th><th>Đội xe cứu hộ</th><th>Chi tiết chi phí</th><th>Tổng tiền</th><th>Phương thức</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>{rows.map((item) => <tr key={item.id}><td><b className="id-link">{item.id}</b></td><td>{item.customer}</td><td>{item.team}</td><td className="item-detail">{item.item}</td><td><b>{formatCurrency(item.total)}</b></td><td>{item.method}</td><td><StatusBadge>{item.status}</StatusBadge></td><td><button className="small-button" onClick={() => alert('Báo giá ' + item.id + ': ' + formatCurrency(item.total))}>Xem</button></td></tr>)}</tbody></table></div> : <EmptyState/>}<div className="table-footer">Hiển thị {rows.length} trong tổng số 1,420 báo giá<span>‹ &nbsp; <b>1</b> &nbsp; 2 &nbsp; ... &nbsp; 284 &nbsp; ›</span></div></SectionCard></>
+  const [query, setQuery] = useState('')
+  const [status, setStatus] = useState('')
+  const resource = useAdminData(getQuotes, ['rescue_quotes', 'rescue_request_assignments'])
+  const all = useMemo(() => newestFirst(resource.data ?? []), [resource.data])
+  const current = all.filter((row) => row.is_current)
+  const rows = useMemo(() => all.filter((row) => (!status || row.status === status) && matchesSearch(query, codeValue(row.quote_code), codeValue(row.request_code), row.customer_name, row.rescuer_name, serviceValue(row.service_type))), [all, status, query])
+  return <><PageHeader eyebrow="TÀI CHÍNH & QUẢN TRỊ" title="Báo giá & Doanh thu Cứu Hộ" description="Theo dõi báo giá dịch vụ. Giá trị báo giá chưa xác nhận số tiền đã thu." actions={<><ReloadButton resource={resource}/><UnsupportedButton>Xuất Excel</UnsupportedButton></>}/>
+    <DataState resource={resource}><div className="stat-grid">
+      <StatCard label="Tổng phiên bản báo giá" value={String(all.length)}/>
+      <StatCard label="Báo giá hiện hành" value={String(current.length)}/>
+      <StatCard label="Giá trị báo giá hiện hành" value={moneyValue(current.reduce((sum, row) => sum + numberValue(row.amount), 0))} icon="wallet"/>
+      <StatCard label="Báo giá của ca hoàn tất" value={String(all.filter((row) => row.is_completion_quote).length)} tone="green"/>
+    </div><div className="dashboard-charts"><SectionCard title="Doanh thu theo tuần & ngày"><EmptyState title="Chưa có dữ liệu biểu đồ thật" description="Biểu đồ doanh thu chưa được kết nối."/></SectionCard><SectionCard title="Cơ cấu nguồn thu"><EmptyState title="Chưa có dữ liệu biểu đồ thật" description="Chưa có dữ liệu đối soát thanh toán."/></SectionCard></div>
+      <SectionCard title="Chi tiết báo giá"><SearchFilter query={query} onQuery={setQuery} status={status} onStatus={setStatus} options={[...new Set(all.map((row) => row.status).filter((value): value is string => !!value))]} placeholder="Tìm mã báo giá, mã ca, khách hàng, đối tác..."/>
+        <DataTable rows={rows} rowKey={(row) => row.quote_id} emptyTitle="Chưa có báo giá" columns={[
+          { label: 'Mã báo giá', render: (row) => codeValue(row.quote_code) },
+          { label: 'Mã ca', render: (row) => codeValue(row.request_code) },
+          { label: 'Khách hàng', render: (row) => textValue(row.customer_name) },
+          { label: 'Đối tác', render: (row) => textValue(row.rescuer_name) },
+          { label: 'Dịch vụ', render: (row) => serviceValue(row.service_type) },
+          { label: 'Số tiền', render: (row) => moneyValue(row.amount) },
+          { label: 'Ghi chú', render: (row) => textValue(row.note) },
+          { label: 'Trạng thái', render: (row) => <><StatusBadge>{statusValue(row.status)}</StatusBadge><small>{row.is_current ? 'Hiện hành' : 'Phiên bản cũ'}</small></> },
+          { label: 'Ngày tạo', render: (row) => dateValue(row.created_at) },
+        ]}/>
+      </SectionCard>
+    </DataState></>
 }
-
-
-
-
