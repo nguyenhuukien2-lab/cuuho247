@@ -43,3 +43,7 @@ widget_preview_chrome.png
 **/*.keystore
 backend/supabase/.temp/
 backend/supabase/.branches/
+.cache_rescuer/
+.npm_cache/
+.temp_node/
+*.apk
