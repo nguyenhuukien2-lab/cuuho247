@@ -1,13 +1,53 @@
+import 'stitch_customer_header.dart';
 import '../app/mobile_ui.dart';
 import '../app/app_controller.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../services/customer_vehicle_service.dart';
 import '../services/customer_saved_address_service.dart';
-import 'booking_ui.dart';
 
-const accountTitle = RescueType.section;
-const accountCaption = RescueType.caption;
+const accountTitle = TextStyle(
+    color: Color(0xFF0B1C30), fontSize: 16, fontWeight: FontWeight.w700);
+const accountCaption =
+    TextStyle(color: Color(0xFF434655), fontSize: 12, height: 1.4);
+
+abstract final class AccountVisual {
+  static const navy = Color(0xFF0037B0), blue = Color(0xFF1D4ED8);
+  static const background = Color(0xFFF8F9FF), border = Color(0xFFE5E7EB);
+  static const danger = Color(0xFFBA1A1A), orange = Color(0xFFF97316);
+}
+
+class AccountSectionTitle extends StatelessWidget {
+  const AccountSectionTitle(this.title,
+      {super.key, this.color = AccountVisual.blue, this.trailing});
+  final String title;
+  final Color color;
+  final Widget? trailing;
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(top: 24, bottom: 12),
+        child: Row(children: [
+          Container(
+              width: 4,
+              height: 20,
+              decoration: BoxDecoration(
+                  color: color, borderRadius: BorderRadius.circular(999))),
+          const SizedBox(width: 8),
+          Expanded(
+              child: Text(title,
+                  style: const TextStyle(
+                      color: AccountVisual.navy,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700))),
+          if (trailing != null) trailing!,
+        ]),
+      );
+}
+
+class CustomerAccountHeader extends StatelessWidget {
+  const CustomerAccountHeader({super.key});
+  @override
+  Widget build(BuildContext context) => const StitchCustomerHeader();
+}
 
 class CustomerAccountHeaderCard extends StatelessWidget {
   const CustomerAccountHeaderCard(
@@ -26,90 +66,105 @@ class CustomerAccountHeaderCard extends StatelessWidget {
   final int? vehicleCount, completedCount;
   @override
   Widget build(BuildContext context) => Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: RescueSurfaces.decoration(RescueCardKind.profile),
-      child: Stack(children: [
-        Padding(
-            padding: const EdgeInsets.all(16),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const CircleAvatar(
-                    radius: 32,
-                    backgroundColor: RescueColors.selected,
-                    child: Icon(Icons.person_outline_rounded,
-                        color: RescueColors.ink, size: 36)),
-                const SizedBox(width: 12),
-                Expanded(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                      Text(name.isEmpty ? 'Thông tin cá nhân' : name,
-                          style:
-                              accountTitle.copyWith(color: RescueColors.ink)),
-                      if (customerCode != null) ...[
-                        const SizedBox(height: RescueSpace.xs),
-                        Text('Mã khách hàng: $customerCode',
-                            style: RescueType.code),
-                      ],
-                      if (phone?.trim().isNotEmpty == true) ...[
-                        const SizedBox(height: 6),
-                        Text(phone!,
-                            style: const TextStyle(
-                                color: RescueColors.ink, fontSize: 14))
-                      ],
-                      if (email?.trim().isNotEmpty == true) ...[
-                        const SizedBox(height: 4),
-                        Text(email!,
-                            style: const TextStyle(
-                                color: RescueColors.muted, fontSize: 12))
-                      ],
-                    ])),
-              ]),
-              if (onEdit != null) ...[
-                const SizedBox(height: 12),
-                Row(children: [
-                  Expanded(
-                      child: OutlinedButton.icon(
-                          onPressed: onEdit,
-                          style: OutlinedButton.styleFrom(
-                              foregroundColor: RescueColors.ink,
-                              side:
-                                  const BorderSide(color: RescueColors.border),
-                              minimumSize: const Size(0, 48)),
-                          icon: const Icon(Icons.edit_outlined),
-                          label: const Text('Chỉnh sửa thông tin'))),
-                  if (onReload != null)
-                    IconButton(
-                        tooltip: 'Tải lại hồ sơ',
-                        onPressed: onReload,
-                        color: RescueColors.ink,
-                        icon: const Icon(Icons.refresh_rounded)),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF2151DA), Color(0xFF0037B0)])),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const CircleAvatar(
+              radius: 28,
+              backgroundColor: Color(0x33FFFFFF),
+              child: Icon(Icons.person_outline_rounded,
+                  color: Colors.white, size: 32)),
+          const SizedBox(width: 12),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text(name.isEmpty ? 'Thông tin cá nhân' : name,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        height: 24 / 18,
+                        fontWeight: FontWeight.w800)),
+                if (customerCode != null) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                      key: const ValueKey('account-customer-code-chip'),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: .15),
+                          borderRadius: BorderRadius.circular(999)),
+                      child: Text('Mã KH: $customerCode',
+                          semanticsLabel: 'Mã khách hàng: $customerCode',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              height: 14 / 11))),
+                ],
+                for (final contact in [
+                  if (phone?.trim().isNotEmpty == true)
+                    (Icons.phone_outlined, phone!),
+                  if (email?.trim().isNotEmpty == true)
+                    (Icons.mail_outline, email!),
                 ])
-              ],
-              if (vehicleCount != null || completedCount != null) ...[
-                const SizedBox(height: 16),
-                Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                        color: RescueColors.background,
-                        borderRadius: BorderRadius.circular(16)),
-                    child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (vehicleCount != null)
+                  Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(contact.$1, color: Colors.white70, size: 14),
+                            const SizedBox(width: 6),
                             Expanded(
-                                child: AccountMetricTile(
-                                    value: vehicleCount!,
-                                    label: 'Xe liên kết')),
-                          if (completedCount != null)
-                            Expanded(
-                                child: AccountMetricTile(
-                                    value: completedCount!,
-                                    label: 'Hoàn tất đã tải')),
-                        ])),
-              ],
-            ])),
+                                child: Text(contact.$2,
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        height: 16 / 12))),
+                          ])),
+              ])),
+          if (onEdit != null || onReload != null)
+            Column(children: [
+              if (onEdit != null)
+                IconButton.filled(
+                    tooltip: 'Chỉnh sửa thông tin',
+                    onPressed: onEdit,
+                    style: IconButton.styleFrom(
+                        backgroundColor: Colors.white.withValues(alpha: .15)),
+                    icon: const Icon(Icons.edit_outlined,
+                        color: Colors.white, size: 20)),
+              if (onReload != null)
+                IconButton(
+                    tooltip: 'Tải lại hồ sơ',
+                    onPressed: onReload,
+                    icon: const Icon(Icons.sync_rounded,
+                        color: Colors.white70, size: 20)),
+            ]),
+        ]),
+        if (vehicleCount != null || completedCount != null) ...[
+          const SizedBox(height: 16),
+          IntrinsicHeight(
+              child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                if (vehicleCount != null)
+                  Expanded(
+                      child: AccountMetricTile(
+                          value: vehicleCount!, label: 'Xe đã lưu')),
+                if (vehicleCount != null && completedCount != null)
+                  const SizedBox(width: 8),
+                if (completedCount != null)
+                  Expanded(
+                      child: AccountMetricTile(
+                          value: completedCount!,
+                          label: 'Đơn hoàn tất\nđã tải')),
+              ])),
+        ],
       ]));
 }
 
@@ -119,16 +174,23 @@ class AccountMetricTile extends StatelessWidget {
   final int value;
   final String label;
   @override
-  Widget build(BuildContext context) => Column(children: [
+  Widget build(BuildContext context) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: .14),
+          borderRadius: BorderRadius.circular(16)),
+      child: Column(children: [
         Text('$value',
             style: const TextStyle(
-                color: RescueColors.ink,
-                fontSize: 22,
+                color: Color(0xFF6CF8BB),
+                fontSize: 24,
+                height: 32 / 24,
                 fontWeight: FontWeight.w800)),
+        const SizedBox(height: 4),
         Text(label,
-            style: const TextStyle(color: RescueColors.muted, fontSize: 12),
+            style: accountCaption.copyWith(color: Colors.white70),
             textAlign: TextAlign.center),
-      ]);
+      ]));
 }
 
 class AccountVehicleCard extends StatelessWidget {
@@ -151,10 +213,20 @@ class AccountVehicleCard extends StatelessWidget {
                           width: 48,
                           height: 48,
                           decoration: BoxDecoration(
-                              color: BookingStyle.pale,
+                              color: const Color(0xFFDBEAFE),
                               borderRadius: BorderRadius.circular(16)),
-                          child: const Icon(Icons.directions_car_outlined,
-                              color: BookingStyle.blue, size: 28)),
+                          child: Icon(
+                              switch (vehicle.kind) {
+                                VehicleKind.motorbike =>
+                                  Icons.two_wheeler_outlined,
+                                VehicleKind.truck =>
+                                  Icons.local_shipping_outlined,
+                                VehicleKind.car =>
+                                  Icons.directions_car_outlined,
+                                VehicleKind.other => Icons.commute_outlined,
+                              },
+                              color: AccountVisual.blue,
+                              size: 28)),
                       const SizedBox(width: 12),
                       Expanded(
                           child: Column(
@@ -184,11 +256,11 @@ class AccountVehicleCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
-                              color: BookingStyle.pale,
-                              borderRadius: BorderRadius.circular(12)),
+                              color: const Color(0xFFDBEAFE),
+                              borderRadius: BorderRadius.circular(999)),
                           child: Text(vehicle.licensePlate,
                               style: const TextStyle(
-                                  color: BookingStyle.ink,
+                                  color: AccountVisual.navy,
                                   fontWeight: FontWeight.w700))),
                     ],
                   ]))));
@@ -201,25 +273,33 @@ class AccountAddressSection extends StatelessWidget {
   final VoidCallback onManage;
   @override
   Widget build(BuildContext context) => AccountSurface(
-          child: Column(children: [
+      radius: 22,
+      child: Column(children: [
         if (addresses.isEmpty)
-          const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('Chưa có địa chỉ đã lưu', style: accountCaption)),
+          const AccountEmptyContent(
+              title: 'Chưa có địa chỉ đã lưu',
+              message: 'Lưu địa chỉ thường dùng để đặt cứu hộ nhanh hơn',
+              icon: Icons.add_home_outlined,
+              color: Color(0xFF006C49),
+              background: Color(0xFFDCFCE7)),
         for (final address in addresses)
           ListTile(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
               onTap: onManage,
               leading: Container(
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                      color: BookingStyle.pale,
+                      color: const Color(0xFFDCFCE7),
                       borderRadius: BorderRadius.circular(12)),
                   child: Icon(
                       address.label.toLowerCase().contains('nhà')
                           ? Icons.home_outlined
-                          : Icons.location_on_outlined,
-                      color: BookingStyle.blue)),
+                          : address.label.toLowerCase().contains('cơ quan')
+                              ? Icons.business_outlined
+                              : Icons.location_on_outlined,
+                      color: const Color(0xFF006C49))),
               title: Wrap(spacing: 8, runSpacing: 4, children: [
                 Text(address.label,
                     style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -227,10 +307,7 @@ class AccountAddressSection extends StatelessWidget {
                   const Text('Mặc định',
                       style: TextStyle(color: Color(0xFF00714D), fontSize: 12)),
               ]),
-              subtitle: Text(address.address,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: accountCaption),
+              subtitle: Text(address.address, style: accountCaption),
               trailing: const Icon(Icons.chevron_right_rounded)),
       ]));
 }
@@ -244,42 +321,11 @@ class AccountSettingsSection extends StatelessWidget {
 
 class SupportHotlineTile extends StatelessWidget {
   const SupportHotlineTile({super.key});
-  Future<void> _call(BuildContext context) async {
-    try {
-      if (await launchUrl(Uri(scheme: 'tel', path: '19006868'))) return;
-    } catch (_) {}
-    if (context.mounted)
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Vui lòng gọi 1900 6868 để được hỗ trợ.')));
-  }
-
   @override
-  Widget build(BuildContext context) => Material(
-      color: const Color(0xFFFFF1F2),
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-          onTap: () => _call(context),
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(children: [
-                const Icon(Icons.sos_rounded,
-                    color: Color(0xFFEF4444), size: 30),
-                const SizedBox(width: 12),
-                const Expanded(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                      Text('Hotline SOS 24/7',
-                          style: TextStyle(fontWeight: FontWeight.w700)),
-                      SizedBox(height: 4),
-                      Text('1900 6868',
-                          style: TextStyle(
-                              color: Color(0xFFB91C1C),
-                              fontWeight: FontWeight.w700)),
-                    ])),
-                const Icon(Icons.phone_outlined, color: Color(0xFFEF4444)),
-              ]))));
+  Widget build(BuildContext context) => const AccountSettingsItem(
+      title: 'Hỗ trợ',
+      subtitle: 'Chưa có thông tin liên hệ hỗ trợ.',
+      icon: Icons.support_agent_outlined);
 }
 
 class LogoutButton extends StatelessWidget {
@@ -292,7 +338,12 @@ class LogoutButton extends StatelessWidget {
       width: double.infinity,
       child: FilledButton.icon(
           onPressed: loading ? null : onPressed,
-          style: RescueButtons.style(RescueButtonKind.danger),
+          style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFFFDAD6),
+              foregroundColor: AccountVisual.danger,
+              minimumSize: const Size(48, 56),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16))),
           icon: loading
               ? const SizedBox.square(
                   dimension: 20,
@@ -302,9 +353,77 @@ class LogoutButton extends StatelessWidget {
 }
 
 class AccountSurface extends StatelessWidget {
-  const AccountSurface({super.key, required this.child});
+  const AccountSurface({super.key, required this.child, this.radius = 20});
   final Widget child;
+  final double radius;
   @override
-  Widget build(BuildContext context) => RescueCard(
-      kind: RescueCardKind.profile, padding: EdgeInsets.zero, child: child);
+  Widget build(BuildContext context) => Container(
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(radius),
+          border: Border.all(color: AccountVisual.border)),
+      child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(radius),
+          clipBehavior: Clip.antiAlias,
+          child: child));
+}
+
+class AccountEmptyContent extends StatelessWidget {
+  const AccountEmptyContent(
+      {super.key,
+      required this.title,
+      required this.message,
+      required this.icon,
+      this.color = AccountVisual.blue,
+      this.background = const Color(0xFFDBEAFE)});
+  final String title, message;
+  final IconData icon;
+  final Color color, background;
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                  color: background, borderRadius: BorderRadius.circular(16)),
+              child: Icon(icon, color: color, size: 28)),
+          const SizedBox(height: 12),
+          Text(title, style: accountTitle),
+          const SizedBox(height: 6),
+          Text(message, style: accountCaption),
+        ]),
+      );
+}
+
+class AccountSettingsItem extends StatelessWidget {
+  const AccountSettingsItem(
+      {super.key,
+      required this.title,
+      required this.subtitle,
+      required this.icon,
+      this.onTap,
+      this.color = AccountVisual.blue,
+      this.background = const Color(0xFFDBEAFE)});
+  final String title, subtitle;
+  final IconData icon;
+  final VoidCallback? onTap;
+  final Color color, background;
+  @override
+  Widget build(BuildContext context) => ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        leading: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+                color: background, borderRadius: BorderRadius.circular(14)),
+            child: Icon(icon, color: color, size: 22)),
+        title: Text(title, style: accountTitle),
+        subtitle: Text(subtitle, style: accountCaption),
+        trailing: onTap == null
+            ? null
+            : const Icon(Icons.chevron_right_rounded,
+                color: AccountVisual.navy),
+        onTap: onTap,
+      );
 }

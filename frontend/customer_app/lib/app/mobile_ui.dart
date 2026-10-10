@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
 
-// Keep presentation tokens and behavior in sync in the two standalone apps.
+// Customer app tokens measured from the five Xanh Tech Stitch screens.
 abstract final class RescueColors {
-  static const navy = Color(0xFF0B2540);
-  static const navySoft = Color(0xFF213D5B);
-  static const accent = Color(0xFFC2410C);
-  static const accentPressed = Color(0xFF9A3412);
-  static const accentSoft = Color(0xFFFFF0E6);
-  static const background = Color(0xFFF5F7FA);
+  static const navy = Color(0xFF0037B0);
+  static const navySoft = Color(0xFF2151DA);
+  static const accent = Color(0xFF1D4ED8);
+  static const accentPressed = Color(0xFF0037B0);
+  static const accentSoft = Color(0xFFE9EFFF);
+  static const background = Color(0xFFF8F9FF);
   static const surface = Colors.white;
-  static const ink = Color(0xFF17283C);
-  static const muted = Color(0xFF596B80);
+  static const ink = Color(0xFF0B1C30);
+  static const muted = Color(0xFF434655);
   static const border = Color(0xFFDCE3EA);
   static const selected = Color(0xFFEAF0F6);
   static const disabled = Color(0xFFE5EAF0);
-  static const success = Color(0xFF16734F);
+  static const success = Color(0xFF006C49);
   static const successSoft = Color(0xFFE9F7F0);
   static const warning = Color(0xFF8A570B);
   static const warningSoft = Color(0xFFFFF5E5);
-  static const danger = Color(0xFFB42318);
-  static const dangerSoft = Color(0xFFFFEFED);
+  static const danger = Color(0xFFBA1A1A);
+  static const dangerSoft = Color(0xFFFFDAD6);
   static const info = Color(0xFF245B91);
   static const infoSoft = Color(0xFFEDF4FA);
   static const progress = Color(0xFF51428F);
@@ -29,7 +29,7 @@ abstract final class RescueColors {
 abstract final class RescueSpace {
   static const xs = 4.0, sm = 8.0, md = 12.0, lg = 16.0;
   static const xl = 24.0, xxl = 32.0;
-  static const page = EdgeInsets.fromLTRB(lg, lg, lg, xxl);
+  static const page = EdgeInsets.fromLTRB(20, 16, 20, 32);
 }
 
 abstract final class RescueRadius {
@@ -38,48 +38,51 @@ abstract final class RescueRadius {
 
 abstract final class RescueType {
   static const page = TextStyle(
-      fontFamily: 'Roboto',
+      fontFamily: 'Plus Jakarta Sans',
       fontSize: 24,
-      height: 1.25,
+      height: 32 / 24,
       fontWeight: FontWeight.w700,
       letterSpacing: 0,
       color: RescueColors.ink);
   static const section = TextStyle(
-      fontFamily: 'Roboto',
+      fontFamily: 'Plus Jakarta Sans',
       fontSize: 18,
-      height: 1.35,
+      height: 24 / 18,
       fontWeight: FontWeight.w700,
       letterSpacing: 0,
       color: RescueColors.ink);
   static const title = TextStyle(
-      fontFamily: 'Roboto',
+      fontFamily: 'Plus Jakarta Sans',
       fontSize: 16,
-      height: 1.35,
+      height: 20 / 16,
       fontWeight: FontWeight.w600,
       color: RescueColors.ink);
   static const body = TextStyle(
-      fontFamily: 'Roboto', fontSize: 14, height: 1.5, color: RescueColors.ink);
+      fontFamily: 'Plus Jakarta Sans',
+      fontSize: 14,
+      height: 20 / 14,
+      color: RescueColors.ink);
   static const caption = TextStyle(
-      fontFamily: 'Roboto',
+      fontFamily: 'Plus Jakarta Sans',
       fontSize: 12,
-      height: 1.4,
+      height: 16 / 12,
       color: RescueColors.muted);
   static const code = TextStyle(
-      fontFamily: 'Roboto',
+      fontFamily: 'Plus Jakarta Sans',
       fontSize: 13,
       height: 1.4,
       fontWeight: FontWeight.w600,
       letterSpacing: .2,
       color: RescueColors.muted);
   static const status = TextStyle(
-      fontFamily: 'Roboto',
+      fontFamily: 'Plus Jakarta Sans',
       fontSize: 12,
       height: 1.35,
       fontWeight: FontWeight.w600);
   static const button = TextStyle(
-      fontFamily: 'Roboto',
-      fontSize: 14,
-      height: 1.3,
+      fontFamily: 'Plus Jakarta Sans',
+      fontSize: 16,
+      height: 20 / 16,
       fontWeight: FontWeight.w700,
       letterSpacing: 0);
 }
@@ -100,7 +103,7 @@ abstract final class RescueButtons {
       _ => RescueColors.navy,
     };
     return ButtonStyle(
-      minimumSize: const WidgetStatePropertyAll(Size(48, 52)),
+      minimumSize: const WidgetStatePropertyAll(Size(48, 56)),
       padding: const WidgetStatePropertyAll(
           EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
       textStyle: const WidgetStatePropertyAll(RescueType.button),
@@ -412,7 +415,7 @@ abstract final class RescueTheme {
         borderSide: const BorderSide(color: RescueColors.border));
     return ThemeData(
         useMaterial3: true,
-        fontFamily: 'Roboto',
+        fontFamily: 'Plus Jakarta Sans',
         scaffoldBackgroundColor: RescueColors.background,
         colorScheme: ColorScheme.fromSeed(
             seedColor: RescueColors.navy,
@@ -448,7 +451,7 @@ abstract final class RescueTheme {
             scrolledUnderElevation: 0,
             centerTitle: false,
             titleTextStyle: TextStyle(
-                fontFamily: 'Roboto',
+                fontFamily: 'Plus Jakarta Sans',
                 fontSize: 20,
                 height: 1.3,
                 fontWeight: FontWeight.w700,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../app/app_controller.dart';
-import '../widgets/booking_ui.dart';
 import '../widgets/customer_ui.dart';
 import '../widgets/history_ui.dart';
 import 'history_details_screen.dart';
@@ -42,19 +41,21 @@ class _NewHistoryScreenState extends State<NewHistoryScreen> {
           ]
         : null;
     return Theme(
-        data: BookingStyle.theme(context),
+        data: Theme.of(context)
+            .copyWith(scaffoldBackgroundColor: HistoryStyle.background),
         child: Material(
-            color: BookingStyle.background,
+            color: HistoryStyle.background,
             child: Column(children: [
-              CustomerAppHeader(onAccount: () => controller.selectTab(4)),
+              HistoryHeader(onAccount: () => controller.selectTab(4)),
               Expanded(
                   child: ListView(
                       key: const PageStorageKey('history-scroll'),
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
                       children: [
                     HistorySummaryCard(
-                        count: hasCounts ? controller.history.length : null),
-                    const SizedBox(height: 24),
+                        count: hasCounts ? controller.history.length : null,
+                        completedCount: counts?[1]),
+                    const SizedBox(height: 16),
                     HistoryFilterTabs(
                         selected: filter.index,
                         counts: counts,
@@ -80,7 +81,7 @@ class _NewHistoryScreenState extends State<NewHistoryScreen> {
                           onRequest: controller.startRequest)
                     ],
                     for (final item in items) ...[
-                      const SizedBox(height: 16),
+                      SizedBox(height: item == items.first ? 16 : 12),
                       HistoryTripCard(
                           request: item,
                           onDetails: () => Navigator.of(context).push(
@@ -89,8 +90,6 @@ class _NewHistoryScreenState extends State<NewHistoryScreen> {
                                       requestId: item.id,
                                       controller: controller)))),
                     ],
-                    const SizedBox(height: 24),
-                    const WarrantyBanner(),
                   ])),
             ])));
   }

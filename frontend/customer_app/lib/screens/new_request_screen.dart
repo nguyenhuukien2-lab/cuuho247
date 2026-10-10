@@ -1,4 +1,3 @@
-import '../core/utils/display_code.dart';
 import 'package:flutter/material.dart';
 
 import '../app/app_controller.dart';
@@ -13,6 +12,8 @@ import '../widgets/saved_address_picker.dart';
 import '../services/customer_saved_address_service.dart';
 import '../widgets/rescue_widgets.dart';
 import '../widgets/booking_ui.dart';
+import '../widgets/booking_form_ui.dart';
+import '../widgets/booking_detail_sections.dart';
 import '../widgets/customer_ui.dart';
 import '../widgets/rescue_location_map.dart';
 
@@ -20,14 +21,14 @@ class NewRequestScreen extends StatefulWidget {
   const NewRequestScreen({
     super.key,
     required this.controller,
-    this.locationService = const GeolocatorLocationService(),
+    this.locationService,
     this.photoPicker = const DeviceRequestPhotoPicker(),
     this.photoRepository = const SupabaseRequestPhotoRepository(),
     this.addressRepository = const SupabaseCustomerSavedAddressRepository(),
     this.vehicleRepository = const SupabaseCustomerVehicleRepository(),
   });
   final AppController controller;
-  final CustomerLocationService locationService;
+  final CustomerLocationService? locationService;
   final RequestPhotoPicker photoPicker;
   final RequestPhotoRepository photoRepository;
   final CustomerVehicleRepository vehicleRepository;
@@ -100,16 +101,18 @@ class _NewRequestScreenState extends State<NewRequestScreen>
 
   LocationResult location = const LocationResult(
     LocationStatus.idle,
-    'GPS giúp gửi kèm tọa độ hiện tại. Bạn vẫn cần nhập địa chỉ cụ thể và có thể gửi khi không dùng GPS.',
+    'Nhập địa chỉ cứu hộ. GPS không bắt buộc.',
   );
   int _locationGeneration = 0;
   bool usingSavedAddress = false;
+  bool _usingGps = false;
 
   void selectSavedAddress(CustomerSavedAddress saved) {
     if (formLocked) return;
     _locationGeneration++;
     setState(() {
       usingSavedAddress = true;
+      _usingGps = false;
       address.text = saved.address;
       addressError = null;
       final coordinates = saved.latitude != null && saved.longitude != null
@@ -129,6 +132,7 @@ class _NewRequestScreenState extends State<NewRequestScreen>
     _locationGeneration++;
     setState(() {
       usingSavedAddress = false;
+      _usingGps = false;
       location = LocationResult(
         LocationStatus.acquired,
         'Đã chọn vị trí trên bản đồ. Hãy kiểm tra địa chỉ và xác nhận lại.',
@@ -151,6 +155,8 @@ class _NewRequestScreenState extends State<NewRequestScreen>
   Future<void> locate() async {
     if (formLocked || location.status == LocationStatus.loading) return;
     usingSavedAddress = false;
+    _usingGps = false;
+    final userId = UserSession.userId;
     final generation = ++_locationGeneration;
     setState(() {
       locationConfirmed = false;
@@ -159,16 +165,26 @@ class _NewRequestScreenState extends State<NewRequestScreen>
         'Bạn có thể tiếp tục nhập địa chỉ và gửi yêu cầu trong lúc chờ.',
       );
     });
-    final result = await widget.locationService.getCurrentLocation();
-    if (!mounted || generation != _locationGeneration) return;
+    LocationResult result;
+    try {
+      result = await (widget.locationService?.getCurrentLocation() ??
+          widget.controller.gps.refresh());
+    } catch (error) {
+      result = GeolocatorLocationService.fromError(error);
+    }
+    if (!mounted ||
+        generation != _locationGeneration ||
+        userId != UserSession.userId) return;
     setState(() {
       location = result;
+      _usingGps = result.status == LocationStatus.acquired;
       locationConfirmed = false;
     });
   }
 
   void useManualAddress() {
     usingSavedAddress = false;
+    _usingGps = false;
     _locationGeneration++;
     setState(() {
       location = const LocationResult(
@@ -207,6 +223,7 @@ class _NewRequestScreenState extends State<NewRequestScreen>
   }
 
   int _step = 0;
+  bool _choosingService = false;
   int _lastTabIndex = -1;
   void _goStep(int value) {
     FocusScope.of(context).unfocus();
@@ -342,7 +359,36 @@ class _NewRequestScreenState extends State<NewRequestScreen>
       }
     });
     clientRequestId ??= SupabaseService.newClientRequestId();
+    final submittingUser = UserSession.userId;
     try {
+      final live = widget.controller.gps.lastFix;
+      if (createdRequest == null &&
+          _usingGps &&
+          widget.locationService == null &&
+          live != null &&
+          live.isFresh(DateTime.now()) &&
+          (location.capturedAt == null ||
+              live.capturedAt!.isAfter(location.capturedAt!))) {
+        location = live;
+      }
+      if (createdRequest == null &&
+          _usingGps &&
+          (location.capturedAt == null || !location.isFresh(DateTime.now()))) {
+        final fresh = await (widget.locationService?.getCurrentLocation() ??
+            widget.controller.gps.refresh());
+        if (!mounted || submittingUser != UserSession.userId) return;
+        if (fresh.status != LocationStatus.acquired ||
+            fresh.coordinates == null) {
+          setState(() {
+            location = fresh;
+            _usingGps = false;
+            locationConfirmed = false;
+          });
+          throw const AppFailure(
+              'Không thể cập nhật GPS. Hãy thử lại hoặc chọn địa chỉ nhập tay và xác nhận lại.');
+        }
+        setState(() => location = fresh);
+      }
       final request = createdRequest ??
           await widget.controller.createRequest(
             clientRequestId: clientRequestId!,
@@ -418,16 +464,18 @@ class _NewRequestScreenState extends State<NewRequestScreen>
       _lastTabIndex = controller.tabIndex;
     }
     return Theme(
-      data: BookingStyle.theme(context),
+      data: BookingFormStyle.theme(context),
       child: Material(
-        color: BookingStyle.background,
+        color: BookingFormStyle.background,
         child: Column(
           children: [
-            CustomerAppHeader(onAccount: () => controller.selectTab(4)),
+            BookingFormHeader(onAccount: () => controller.selectTab(4)),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
               child: CustomerStepIndicator(
                 step: _step,
+                serviceSelected:
+                    controller.selectedService != null && !_choosingService,
                 onStep: formLocked ? null : _goStep,
               ),
             ),
@@ -441,58 +489,53 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                       ScrollViewKeyboardDismissBehavior.onDrag,
                   slivers: [
                     SliverPadding(
-                      padding: AppSpacing.page,
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                       sliver: SliverToBoxAdapter(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              const [
-                                'Chọn dịch vụ',
-                                'Chọn xe',
-                                'Vị trí cứu hộ',
-                                'Mô tả / ảnh',
-                                'Xác nhận yêu cầu',
-                              ][_step],
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: BookingStyle.ink,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
                             if (controller.selectedService != null &&
-                                _step > 0) ...[
+                                !_choosingService) ...[
                               SelectedServiceCard(
                                 service: controller.selectedService!,
-                                onChange: formLocked ? null : () => _goStep(0),
+                                onChange: formLocked
+                                    ? null
+                                    : () {
+                                        _goStep(0);
+                                        setState(() => _choosingService = true);
+                                      },
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 20),
                             ],
                             if (createdRequest != null) ...[
                               InlineNotice(
-                                'Đơn ${displayCode(createdRequest!.requestCode)} đã tạo. Đã gửi ${uploadedPhotos.length}/${photos.length} ảnh. Thử lại sẽ chỉ gửi ảnh còn thiếu.',
+                                'Đơn ${bookingRequestCode(createdRequest!.requestCode)} đã tạo. Đã gửi ${uploadedPhotos.length}/${photos.length} ảnh. Thử lại sẽ chỉ gửi ảnh còn thiếu.',
                                 isError: false,
                               ),
                               const SizedBox(height: 24),
                             ],
                             Visibility(
                               key: const ValueKey('request-section-0'),
-                              visible: _step == 0,
+                              visible: _step == 0 &&
+                                  (controller.selectedService == null ||
+                                      _choosingService),
                               maintainState: true,
                               child: CustomerCard(
                                 icon: Icons.build_outlined,
-                                title: 'Sự cố',
+                                title: 'Dịch vụ',
                                 children: [
                                   ServiceGrid(
-                                    selectedColor: BookingStyle.blue,
-                                    selectedBackground: BookingStyle.pale,
+                                    selectedColor: BookingFormStyle.blue,
+                                    selectedBackground: BookingFormStyle.pale,
                                     selected: controller.selectedService,
                                     onSelected: formLocked
                                         ? null
                                         : (service) {
                                             controller.selectService(service);
-                                            setState(() => serviceError = null);
+                                            setState(() {
+                                              serviceError = null;
+                                              _choosingService = false;
+                                            });
                                           },
                                   ),
                                   if (serviceError != null) ...[
@@ -502,61 +545,65 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                                 ],
                               ),
                             ),
-                            if (_step == 0) const SizedBox(height: 16),
+                            if (_step == 0 &&
+                                (controller.selectedService == null ||
+                                    _choosingService))
+                              const SizedBox(height: 16),
                             Visibility(
                               key: const ValueKey('request-section-1'),
-                              visible: _step == 1,
+                              visible: true,
                               maintainState: true,
-                              child: CustomerCard(
-                                icon: Icons.directions_car_outlined,
-                                title: 'Chọn phương tiện gặp sự cố',
-                                children: [
-                                  SavedVehiclePicker(
-                                    cardLayout: true,
-                                    controller: controller,
-                                    locked: formLocked,
-                                    repository: widget.vehicleRepository,
+                              child: SavedVehiclePicker(
+                                cardLayout: true,
+                                controller: controller,
+                                locked: formLocked,
+                                repository: widget.vehicleRepository,
+                                manualControls: AnimatedContainer(
+                                  duration: customerMotion(context, 160),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.selected,
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  const SizedBox(height: 8),
-                                  AnimatedContainer(
-                                    duration: customerMotion(context, 160),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.selected,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: DropdownButtonFormField<VehicleKind>(
-                                      initialValue: controller.vehicle,
-                                      key: ValueKey(controller.vehicle),
-                                      isExpanded: true,
-                                      decoration: InputDecoration(
-                                        labelText: 'Loại phương tiện',
-                                        prefixIcon: Icon(
-                                          vehicleIcon(controller.vehicle),
-                                        ),
+                                  child: DropdownButtonFormField<VehicleKind>(
+                                    initialValue: controller.vehicle,
+                                    key: ValueKey(controller.vehicle),
+                                    isExpanded: true,
+                                    decoration: InputDecoration(
+                                      labelText: 'Loại phương tiện',
+                                      prefixIcon: Icon(
+                                        vehicleIcon(controller.vehicle),
                                       ),
-                                      items: VehicleKind.values
-                                          .map(
-                                            (kind) => DropdownMenuItem(
-                                              value: kind,
-                                              child: Text(kind.label),
-                                            ),
-                                          )
-                                          .toList(),
-                                      onChanged: formLocked
-                                          ? null
-                                          : (kind) {
-                                              if (kind != null)
-                                                setState(
-                                                  () => controller
-                                                      .selectVehicle(kind),
-                                                );
-                                            },
                                     ),
+                                    items: VehicleKind.values
+                                        .map(
+                                          (kind) => DropdownMenuItem(
+                                            value: kind,
+                                            child: Text(kind.label),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: formLocked
+                                        ? null
+                                        : (kind) {
+                                            if (kind != null)
+                                              setState(
+                                                () => controller
+                                                    .selectVehicle(kind),
+                                              );
+                                          },
                                   ),
-                                ],
+                                ),
                               ),
                             ),
-                            if (_step == 1) const SizedBox(height: 16),
+                            const SizedBox(height: 18),
+                            if (_step != 2) ...[
+                              BookingLocationSummary(
+                                address: address.text.trim(),
+                                coordinates: location.coordinates,
+                                onEdit: formLocked ? null : () => _goStep(2),
+                              ),
+                              const SizedBox(height: 18),
+                            ],
                             Visibility(
                               key: const ValueKey('request-section-2'),
                               visible: _step == 2,
@@ -564,10 +611,8 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                               child: CustomerCard(
                                 icon: Icons.location_on_outlined,
                                 title: 'Lộ trình cứu hộ',
-                                subtitle:
-                                    'Địa chỉ cụ thể là bắt buộc, kể cả khi có GPS.',
                                 children: [
-                                  RouteCard(
+                                  BookingPickupPoint(
                                     address: address.text.trim(),
                                     coordinates: location.coordinates,
                                   ),
@@ -607,7 +652,9 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                                     width: double.infinity,
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: AppColors.selected,
+                                      color: location.coordinates == null
+                                          ? AppColors.orangeSoft
+                                          : AppColors.selected,
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Column(
@@ -625,7 +672,7 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                                               child: Text(
                                                 switch (location.status) {
                                                   LocationStatus.idle =>
-                                                    'Chưa lấy vị trí',
+                                                    'Vị trí nhập tay',
                                                   LocationStatus.loading =>
                                                     'Đang lấy vị trí…',
                                                   LocationStatus.acquired =>
@@ -644,6 +691,23 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                                         ),
                                         const SizedBox(height: 8),
                                         Text(location.message),
+                                        if (_usingGps &&
+                                            location.accuracy != null)
+                                          Text(
+                                              'Độ chính xác GPS: ${location.accuracy!.toStringAsFixed(0)} m'),
+                                        if (_usingGps &&
+                                            location.capturedAt != null)
+                                          Text(
+                                              'Cập nhật gần nhất: ${location.capturedAt!.toLocal().toString().split('.').first}'),
+                                        if (location.coordinates == null &&
+                                            location.status !=
+                                                LocationStatus.idle) ...[
+                                          const SizedBox(height: 6),
+                                          const Text('Vị trí nhập tay',
+                                              style: TextStyle(
+                                                  color: AppColors.warning,
+                                                  fontWeight: FontWeight.w600)),
+                                        ],
                                         if (location.coordinates != null) ...[
                                           const SizedBox(height: 8),
                                           SelectableText(
@@ -696,6 +760,24 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                               ),
                             ),
                             if (_step == 2) const SizedBox(height: 16),
+                            if (_step != 3) ...[
+                              BookingIncidentSummary(
+                                description: description.text,
+                                photos: photos,
+                                uploaded: uploadedPhotos,
+                                onEdit: formLocked ? null : () => _goStep(3),
+                                onRemove: formLocked || pickingPhoto
+                                    ? null
+                                    : (slot) =>
+                                        setState(() => photos.removeAt(slot)),
+                                onAdd: formLocked ||
+                                        pickingPhoto ||
+                                        photos.length >= 3
+                                    ? null
+                                    : () => pickPhoto(false),
+                              ),
+                              const SizedBox(height: 18),
+                            ],
                             Visibility(
                               key: const ValueKey('request-section-3'),
                               visible: _step == 3,
@@ -705,6 +787,10 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                                 title: 'Mô tả sự cố & Hiện trường',
                                 subtitle:
                                     'Tùy chọn · Tối đa 3 ảnh, 5 MB mỗi ảnh',
+                                trailing: Text('${photos.length}/3 ảnh',
+                                    style: const TextStyle(
+                                        fontSize: 11,
+                                        color: BookingFormStyle.muted)),
                                 children: [
                                   Visibility(
                                     key: const ValueKey('request-section-4'),
@@ -725,10 +811,10 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                                   Text('${photos.length}/3 hình ảnh',
                                       style: const TextStyle(
                                           fontSize: 12,
-                                          color: BookingStyle.muted)),
+                                          color: BookingFormStyle.muted)),
                                   const SizedBox(height: 8),
                                   PhotoPickerGrid(
-                                    photos: photos,
+                                    photos: _step == 3 ? photos : const [],
                                     uploaded: uploadedPhotos,
                                     onRemove: formLocked || pickingPhoto
                                         ? null
@@ -783,6 +869,8 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                               ),
                             ),
                             if (_step == 3) const SizedBox(height: 16),
+                            BookingQuoteCard(request: createdRequest),
+                            const SizedBox(height: 18),
                             Visibility(
                               key: const ValueKey('request-section-5'),
                               visible: _step == 4,
@@ -877,7 +965,7 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                                   'Tôi xác nhận đây là vị trí cần cứu hộ',
                                 ),
                                 subtitle: const Text(
-                                  'Kiểm tra địa chỉ và tọa độ (nếu có) trước khi gửi.',
+                                  'Kiểm tra địa chỉ trước khi gửi.',
                                 ),
                                 onChanged: formLocked
                                     ? null
@@ -896,7 +984,11 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                             ],
                             if (_step == 4) ...[
                               const SizedBox(height: 16),
-                              const QuoteSummaryCard(),
+                              const Text(
+                                  'Đối tác sẽ gửi báo giá sau khi tiếp nhận.',
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      color: BookingFormStyle.muted)),
                             ],
                           ],
                         ),
@@ -914,18 +1006,22 @@ class _NewRequestScreenState extends State<NewRequestScreen>
               child: SafeArea(
                 top: false,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      PrimaryActionButton(
+                      BookingSubmitButton(
                         label: _step < 4
-                            ? 'Tiếp tục'
+                            ? 'TIẾP TỤC'
                             : createdRequest == null
                                 ? 'XÁC NHẬN ĐẶT CỨU HỘ'
                                 : 'Gửi lại ảnh còn thiếu',
                         loading: submitting,
-                        onPressed: pickingPhoto || submitting
+                        onPressed: pickingPhoto ||
+                                submitting ||
+                                (_step == 4 &&
+                                    !locationConfirmed &&
+                                    createdRequest == null)
                             ? null
                             : _step < 4
                                 ? _nextStep
@@ -935,11 +1031,11 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                         const Padding(
                           padding: EdgeInsets.only(top: 8),
                           child: Text(
-                            'Đối tác sẽ tiếp nhận và phản hồi sớm.',
+                            'Đối tác sẽ tiếp nhận sau khi yêu cầu được gửi.',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 11,
-                              color: BookingStyle.muted,
+                              color: BookingFormStyle.muted,
                             ),
                           ),
                         ),

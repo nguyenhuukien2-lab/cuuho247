@@ -8,11 +8,9 @@ import '../widgets/home_ui.dart';
 
 class NewHomeScreen extends StatefulWidget {
   const NewHomeScreen(
-      {super.key,
-      required this.controller,
-      this.locationService = const GeolocatorLocationService()});
+      {super.key, required this.controller, this.locationService});
   final AppController controller;
-  final CustomerLocationService locationService;
+  final CustomerLocationService? locationService;
   @override
   State<NewHomeScreen> createState() => _NewHomeScreenState();
 }
@@ -20,13 +18,30 @@ class NewHomeScreen extends StatefulWidget {
 class _NewHomeScreenState extends State<NewHomeScreen> {
   LocationResult? _location;
   bool _locating = false;
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.gps.addListener(_gpsChanged);
+  }
+
+  void _gpsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    widget.controller.gps.removeListener(_gpsChanged);
+    super.dispose();
+  }
+
   Future<void> _refreshLocation() async {
     if (_locating) return;
     final userId = UserSession.userId;
     setState(() => _locating = true);
     LocationResult result;
     try {
-      result = await widget.locationService.getCurrentLocation();
+      result = await (widget.locationService?.getCurrentLocation() ??
+          widget.controller.gps.refresh());
     } catch (_) {
       result = const LocationResult(LocationStatus.unavailable,
           'Không thể lấy vị trí. Vui lòng thử lại.');
@@ -45,19 +60,18 @@ class _NewHomeScreenState extends State<NewHomeScreen> {
     return Theme(
         data: BookingStyle.theme(context),
         child: Material(
-            color: BookingStyle.background,
+            color: HomeVisual.background,
             child: Column(children: [
-              CustomerAppHeader(onAccount: () => controller.selectTab(4)),
+              HomeAppHeader(
+                  onAccount: () => controller.selectTab(4),
+                  onRefresh: controller.loadingRequests
+                      ? null
+                      : controller.refreshRequests),
               Expanded(
                   child: ListView(
                       key: const PageStorageKey('home-scroll'),
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
                       children: [
-                    HomeGreetingLocation(
-                        name: displayCustomerName(UserSession.fullName),
-                        location: _location,
-                        loading: _locating,
-                        onRefresh: _refreshLocation),
                     if (controller.loadingRequests) ...[
                       const SizedBox(height: 16),
                       const LinearProgressIndicator()
@@ -69,21 +83,44 @@ class _NewHomeScreenState extends State<NewHomeScreen> {
                               ? null
                               : controller.refreshRequests)
                     ],
+                    HomeGreetingLocation(
+                        name: displayCustomerName(UserSession.fullName),
+                        location: widget.locationService == null
+                            ? controller.gps.result
+                            : _location,
+                        loading: _locating ||
+                            (widget.locationService == null &&
+                                controller.gps.loading),
+                        selectedAddress:
+                            active != null && !active.stage.isTerminal
+                                ? active.address
+                                : null,
+                        selectedCoordinates: active != null &&
+                                !active.stage.isTerminal &&
+                                active.latitude != null &&
+                                active.longitude != null
+                            ? RescueCoordinates(
+                                active.latitude!, active.longitude!)
+                            : null,
+                        onRefresh: _refreshLocation),
+                    const SizedBox(height: 12),
                     if (active != null && !active.stage.isTerminal) ...[
-                      const SizedBox(height: 16),
                       ActiveOrderBanner(
                           request: active,
-                          onTrack: () => controller.selectTab(2))
+                          onTrack: () => controller.selectTab(2)),
+                      const SizedBox(height: 18),
                     ],
-                    const SizedBox(height: 16),
-                    EmergencyHeroCard(onRequest: controller.startRequest),
-                    const SizedBox(height: 24),
+                    EmergencyHeroCard(
+                        hasActiveRequest:
+                            active != null && !active.stage.isTerminal,
+                        onRequest: controller.startRequest),
+                    const SizedBox(height: 18),
                     HomeServiceGrid(
                         onSelected: (service) =>
                             controller.startRequest(service: service)),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 18),
                     const TrustCommitmentCard(),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 18),
                     const SafetyTipsCarousel(),
                   ])),
             ])));

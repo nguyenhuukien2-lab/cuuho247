@@ -1,4 +1,3 @@
-import '../app/mobile_ui.dart';
 import 'package:flutter/material.dart';
 import '../app/app_controller.dart';
 import '../app/user_session.dart';
@@ -223,87 +222,139 @@ class _NewAccountScreenState extends State<NewAccountScreen> {
   Widget build(BuildContext context) {
     final loggedIn = UserSession.isLoggedIn;
     final controller = widget.controller;
-    final completedCount =
-        loggedIn && !controller.loadingRequests && controller.loadError == null
-            ? controller.history
-                .where((r) => r.stage == RequestStage.completed)
-                .length
-            : null;
+    final completedCount = loggedIn &&
+            !controller.loadingRequests &&
+            controller.loadError == null &&
+            controller.history.isNotEmpty
+        ? controller.history
+            .where((r) => r.stage == RequestStage.completed)
+            .length
+        : null;
     return Theme(
         data: BookingStyle.theme(context),
         child: Material(
-            color: BookingStyle.background,
+            color: AccountVisual.background,
             child: Column(children: [
-              CustomerAppHeader(onAccount: () {}),
+              const CustomerAccountHeader(),
               Expanded(
                   child: ListView(
                       key: const PageStorageKey('account-scroll'),
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
                       children: [
                     CustomerProfileCard(
+                        key: const ValueKey('customer-account-identity'),
                         controller: controller,
                         repository: widget.profileRepository,
                         royal: true,
-                        vehicleCount: vehiclesLoaded ? vehicles.length : null,
+                        vehicleCount: vehiclesLoaded &&
+                                !loadingVehicles &&
+                                vehicleError == null
+                            ? vehicles.length
+                            : null,
                         completedCount: completedCount),
-                    const SizedBox(height: 24),
-                    const Text('Xe của tôi', style: accountTitle),
-                    const SizedBox(height: 12),
+                    AccountSectionTitle('Xe của tôi',
+                        trailing: TextButton(
+                            onPressed: _manageVehicles,
+                            style: TextButton.styleFrom(
+                                backgroundColor: const Color(0xFFDBEAFE),
+                                foregroundColor: AccountVisual.blue,
+                                shape: const StadiumBorder()),
+                            child: Text(vehiclesLoaded &&
+                                    !loadingVehicles &&
+                                    vehicleError == null
+                                ? '${vehicles.length} xe'
+                                : 'Quản lý'))),
                     if (loadingVehicles) const LinearProgressIndicator(),
                     if (vehicleError != null)
                       InlineNotice(vehicleError!, onRetry: _loadVehicles),
                     if (!loggedIn)
-                      const Text('Đăng nhập để xem xe đã lưu.',
-                          style: accountCaption),
-                    if (vehiclesLoaded &&
-                        vehicles.isEmpty &&
-                        vehicleError == null)
                       const AccountSurface(
                           child: Padding(
                               padding: EdgeInsets.all(16),
-                              child: Text('Chưa có xe đã lưu',
-                                  style: accountCaption))),
+                              child: Text('Đăng nhập để xem xe đã lưu.')))
+                    else if (vehiclesLoaded && vehicles.isEmpty)
+                      const AccountSurface(
+                          child: AccountEmptyContent(
+                              title: 'Chưa có xe đã lưu',
+                              message:
+                                  'Thêm phương tiện để đặt cứu hộ nhanh hơn',
+                              icon: Icons.directions_car_outlined)),
                     for (final vehicle in vehicles) ...[
                       AccountVehicleCard(
                           vehicle: vehicle, onManage: _manageVehicles),
-                      const SizedBox(height: 12)
+                      const SizedBox(height: 8),
                     ],
-                    const SizedBox(height: 8),
-                    FilledButton.tonalIcon(
+                    FilledButton.icon(
                         onPressed: _manageVehicles,
-                        style: RescueButtons.style(RescueButtonKind.secondary),
-                        icon: const Icon(Icons.add_circle_outline),
+                        style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFFDBEAFE),
+                            minimumSize: const Size(double.infinity, 52),
+                            foregroundColor: AccountVisual.blue,
+                            side: const BorderSide(color: Color(0xFFBFDBFE)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16))),
+                        icon: const Icon(Icons.add_rounded),
                         label: const Text('Thêm phương tiện mới')),
-                    TextButton(
-                        onPressed: _manageVehicles,
-                        child: const Text('Quản lý xe đã lưu')),
-                    const SizedBox(height: 24),
-                    const Text('Địa chỉ thường dùng', style: accountTitle),
-                    const SizedBox(height: 12),
+                    AccountSectionTitle('Địa chỉ thường dùng',
+                        color: const Color(0xFF16A34A),
+                        trailing: IconButton(
+                            tooltip: 'Quản lý địa chỉ',
+                            onPressed: _manageAddresses,
+                            icon: const Icon(Icons.edit_location_alt_outlined,
+                                color: AccountVisual.orange))),
+                    Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton(
+                            onPressed: _manageAddresses,
+                            child: const Text('Quản lý địa chỉ'))),
                     if (loadingAddresses) const LinearProgressIndicator(),
                     if (addressError != null)
                       InlineNotice(addressError!, onRetry: _loadAddresses),
                     if (!loggedIn)
-                      const Text('Đăng nhập để xem địa chỉ đã lưu.',
-                          style: accountCaption),
-                    if (addressesLoaded)
+                      const AccountSurface(
+                          child: Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Text('Đăng nhập để xem địa chỉ đã lưu.')))
+                    else if (addressesLoaded)
                       AccountAddressSection(
                           addresses: addresses, onManage: _manageAddresses),
-                    TextButton(
-                        onPressed: _manageAddresses,
-                        child: const Text('Quản lý địa chỉ')),
-                    const SizedBox(height: 24),
-                    const Text('Cài đặt & Hỗ trợ', style: accountTitle),
-                    const SizedBox(height: 12),
-                    const AccountSettingsSection(),
+                    const AccountSectionTitle('Cài đặt & Hỗ trợ',
+                        color: AccountVisual.navy),
+                    AccountSurface(
+                        key: const ValueKey('customer-account-settings'),
+                        child: Column(children: [
+                          const AccountSettingsItem(
+                              icon: Icons.support_agent_rounded,
+                              title: 'Hỗ trợ',
+                              subtitle: 'Thông tin liên hệ sẽ được cập nhật.'),
+                          AccountSettingsItem(
+                              icon: Icons.history,
+                              title: 'Lịch sử và đánh giá',
+                              subtitle: 'Xem các yêu cầu đã kết thúc',
+                              color: AccountVisual.orange,
+                              background: const Color(0xFFFFF1E8),
+                              onTap: () => controller.selectTab(3)),
+                          const AccountSettingsItem(
+                              icon: Icons.privacy_tip_outlined,
+                              title: 'An toàn tài khoản',
+                              subtitle:
+                                  'Không chia sẻ mật khẩu hoặc mã xác thực.',
+                              color: Color(0xFF16A34A),
+                              background: Color(0xFFDCFCE7)),
+                        ])),
                     if (loggedIn) ...[
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
                       if (error != null)
                         InlineNotice(error!,
                             onRetry: signingOut ? null : _confirmSignOut),
                       LogoutButton(
-                          loading: signingOut, onPressed: _confirmSignOut)
+                          loading: signingOut, onPressed: _confirmSignOut),
                     ],
+                    const Padding(
+                        padding: EdgeInsets.only(top: 24),
+                        child: Text('Hệ thống cứu hộ 24/7',
+                            textAlign: TextAlign.center,
+                            style: accountCaption)),
                   ])),
             ])));
   }

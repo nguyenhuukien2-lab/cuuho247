@@ -19,12 +19,14 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _fade;
   late int _lastTab;
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    widget.controller.gps.setUser(UserSession.userId);
     if (widget.initialIndex != null)
       widget.controller.tabIndex = widget.initialIndex!;
     _lastTab = widget.controller.tabIndex;
@@ -40,7 +42,13 @@ class _AppShellState extends State<AppShell>
   void dispose() {
     widget.controller.removeListener(_refresh);
     _fade.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    widget.controller.setForeground(state == AppLifecycleState.resumed);
   }
 
   void _refresh() {

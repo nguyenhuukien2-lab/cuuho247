@@ -7,10 +7,10 @@ import '../app/app_controller.dart';
 import '../app/app_theme.dart';
 import '../app/navigation.dart';
 import '../app/user_session.dart';
-import '../widgets/booking_ui.dart';
 import '../widgets/tracking_ui.dart';
 import '../widgets/customer_ui.dart';
 import '../services/supabase_service.dart';
+import '../widgets/customer_gps_status.dart';
 
 import '../widgets/request_photos_card.dart';
 import '../services/request_photo_service.dart';
@@ -189,11 +189,12 @@ class _NewTrackingScreenState extends State<NewTrackingScreen>
 
   @override
   Widget build(BuildContext context) => Theme(
-        data: BookingStyle.theme(context),
+        data: Theme.of(context)
+            .copyWith(scaffoldBackgroundColor: TrackingStyle.background),
         child: Material(
-            color: BookingStyle.background,
+            color: TrackingStyle.background,
             child: Column(children: [
-              CustomerAppHeader(onAccount: () => controller.selectTab(4)),
+              TrackingHeader(onAccount: () => controller.selectTab(4)),
               Expanded(child: Builder(builder: _buildContent)),
             ])),
       );
@@ -226,20 +227,27 @@ class _NewTrackingScreenState extends State<NewTrackingScreen>
           padding: AppSpacing.page,
           child: CustomerEmptyState(
               icon: Icons.route_outlined,
-              title: 'Bạn chưa có yêu cầu cứu hộ đang xử lý',
+              title: 'Bạn chưa có yêu cầu đang xử lý',
               message: 'Tạo yêu cầu mới để được hỗ trợ',
-              action: PrimaryActionButton(
-                  label: 'Tạo yêu cầu cứu hộ',
-                  loading: false,
+              action: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                      backgroundColor: TrackingStyle.blue,
+                      minimumSize: const Size(double.infinity, 50),
+                      textStyle: const TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700)),
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: const Text('Tạo yêu cầu mới'),
                   onPressed: controller.startRequest)));
     }
     return ListView(
         key: const PageStorageKey('tracking-scroll'),
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
         children: [
           TrackingStatusCard(
               request: request,
-              action: RescueButton(
+              action: TrackingRefreshButton(
                   label: request.stage.isTerminal
                       ? 'Xem lịch sử yêu cầu'
                       : 'Cập nhật trạng thái',
@@ -250,7 +258,7 @@ class _NewTrackingScreenState extends State<NewTrackingScreen>
                   onPressed: request.stage.isTerminal
                       ? () => controller.selectTab(3)
                       : controller.refreshRequests)),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           if (controller.loadingRequests) const LinearProgressIndicator(),
           if (_streamError != null) ...[
             InlineNotice(_streamError!,
@@ -259,39 +267,46 @@ class _NewTrackingScreenState extends State<NewTrackingScreen>
                       _stopSubscription();
                       _syncSubscription();
                     })),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
           ],
           if (controller.loadError != null) ...[
             InlineNotice(controller.loadError!,
                 onRetry: controller.refreshRequests),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
           ],
-          TrackingOrderCard(request: request),
-          const SizedBox(height: 16),
-          TrackingTimeline(request: request),
-          const SizedBox(height: 16),
           TrackingMapCard(request: request),
-          const SizedBox(height: 16),
-          MoreDetails(title: 'Liên hệ, mô tả & ảnh yêu cầu', children: [
-            const SizedBox(height: 8),
-            if (request.contactName.isNotEmpty)
-              InfoRow('Liên hệ', displayCustomerName(request.contactName),
-                  icon: Icons.person_outline),
-            if (request.contactPhone.isNotEmpty)
-              InfoRow('Điện thoại', request.contactPhone,
-                  icon: Icons.phone_outlined),
-            if (request.description.isNotEmpty)
-              InfoRow('Mô tả', request.description),
-            const SizedBox(height: 16),
-            RequestPhotosCard(
-                requestId: request.id,
-                customerId: UserSession.userId,
-                isActive: widget.isActive && _routeVisible && _foreground,
-                repository: widget.photoRepository),
-            const SizedBox(height: 16),
+          const SizedBox(height: 12),
+          CustomerGpsStatus(gps: controller.gps),
+          const SizedBox(height: 12),
+          RescuerInfoCard(stage: request.stage),
+          const SizedBox(height: 12),
+          TrackingTimeline(request: request),
+          const SizedBox(height: 12),
+          QuoteStatusCard(price: request.price, quoteCode: request.quoteCode),
+          const SizedBox(height: 12),
+          TrackingOrderCard(request: request, details: [
+            MoreDetails(
+                embedded: true,
+                title: 'Vị trí, liên hệ & ảnh',
+                children: [
+                  if (request.contactName.isNotEmpty)
+                    InfoRow('Liên hệ', displayCustomerName(request.contactName),
+                        icon: Icons.person_outline),
+                  if (request.contactPhone.isNotEmpty)
+                    InfoRow('Điện thoại', request.contactPhone,
+                        icon: Icons.phone_outlined),
+                  if (request.description.isNotEmpty)
+                    InfoRow('Mô tả', request.description),
+                  const SizedBox(height: 12),
+                  RequestPhotosCard(
+                      requestId: request.id,
+                      customerId: UserSession.userId,
+                      isActive: widget.isActive && _routeVisible && _foreground,
+                      repository: widget.photoRepository),
+                ]),
           ]),
-          const SizedBox(height: 16),
-          const EmergencySupportCard(),
+          const SizedBox(height: 12),
+          const TrackingSupportCard(),
           if (request.stage == RequestStage.searching ||
               request.stage == RequestStage.accepted) ...[
             const SizedBox(height: 8),
@@ -305,8 +320,13 @@ class _NewTrackingScreenState extends State<NewTrackingScreen>
                         dimension: 22,
                         child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.close_rounded),
-                label: Text(cancelling ? 'Đang hủy…' : 'Hủy yêu cầu'),
-                style: RescueButtons.style(RescueButtonKind.danger)),
+                label: Text(cancelling ? 'Đang hủy…' : 'Hủy yêu cầu cứu hộ'),
+                style: TextButton.styleFrom(
+                    foregroundColor: TrackingStyle.danger,
+                    textStyle: const TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600))),
           ],
         ]);
   }

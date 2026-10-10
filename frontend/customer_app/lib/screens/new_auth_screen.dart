@@ -34,6 +34,7 @@ class _NewAuthScreenState extends State<NewAuthScreen> {
   }
 
   Future<void> submit() async {
+    if (loading) return;
     if (!(formKey.currentState?.validate() ?? false)) return;
     setState(() => loading = true);
     try {
@@ -56,7 +57,6 @@ class _NewAuthScreenState extends State<NewAuthScreen> {
         await SupabaseService.signIn(
             email: email.text.trim(), password: password.text);
       }
-      await widget.controller.refreshRequests();
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(

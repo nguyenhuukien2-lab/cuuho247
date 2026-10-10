@@ -321,6 +321,7 @@ class _VehicleEditorState extends State<_VehicleEditor> {
                                     subtitle:
                                         'Lưu xe để chọn nhanh khi tạo yêu cầu'),
                                 DropdownButtonFormField<VehicleKind>(
+                                    key: ValueKey('vehicle-kind-${kind.name}'),
                                     initialValue: kind,
                                     isExpanded: true,
                                     decoration: const InputDecoration(
@@ -334,6 +335,23 @@ class _VehicleEditorState extends State<_VehicleEditor> {
                                         ? null
                                         : (value) =>
                                             setState(() => kind = value!)),
+                                const SizedBox(height: 10),
+                                Wrap(spacing: 8, runSpacing: 6, children: [
+                                  for (final choice in [
+                                    VehicleKind.motorbike,
+                                    VehicleKind.car,
+                                    VehicleKind.truck
+                                  ])
+                                    ChoiceChip(
+                                        key: ValueKey(
+                                            'vehicle-type-${choice.name}'),
+                                        label: Text(choice.label),
+                                        selected: choice == kind,
+                                        onSelected: saving
+                                            ? null
+                                            : (_) =>
+                                                setState(() => kind = choice)),
+                                ]),
                                 const SizedBox(height: 16),
                                 TextFormField(
                                     controller: brand,
@@ -347,6 +365,36 @@ class _VehicleEditorState extends State<_VehicleEditor> {
                                         value == null || value.trim().isEmpty
                                             ? 'Vui lòng nhập hãng/hiệu xe.'
                                             : null),
+                                const Text('Chọn nhanh hãng xe',
+                                    style: TextStyle(
+                                        fontSize: 12, color: AppColors.muted)),
+                                const SizedBox(height: 6),
+                                Wrap(spacing: 8, runSpacing: 6, children: [
+                                  for (final suggestion in [
+                                    'Honda',
+                                    'Yamaha',
+                                    'Toyota',
+                                    'Mazda',
+                                    'Hyundai',
+                                    'Kia',
+                                    'Ford',
+                                    'VinFast'
+                                  ])
+                                    ActionChip(
+                                        key: ValueKey(
+                                            'vehicle-brand-$suggestion'),
+                                        label: Text(suggestion),
+                                        onPressed: saving
+                                            ? null
+                                            : () {
+                                                brand.value = TextEditingValue(
+                                                    text: suggestion,
+                                                    selection:
+                                                        TextSelection.collapsed(
+                                                            offset: suggestion
+                                                                .length));
+                                              }),
+                                ]),
                                 const SizedBox(height: 12),
                                 TextFormField(
                                     controller: plate,
