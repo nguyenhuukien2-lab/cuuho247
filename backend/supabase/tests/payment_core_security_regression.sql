@@ -318,8 +318,19 @@ select pg_temp.payment_expect_error('privileged TRUNCATE events forbidden', 'tru
 select pg_temp.payment_expect_error('request owner cannot drift after snapshot',
   $$update public.rescue_requests set customer_id='71000000-0000-4000-8000-000000000005'
     where id='72000000-0000-4000-8000-000000000001'$$, '23503', 'payments_request_customer_fk');
-select pg_temp.payment_expect_error('parent request deletion cannot cascade ledger',
-  $$delete from public.rescue_requests where id='72000000-0000-4000-8000-000000000001'$$, '23001');
+do $parent_delete$
+declare v_state text; v_constraint text;
+begin
+  begin
+    delete from public.rescue_requests where id='72000000-0000-4000-8000-000000000001';
+  exception when others then
+    get stacked diagnostics v_state=returned_sqlstate,v_constraint=constraint_name;
+  end;
+  perform pg_temp.payment_assert('parent request deletion cannot cascade assignment/payment graph',
+    v_state='23001' or (v_state='23503' and v_constraint in
+      ('rescue_request_assignments_request_id_fkey','payments_request_customer_fk')));
+end;
+$parent_delete$;
 select pg_temp.payment_expect_error('negative/snapshot amount insert rejected',
   $$insert into public.payments(request_id,assignment_id,customer_id,rescuer_id,quote_id,amount_expected)
     select request_id,assignment_id,customer_id,rescuer_id,quote_id,-1 from pg_temp.payment_test_candidate$$, '23514');

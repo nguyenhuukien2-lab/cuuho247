@@ -18,7 +18,6 @@ class UserSession {
     userId = null;
   }
 }
-
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -70,8 +69,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final phone = _regPhoneController.text.trim();
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-
     if (phone.isEmpty || name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vui lòng điền đầy đủ Số điện thoại và Họ tên.')),
@@ -83,7 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       // Save user to Supabase users table via REST API
-      final response = await http.post(
+      await http.post(
         Uri.parse('${SupabaseService.supabaseUrl}/rest/v1/users'),
         headers: {
           'Content-Type': 'application/json',
@@ -500,50 +497,6 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _NetworkChip extends StatelessWidget {
-  final String label;
-  const _NetworkChip({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEEF0FA),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1A1A1A))),
-    );
-  }
-}
-
-class _SocialBtn extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-
-  const _SocialBtn({required this.icon, required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEEF0FA),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: color, size: 18),
-          const SizedBox(width: 6),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1A1A1A))),
-        ],
-      ),
     );
   }
 }

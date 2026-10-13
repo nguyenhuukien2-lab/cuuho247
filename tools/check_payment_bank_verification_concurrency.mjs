@@ -3,12 +3,36 @@
 // Creates its own randomly named database; never migrates the supplied database.
 // Optional --gd6b-preflight-workaround patches the known typo IN MEMORY ONLY.
 import assert from 'node:assert/strict';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
-const run = promisify(execFile);
+
+function runPsql(command, args, env, statement) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { env, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
+    let stdout = '';
+    let stderr = '';
+    const timer = setTimeout(() => child.kill(), 60000);
+    child.stdout.on('data', chunk => { stdout += chunk; });
+    child.stderr.on('data', chunk => { stderr += chunk; });
+    child.on('error', reject);
+    child.on('close', code => {
+      clearTimeout(timer);
+      if (code === 0) resolve({ stdout });
+      else {
+        const error = new Error(`psql exited with code ${code}`);
+        error.stderr = stderr;
+        reject(error);
+      }
+    });
+    child.stdin.end(statement);
+  });
+}
 const raw = process.env.GD6C_NATIVE_TEST_URL;
+const dockerContainer = process.env.GD6C_PSQL_DOCKER_CONTAINER;
+if (dockerContainer) {
+  assert(/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/.test(dockerContainer), 'invalid Docker container name');
+}
 if (!raw) {
   console.log('NOT RUN: GD6C_NATIVE_TEST_URL + native psql required for real concurrent sessions.');
   process.exitCode = 2;
@@ -24,11 +48,18 @@ if (!raw) {
     PGUSER: decodeURIComponent(url.username), PGPASSWORD: decodeURIComponent(url.password), PGCONNECT_TIMEOUT: '5' };
   async function sql(statement, database = name) {
     try {
-      const { stdout } = await run('psql', ['-X', '-q', '-A', '-t', '-v', 'ON_ERROR_STOP=1', '-c', statement], {
-        env: { ...env, PGDATABASE: database }, windowsHide: true, timeout: 60000, maxBuffer: 4 * 1024 * 1024,
-      });
+      const psqlArgs = ['-X', '-q', '-A', '-t', '-v', 'ON_ERROR_STOP=1', '-f', '-'];
+      const command = dockerContainer ? 'docker' : 'psql';
+      const args = dockerContainer
+        ? ['exec', '-i', '-e', 'PGDATABASE', '-e', 'PGUSER', '-e', 'PGPASSWORD', dockerContainer,
+            'psql', '-h', '127.0.0.1', '-p', '5432', ...psqlArgs]
+        : psqlArgs;
+      const { stdout } = await runPsql(command, args, { ...env, PGDATABASE: database }, statement);
       return stdout.trim();
-    } catch { throw new Error('Native SQL check failed (connection/SQL details suppressed).'); }
+    } catch (error) {
+      if (process.env.GD6C_DEBUG_SQL === '1') console.error(String(error?.stderr ?? error?.message ?? error));
+      throw new Error('Native SQL check failed (connection/SQL details suppressed).');
+    }
   }
   assert(!process.argv.includes('--gd6b-preflight-workaround'), 'Removed workaround: run the actual migration source.');
   const read = async path => (await readFile(path, 'utf8')).replace(/^\uFEFF/, '');
@@ -51,7 +82,13 @@ if (!raw) {
       grant usage on schema public,auth,storage to anon,authenticated,service_role;
       grant select,insert,update,delete on storage.objects to authenticated;`);
     const dir = 'backend/supabase/migrations';
-    for (const file of (await readdir(dir)).filter(f => f.endsWith('.sql') && f <= '202610110003_payment_bank_verification.sql').sort()) await sql(await read(`${dir}/${file}`));
+    for (const file of (await readdir(dir)).filter(f => f.endsWith('.sql') && f <= '202610110003_payment_bank_verification.sql').sort()) {
+      try {
+        await sql(await read(`${dir}/${file}`));
+      } catch {
+        throw new Error(`Native migration failed: ${file}`);
+      }
+    }
     const fixture = (await read('backend/supabase/tests/payment_bank_verification_regression.sql'))
       .split("select pg_temp.bank_error('untrusted evidence rejected',")[0];
     await sql("set payment.test_mode='local_disposable';\n" + fixture + `
