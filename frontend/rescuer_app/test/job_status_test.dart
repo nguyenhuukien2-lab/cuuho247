@@ -71,7 +71,7 @@ Future<RescuerController> start(JobFake service) async {
 }
 
 Future<void> showAction(WidgetTester tester) async {
-  // Let success feedback dismiss before testing the next action in the header.
+  // Let success feedback dismiss before testing the next action.
   await tester.pump(const Duration(seconds: 4));
   await tester.pumpAndSettle();
   final action = find.byKey(const ValueKey('advance-job'));
@@ -261,20 +261,16 @@ void main() {
       final action = find.byKey(const ValueKey('advance-job'));
       expect(
         find.descendant(
-          of: find.byKey(const ValueKey('active-job-header')),
+          of: find.byKey(const ValueKey('active-job-actions')),
           matching: action,
         ),
         findsOneWidget,
       );
-      expect(
-        tester
-            .getRect(find.byType(ListView))
-            .contains(tester.getCenter(action)),
-        isTrue,
-      );
+      await showAction(tester);
+      expect(action.hitTestable(), findsOneWidget);
       expect(find.text('Đang đến điểm cứu hộ'), findsWidgets);
       expect(find.byKey(const ValueKey('job-step-accepted')), findsOneWidget);
-      expect(find.text('Tiến trình'), findsOneWidget);
+      expect(find.text('Tiến trình tác nghiệp'), findsOneWidget);
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('advance-job')),
         250,
@@ -306,7 +302,13 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('active-job-progress')),
+          matching: find.byIcon(Icons.check),
+        ),
+        findsOneWidget,
+      );
       await showAction(tester);
       await tester.tap(find.byKey(const ValueKey('advance-job')));
       await tester.pumpAndSettle();
@@ -316,7 +318,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(c.activeJob?.assignment.state, 'in_progress');
       expect(find.byKey(const ValueKey('advance-job')), findsNothing);
-      expect(find.byIcon(Icons.check_rounded), findsNWidgets(3));
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('active-job-progress')),
+          matching: find.byIcon(Icons.check),
+        ),
+        findsNWidgets(3),
+      );
       expect(find.text('Đang hỗ trợ khách'), findsWidgets);
       expect(find.byKey(const ValueKey('complete-job')), findsNothing);
       expect(tester.takeException(), isNull);

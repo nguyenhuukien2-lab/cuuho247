@@ -25,19 +25,49 @@ class RescueCoordinates {
 
 enum LocationStatus { idle, loading, acquired, denied, unavailable }
 
+enum LocationIssue { deniedForever, disabled, timeout, stale, unsupported }
+
 class LocationResult {
-  const LocationResult(this.status, this.message, {this.coordinates});
+  const LocationResult(this.status, this.message,
+      {this.coordinates, this.accuracy, this.capturedAt, this.issue});
 
   final LocationStatus status;
   final String message;
   final RescueCoordinates? coordinates;
+  final double? accuracy;
+  final DateTime? capturedAt;
+  final LocationIssue? issue;
+
+  bool isFresh(DateTime now) =>
+      capturedAt != null &&
+      now.toUtc().difference(capturedAt!.toUtc()) <=
+          const Duration(minutes: 2) &&
+      now.toUtc().difference(capturedAt!.toUtc()) >=
+          const Duration(seconds: -30);
+
+  String get statusLabel => switch (status) {
+        LocationStatus.loading => 'Đang cập nhật vị trí',
+        LocationStatus.acquired => 'GPS sẵn sàng',
+        LocationStatus.denied => issue == LocationIssue.deniedForever
+            ? 'Quyền vị trí đã bị chặn'
+            : 'Chưa cấp quyền vị trí',
+        LocationStatus.unavailable => issue == LocationIssue.disabled
+            ? 'GPS đang tắt'
+            : 'Không thể lấy vị trí',
+        LocationStatus.idle => 'Chưa cập nhật GPS',
+      };
 }
 
 abstract interface class CustomerLocationService {
   Future<LocationResult> getCurrentLocation();
 }
 
-class GeolocatorLocationService implements CustomerLocationService {
+abstract interface class CustomerLocationStreamService {
+  Stream<LocationResult> watchLocation();
+}
+
+class GeolocatorLocationService
+    implements CustomerLocationService, CustomerLocationStreamService {
   const GeolocatorLocationService({this.platform, this.isWeb = kIsWeb});
 
   final GeolocatorPlatform? platform;
@@ -54,7 +84,8 @@ class GeolocatorLocationService implements CustomerLocationService {
       if (!isWeb) {
         if (!await geolocator.isLocationServiceEnabled().timeout(timeout)) {
           return const LocationResult(LocationStatus.unavailable,
-              'Dịch vụ vị trí đang tắt. Hãy bật vị trí trên thiết bị rồi thử lại.');
+              'Dịch vụ vị trí đang tắt. Hãy bật vị trí trên thiết bị rồi thử lại.',
+              issue: LocationIssue.disabled);
         }
         var permission = await geolocator.checkPermission().timeout(timeout);
         if (permission == LocationPermission.denied) {
@@ -62,7 +93,8 @@ class GeolocatorLocationService implements CustomerLocationService {
         }
         if (permission == LocationPermission.deniedForever) {
           return const LocationResult(LocationStatus.denied,
-              'Quyền vị trí đã bị chặn. Hãy cấp quyền trong Cài đặt ứng dụng rồi thử lại.');
+              'Quyền vị trí đã bị chặn. Hãy cấp quyền trong Cài đặt ứng dụng rồi thử lại.',
+              issue: LocationIssue.deniedForever);
         }
         if (permission == LocationPermission.denied) return _denied;
         if (permission == LocationPermission.unableToDetermine) {
@@ -75,35 +107,72 @@ class GeolocatorLocationService implements CustomerLocationService {
               locationSettings: const LocationSettings(
                   accuracy: LocationAccuracy.high, timeLimit: timeout))
           .timeout(timeout);
-      final coordinates =
-          RescueCoordinates(position.latitude, position.longitude);
-      if (!coordinates.isValid) {
-        return const LocationResult(
-            LocationStatus.unavailable, 'Thiết bị trả về tọa độ không hợp lệ.');
-      }
-      return LocationResult(
-          LocationStatus.acquired, 'Tọa độ sẽ được gửi kèm địa chỉ bạn nhập.',
-          coordinates: coordinates);
-    } on PermissionDeniedException {
-      return _denied;
-    } on LocationServiceDisabledException {
-      return const LocationResult(LocationStatus.unavailable,
-          'Dịch vụ vị trí đang tắt. Hãy bật vị trí rồi thử lại.');
-    } on TimeoutException {
-      return const LocationResult(LocationStatus.unavailable,
-          'Lấy vị trí quá thời gian chờ. Bạn có thể thử lại.');
-    } on UnsupportedError {
-      return _unsupported;
-    } on MissingPluginException {
-      return _unsupported;
-    } catch (_) {
-      return const LocationResult(LocationStatus.unavailable,
-          'Không lấy được vị trí. Hãy kiểm tra cài đặt vị trí và thử lại. Trên web, cần HTTPS hoặc localhost.');
+      return _fromPosition(position);
+    } catch (error) {
+      return fromError(error);
     }
+  }
+
+  @override
+  Stream<LocationResult> watchLocation() async* {
+    try {
+      final geolocator = platform ?? GeolocatorPlatform.instance;
+      await for (final position in geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 20,
+        ),
+      )) {
+        yield _fromPosition(position);
+      }
+    } catch (error) {
+      yield fromError(error);
+    }
+  }
+
+  static LocationResult _fromPosition(Position position) {
+    final coordinates =
+        RescueCoordinates(position.latitude, position.longitude);
+    if (!coordinates.isValid ||
+        !position.accuracy.isFinite ||
+        position.accuracy < 0) {
+      return const LocationResult(LocationStatus.unavailable,
+          'Thiết bị trả về vị trí hoặc độ chính xác không hợp lệ.');
+    }
+    final result = LocationResult(
+        LocationStatus.acquired, 'Tọa độ sẽ được gửi kèm địa chỉ bạn nhập.',
+        coordinates: coordinates,
+        accuracy: position.accuracy,
+        capturedAt: position.timestamp.toUtc());
+    if (!result.isFresh(DateTime.now())) {
+      return const LocationResult(LocationStatus.unavailable,
+          'Vị trí GPS đã cũ. Hãy cập nhật vị trí rồi thử lại.',
+          issue: LocationIssue.stale);
+    }
+    return result;
+  }
+
+  static LocationResult fromError(Object error) {
+    if (error is PermissionDeniedException) return _denied;
+    if (error is LocationServiceDisabledException) {
+      return const LocationResult(LocationStatus.unavailable,
+          'Dịch vụ vị trí đang tắt. Hãy bật vị trí rồi thử lại.',
+          issue: LocationIssue.disabled);
+    }
+    if (error is TimeoutException) {
+      return const LocationResult(LocationStatus.unavailable,
+          'Lấy vị trí quá thời gian chờ. Bạn có thể thử lại.',
+          issue: LocationIssue.timeout);
+    }
+    if (error is UnsupportedError || error is MissingPluginException)
+      return _unsupported;
+    return const LocationResult(LocationStatus.unavailable,
+        'Không lấy được vị trí. Hãy kiểm tra cài đặt vị trí và thử lại. Trên web, cần HTTPS hoặc localhost.');
   }
 
   static const _denied = LocationResult(LocationStatus.denied,
       'Bạn đã từ chối quyền vị trí. Có thể cấp lại quyền trong cài đặt trình duyệt/ứng dụng rồi thử lại.');
   static const _unsupported = LocationResult(LocationStatus.unavailable,
-      'Thiết bị hoặc trình duyệt không hỗ trợ vị trí. Trên web, cần HTTPS hoặc localhost.');
+      'Thiết bị hoặc trình duyệt không hỗ trợ vị trí. Trên web, cần HTTPS hoặc localhost.',
+      issue: LocationIssue.unsupported);
 }

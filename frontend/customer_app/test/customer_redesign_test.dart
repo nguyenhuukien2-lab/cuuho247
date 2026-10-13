@@ -7,7 +7,6 @@ import 'dart:ui' as ui;
 import 'package:cuu_ho_247/app/app_controller.dart';
 import 'package:cuu_ho_247/app/app_shell.dart';
 import 'package:cuu_ho_247/app/app_theme.dart';
-import 'package:cuu_ho_247/app/mobile_ui.dart';
 import 'package:cuu_ho_247/app/user_session.dart';
 import 'package:cuu_ho_247/screens/new_account_screen.dart';
 import 'package:cuu_ho_247/screens/new_auth_screen.dart';
@@ -15,7 +14,6 @@ import 'package:cuu_ho_247/screens/new_history_screen.dart';
 import 'package:cuu_ho_247/screens/new_request_screen.dart';
 import 'package:cuu_ho_247/screens/new_tracking_screen.dart';
 import 'package:cuu_ho_247/widgets/customer_ui.dart';
-import 'package:cuu_ho_247/widgets/rescue_widgets.dart';
 import 'package:cuu_ho_247/widgets/tracking_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -60,8 +58,8 @@ void main() {
   });
 
   test('brand palette and principal text meet readable contrast', () {
-    expect(AppColors.navy, const Color(0xFF0B2540));
-    expect(AppColors.orange, const Color(0xFFC2410C));
+    expect(AppColors.navy, const Color(0xFF0037B0));
+    expect(AppColors.orange, const Color(0xFF1D4ED8));
     for (final pair in [
       (Colors.white, AppColors.orange),
       (Colors.white, AppColors.orangePressed),
@@ -164,8 +162,8 @@ void main() {
         'Lịch sử',
         'Tài khoản'
       ]) {
-        final paragraph =
-            tester.renderObject<RenderParagraph>(find.text(label));
+        final paragraph = tester.renderObject<RenderParagraph>(find.descendant(
+            of: find.byType(CustomerBottomNav), matching: find.text(label)));
         expect(paragraph.didExceedMaxLines, isFalse,
             reason: '$label was truncated');
       }
@@ -173,7 +171,7 @@ void main() {
           tester
               .getSize(find.widgetWithText(FilledButton, 'YÊU CẦU CỨU HỘ NGAY'))
               .height,
-          greaterThanOrEqualTo(52));
+          greaterThanOrEqualTo(44));
       await capture(tester, key, 'home-${size.width.toInt()}-large');
       await tapRequest(tester, find.text('Đặt cứu hộ'));
       await tester.pump();
@@ -186,10 +184,13 @@ void main() {
       await tapRequest(tester, find.text('Vá lốp'));
       await tester.pump();
       expect(controller.selectedService, RescueService.tire);
-      final tile =
-          tester.widget<ChoiceTile>(find.widgetWithText(ChoiceTile, 'Vá lốp'));
-      expect(tile.selected, isTrue);
-      expect(tester.getSize(find.widgetWithText(ChoiceTile, 'Vá lốp')).height,
+      expect(find.byType(ServiceGrid), findsNothing);
+      final summary = find.byType(SelectedServiceCard);
+      expect(tester.widget<SelectedServiceCard>(summary).service,
+          RescueService.tire);
+      expect(find.text('Đã chọn'), findsOneWidget);
+      expect(
+          tester.getSize(find.widgetWithText(TextButton, 'Đổi dịch vụ')).height,
           greaterThanOrEqualTo(48));
       await capture(tester, key, 'request-${size.width.toInt()}-large');
       if (captureUi) {
@@ -223,6 +224,13 @@ void main() {
       tester.testTextInput.hide();
       scroll.jumpTo(0);
       await tester.pumpAndSettle();
+      await requestStep(tester, 4);
+      final confirmation = find.byType(CheckboxListTile);
+      await revealRequest(tester, confirmation);
+      await tester.pumpAndSettle();
+      await tester.tap(confirmation);
+      await tester.pumpAndSettle();
+      expect(tester.widget<CheckboxListTile>(confirmation).value, isTrue);
       await tapRequest(tester, find.text('XÁC NHẬN ĐẶT CỨU HỘ'));
       await tester.pumpAndSettle();
       expect(controller.submissions, isEmpty);
@@ -278,8 +286,7 @@ void main() {
       await tapRequest(tester, find.text('Hoàn tất').first);
       await tester.pumpAndSettle();
       expect(find.text('Tiếp nhiên liệu'), findsOneWidget);
-      expect(find.text(mobile.longAddress),
-          findsOneWidget); // The trip card now shows the actual location.
+      expect(find.text(mobile.longAddress), findsOneWidget);
       tester
           .state<ScrollableState>(find.byType(Scrollable).first)
           .position
@@ -300,7 +307,7 @@ void main() {
       expect(find.text(profile.original.phone!), findsOneWidget);
       expect(find.text(profile.original.email!), findsOneWidget);
       await capture(tester, key, 'account-${size.width.toInt()}-large');
-      await tapRequest(tester, find.text('Chỉnh sửa thông tin'));
+      await tapRequest(tester, find.byTooltip('Chỉnh sửa thông tin'));
       await tester.pumpAndSettle();
       expect(find.byType(AppBar), findsOneWidget);
       tester.view.viewInsets = const FakeViewPadding(bottom: 300);
@@ -342,26 +349,31 @@ void main() {
       expect(find.text('Đối tác đang di chuyển đến'), findsOneWidget);
       expect(
           find.descendant(
-              of: find.byType(RescueStatusBadge),
+              of: find.byType(TrackingStatusCard),
               matching: find.text('Đang đến')),
           findsOneWidget);
-      expect(find.text('Mã đơn: CH-000042'), findsOneWidget);
+      expect(find.text('Mã đơn CH-000042'), findsOneWidget);
       expect(find.textContaining(source.id), findsNothing);
-      expect(find.text('Cập nhật gần nhất'), findsOneWidget);
-      expect(
-          find.text('Chưa có thời gian cập nhật trạng thái.'), findsOneWidget);
+      expect(find.text('Cập nhật'), findsNothing);
+      expect(find.text('Chưa có cập nhật'), findsNothing);
       expect(find.textContaining(RegExp(r'^Cập nhật \d')), findsNothing);
       expect(find.textContaining('ETA'), findsNothing);
       expect(find.text('Đang cập nhật'), findsNothing);
       expect(find.text('Trực tiếp'), findsNothing);
       expect(find.textContaining('Kỹ thuật viên'), findsNothing);
       expect(find.text('Chưa có dữ liệu'), findsNothing);
-      final action = find.widgetWithText(FilledButton, 'Cập nhật trạng thái');
+      final action = find.byTooltip('Cập nhật trạng thái');
       expect(
           find.descendant(
               of: find.byType(TrackingStatusCard), matching: action),
           findsOneWidget);
-      expect(tester.widget<FilledButton>(action).onPressed, isNotNull);
+      expect(
+          tester
+              .widget<IconButton>(find.descendant(
+                  of: find.byType(TrackingRefreshButton),
+                  matching: find.byType(IconButton)))
+              .onPressed,
+          isNotNull);
       expect(
           tester.getRect(action).bottom, lessThanOrEqualTo(size.height - 20));
       final scrollable = find.byType(Scrollable).first;
@@ -374,9 +386,9 @@ void main() {
       expect(find.text('Nhắn tin'), findsNothing);
       expect(find.text('Chưa có dữ liệu'), findsNothing);
       await tester.scrollUntilVisible(
-          find.byKey(const ValueKey('rescue-location-marker')), 250,
+          find.byKey(const ValueKey('rescue-location-marker')), -250,
           scrollable: scrollable);
-      expect(find.text('Vị trí cứu hộ đã gửi'), findsOneWidget);
+      expect(find.text('Vị trí cứu hộ đã xác nhận'), findsOneWidget);
       final markers =
           tester.widget<MarkerLayer>(find.byType(MarkerLayer)).markers;
       expect(markers, hasLength(1));

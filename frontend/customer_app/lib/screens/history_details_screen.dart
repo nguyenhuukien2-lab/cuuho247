@@ -160,6 +160,16 @@ class _HistoryDetailsScreenState extends State<HistoryDetailsScreen> {
                         const SizedBox(height: 16),
                         InfoRow('Mã đơn',
                             displayCode(row['request_code'] as String?)),
+                        if (row['status'] == 'completed' &&
+                            row['id'] == widget.requestId &&
+                            owner != null &&
+                            UserSession.userId == owner)
+                          FilledButton.icon(
+                              onPressed: () => Navigator.pushNamed(
+                                  context, '/payment',
+                                  arguments: widget.requestId),
+                              icon: const Icon(Icons.payments_outlined),
+                              label: const Text('Thanh toán')),
                         InfoRow('Dịch vụ cứu hộ',
                             service?.label ?? 'Chưa có thông tin'),
                         InfoRow(

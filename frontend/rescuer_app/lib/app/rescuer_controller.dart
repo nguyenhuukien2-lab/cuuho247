@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/backend_models.dart';
@@ -8,6 +9,9 @@ import '../services/location_service.dart';
 import '../services/document_picker.dart';
 import '../services/rescuer_service.dart';
 import '../services/partner_auth_validation.dart';
+import '../services/payment_service.dart';
+import 'payment_watcher.dart';
+import 'history_payment_controller.dart';
 
 enum FeedStatus { unavailable, loading, empty, ready, error }
 
@@ -16,11 +20,58 @@ enum JobStatus { unavailable, loading, empty, ready, error }
 enum PartnerRegistration { confirmationRequired, profileReady }
 
 class RescuerController extends ChangeNotifier {
-  RescuerController(this.service, this.location, {DocumentPicker? documents})
-    : documents = documents ?? DocumentPicker();
+  RescuerController(
+    this.service,
+    this.location, {
+    DocumentPicker? documents,
+    DateTime Function()? now,
+    PaymentSource? paymentSource,
+  }) : payments = PaymentWatcher(
+         paymentSource ??
+             (service is SupabaseRescuerService ? service.payments : null),
+       ),
+       documents = documents ?? DocumentPicker(),
+       _now = now ?? DateTime.now {
+    payments.addListener(_notify);
+    historyPayments.addListener(_notify);
+  }
+  final PaymentWatcher payments;
+  late final HistoryPaymentController historyPayments =
+      HistoryPaymentController(payments.source);
+  Future<void> loadJobPayment(String requestId) => payments.watch(requestId);
+  Future<void> watchJobPayment(String requestId) => payments.watch(requestId);
+  Future<void> refreshJobPayment() => payments.refresh();
+  void clearJobPayment() => payments.clear();
   final RescuerService service;
   final LocationService location;
   final DocumentPicker documents;
+  final DateTime Function() _now;
+  StreamSubscription<LocationSample>? _positions;
+  Future<void>? _positionCancellation;
+  Future<void>? _locationWrite;
+  Timer? _locationThrottle;
+  int _trackingGeneration = 0;
+  int? _startingGeneration;
+  bool _drainingPosition = false;
+  LocationSample? _pendingPosition;
+  LocationSample? lastPosition;
+  DateTime? lastLocationSentAt;
+  DateTime? _lastLocationAttemptAt;
+  GpsStatus gpsStatus = GpsStatus.idle;
+  String? gpsError;
+  bool get trackingGps => _positions != null;
+  static const locationInterval = Duration(seconds: 15);
+  static const locationDistance = 20.0;
+
+  String get gpsStatusLabel => switch (gpsStatus) {
+    GpsStatus.idle => 'GPS tạm dừng',
+    GpsStatus.updating => 'Đang cập nhật vị trí',
+    GpsStatus.active => 'GPS đang hoạt động',
+    GpsStatus.disabled => 'GPS bị tắt',
+    GpsStatus.denied => 'Chưa cấp quyền vị trí',
+    GpsStatus.deniedForever => 'Quyền vị trí đã bị chặn',
+    GpsStatus.unavailable => 'Không thể lấy vị trí',
+  };
   StreamSubscription<String?>? _auth;
   Timer? _timer;
   bool _disposed = false, _foreground = true;
@@ -75,6 +126,8 @@ class RescuerController extends ChangeNotifier {
       activeJob?.assignment.hasQuote == true;
 
   void _clearFinancialData() {
+    clearJobPayment();
+    historyPayments.clear();
     currentQuote = null;
     sendingQuote = false;
     completingJob = false;
@@ -221,8 +274,12 @@ class RescuerController extends ChangeNotifier {
   }
 
   Future<void> checkGps() => _run((epoch) async {
-    await location.current();
+    gpsStatus = GpsStatus.updating;
+    _notify();
+    final fix = await location.current();
     _guard(epoch);
+    _recordPosition(fix);
+    if (_canTrackLocation) await _sendLocation(fix, epoch);
     gpsReady = true;
     notice = 'GPS đã sẵn sàng. Bạn có thể bật online khi hồ sơ, xe và dịch vụ đã được duyệt.';
   });
@@ -254,6 +311,7 @@ class RescuerController extends ChangeNotifier {
         updatingJobState = null;
         jobUpdateMessage = null;
         _timer?.cancel();
+        _stopLocationTracking();
         activeJob = null;
         claimedAssignment = null;
         jobStatus = JobStatus.error;
@@ -273,6 +331,12 @@ class RescuerController extends ChangeNotifier {
     final epoch = ++_epoch;
     _clearFinancialData();
     _timer?.cancel();
+    _stopLocationTracking();
+    lastPosition = null;
+    lastLocationSentAt = null;
+    _lastLocationAttemptAt = null;
+    gpsStatus = GpsStatus.idle;
+    gpsError = null;
     userId = service.userId;
     snapshot = const RescuerSnapshot();
     snapshotLoaded = false;
@@ -313,6 +377,7 @@ class RescuerController extends ChangeNotifier {
       if (_current(epoch)) {
         loading = false;
         _notify();
+        if (_canTrackLocation) unawaited(checkGps());
       }
     }
   }
@@ -363,6 +428,11 @@ class RescuerController extends ChangeNotifier {
       cursor = null;
       feedStatus = FeedStatus.unavailable;
     }
+    if (previousSession != sessionId) {
+      _stopLocationTracking();
+      lastLocationSentAt = null;
+      _lastLocationAttemptAt = null;
+    }
     if (snapshot.approved) {
       await _loadActiveJob(epoch);
     } else {
@@ -385,6 +455,9 @@ class RescuerController extends ChangeNotifier {
       final result = await service.getActiveJob();
       _guard(epoch);
       activeJob = result;
+      if (result != null && (payments.requestId == null || tab == 2)) {
+        unawaited(watchJobPayment(result.assignment.requestId));
+      }
       claimedAssignment = result?.assignment;
       if (result?.assignment.currentQuoteId == previousQuote?.id &&
           result?.assignment.id == previousQuote?.assignmentId) {
@@ -411,6 +484,14 @@ class RescuerController extends ChangeNotifier {
   Future<void> refreshActiveJob() => _run((epoch) async {
     if (!snapshot.approved) return;
     await _loadActiveJob(epoch);
+    if (_canTrackLocation &&
+        (!gpsReady ||
+            lastLocationSentAt == null ||
+            _now().difference(lastLocationSentAt!) >= locationInterval)) {
+      final fix = await location.current();
+      _guard(epoch);
+      await _sendLocation(fix, epoch);
+    }
   });
 
   Future<void> sendQuote(QuoteDraft input) => _run((epoch) async {
@@ -513,7 +594,7 @@ class RescuerController extends ChangeNotifier {
           result.version <= before.version) {
         throw const FormatException('Unexpected completion');
       }
-      await _completionSucceeded(epoch);
+      await _completionSucceeded(epoch, before.requestId);
     } catch (e) {
       _guard(epoch);
       await _loadActiveJob(epoch);
@@ -529,7 +610,7 @@ class RescuerController extends ChangeNotifier {
       if (completed?.assignment.state == 'completed' &&
           completed!.assignment.completionQuoteId == before.currentQuoteId &&
           completed.assignment.version > before.version) {
-        await _completionSucceeded(epoch);
+        await _completionSucceeded(epoch, before.requestId);
       } else {
         final message = _financialError(e);
         _jobUpdateEvent(message, failed: true);
@@ -543,8 +624,9 @@ class RescuerController extends ChangeNotifier {
     }
   });
 
-  Future<void> _completionSucceeded(int epoch) async {
+  Future<void> _completionSucceeded(int epoch, String requestId) async {
     _guard(epoch);
+    unawaited(watchJobPayment(requestId));
     activeJob = null;
     claimedAssignment = null;
     currentQuote = null;
@@ -600,6 +682,15 @@ class RescuerController extends ChangeNotifier {
             ]
           : page.items;
       historyCursor = page.cursor;
+      unawaited(
+        historyPayments.refresh(
+          page.items.map((job) => job.assignment),
+          reset: !more,
+        ),
+      );
+      if (payments.requestId == null && historyItems.isNotEmpty) {
+        unawaited(watchJobPayment(historyItems.first.assignment.requestId));
+      }
       historyStatus = historyItems.isEmpty
           ? FeedStatus.empty
           : FeedStatus.ready;
@@ -627,6 +718,8 @@ class RescuerController extends ChangeNotifier {
         throw const FormatException('Unexpected history job');
       }
       historyDetail = result;
+      unawaited(historyPayments.refresh([result.assignment]));
+      unawaited(watchJobPayment(result.assignment.requestId));
     } catch (e) {
       if (!_current(epoch)) rethrow;
       historyDetailError = rescuerError(e);
@@ -793,7 +886,10 @@ class RescuerController extends ChangeNotifier {
     _notify();
   }
 
-  Future<void> _run(Future<void> Function(int epoch) action) async {
+  Future<void> _run(
+    Future<void> Function(int epoch) action, {
+    bool waitForLocation = true,
+  }) async {
     if (working || loading || authenticating || _disposed) return;
     final epoch = _epoch;
     working = true;
@@ -801,6 +897,8 @@ class RescuerController extends ChangeNotifier {
     notice = null;
     _notify();
     try {
+      if (waitForLocation && _locationWrite != null) await _locationWrite;
+      _guard(epoch);
       await action(epoch);
     } catch (e) {
       if (_current(epoch)) {
@@ -808,12 +906,16 @@ class RescuerController extends ChangeNotifier {
         if (e is LocationFailure) {
           locationHelp = e.help;
           gpsReady = false;
+          gpsStatus = e.status;
+          gpsError = e.message;
         }
       }
     } finally {
       if (_current(epoch)) {
         working = false;
         onlineProgress = null;
+        _syncLocationTracking();
+        if (_pendingPosition != null) unawaited(_drainPositions());
         _notify();
       }
     }
@@ -939,7 +1041,9 @@ class RescuerController extends ChangeNotifier {
   }
 
   Future<void> signOut() => _run((epoch) async {
+    clearJobPayment();
     _timer?.cancel();
+    _stopLocationTracking();
     activeJob = null;
     jobStatus = JobStatus.unavailable;
     requests = [];
@@ -959,7 +1063,7 @@ class RescuerController extends ChangeNotifier {
     _guard(epoch);
     await service.signOut();
     await _syncAuth();
-  });
+  }, waitForLocation: false);
   Future<void> refreshProfile() => _run((epoch) => _load(epoch));
   Future<void> saveProfile(String name, String phone) => _run((epoch) async {
     final exists = snapshot.profile != null;
@@ -1099,9 +1203,10 @@ class RescuerController extends ChangeNotifier {
     _notify();
   }
 
-  void selectTab(int value) {
+  void selectTab(int value, {bool refresh = true}) {
     tab = value;
     _notify();
+    if (!refresh) return;
     if (value == 1 && online && canOnline) unawaited(refreshRequests());
     if (value == 2) unawaited(refreshActiveJob());
     if (value == 3) unawaited(refreshHistory());
@@ -1112,6 +1217,7 @@ class RescuerController extends ChangeNotifier {
       throw RescuerFailure('Chưa thể bật online: ${onlineBlockers.join(' ')}');
     }
     _timer?.cancel();
+    _stopLocationTracking();
     locationReady = false;
     requests = [];
     cursor = null;
@@ -1120,9 +1226,10 @@ class RescuerController extends ChangeNotifier {
         ? 'Đang kiểm tra GPS và quyền vị trí…'
         : 'Đang chuyển offline…';
     _notify();
+    if (value) gpsStatus = GpsStatus.updating;
     final fix = value ? await location.current() : null;
     _guard(epoch);
-    if (fix != null) gpsReady = true;
+    if (fix != null) _recordPosition(fix);
     onlineProgress = value
         ? 'Đang tạo phiên hoạt động…'
         : 'Đang chuyển offline…';
@@ -1135,7 +1242,9 @@ class RescuerController extends ChangeNotifier {
     _guard(epoch);
     online = result['is_online'] == true;
     sessionId = result['session_id'] as String?;
-    sequence = 0;
+    if (value || sessionId == null) sequence = 0;
+    if (value || sessionId == null) lastLocationSentAt = null;
+    if (value || sessionId == null) _lastLocationAttemptAt = null;
     onlineRecoveryRequired = false;
     if (online && fix != null) {
       onlineProgress = 'Đang cập nhật vị trí cho phiên hoạt động…';
@@ -1170,30 +1279,236 @@ class RescuerController extends ChangeNotifier {
       notice = 'Bạn đang online. Vị trí và danh sách đơn mới đã được cập nhật.';
     }
     if (!online) {
+      if (_canTrackLocation) {
+        final activeFix = await location.current();
+        _guard(epoch);
+        await _sendLocation(activeFix, epoch);
+      } else {
+        gpsStatus = GpsStatus.idle;
+      }
+      _schedule();
       notice = 'Đã tắt online. Bạn sẽ không tìm đơn mới cho đến khi bật lại.';
     }
     onlineProgress = null;
   });
-  Future<void> _sendLocation(LocationSample fix, int epoch) async {
+  Future<void> _sendLocation(LocationSample fix, int epoch) {
+    final session = sessionId;
+    final generation = _trackingGeneration;
+    final write = (_locationWrite ?? Future<void>.value()).then(
+      (_) => _writeLocation(fix, epoch, session, generation),
+    );
+    _locationWrite = write.then((_) {}, onError: (Object _) {});
+    return write;
+  }
+
+  Future<void> _writeLocation(
+    LocationSample fix,
+    int epoch,
+    String? session,
+    int generation,
+  ) async {
     _guard(epoch);
+    if (generation != _trackingGeneration) return;
     if (!_foreground) {
       throw const RescuerFailure('Mở lại ứng dụng để cập nhật vị trí.');
     }
-    if (!online || sessionId == null) {
+    if (session == null || session != sessionId || (!online && !hasActiveJob)) {
       throw const RescuerFailure('Bật online trước khi cập nhật vị trí.');
     }
-    final result = await service.mutate('rescuer_update_location', {
-      'p_session_id': sessionId,
-      'p_sequence': ++sequence,
-      'p_latitude': fix.latitude,
-      'p_longitude': fix.longitude,
-      'p_accuracy_m': fix.accuracy,
-      'p_captured_at': fix.capturedAt.toUtc().toIso8601String(),
-    });
+    DeviceLocationService.validate(fix);
+    _recordPosition(fix);
+    gpsStatus = GpsStatus.updating;
+    _notify();
+    _lastLocationAttemptAt = _now();
+    late Json result;
+    try {
+      result = await service
+          .mutate('rescuer_update_location', {
+            'p_session_id': session,
+            'p_sequence': ++sequence,
+            'p_latitude': fix.latitude,
+            'p_longitude': fix.longitude,
+            'p_accuracy_m': fix.accuracy,
+            'p_captured_at': fix.capturedAt.toUtc().toIso8601String(),
+          })
+          .timeout(const Duration(seconds: 20));
+    } catch (error) {
+      if (_current(epoch) && _foreground && generation == _trackingGeneration) {
+        _locationFailed(error);
+      }
+      rethrow;
+    }
     _guard(epoch);
+    if (!_foreground ||
+        session != sessionId ||
+        generation != _trackingGeneration) {
+      return;
+    }
     sequence = (result['sequence'] as num).toInt();
     locationReady = true;
     gpsReady = true;
+    _recordPosition(fix);
+    _lastSentPosition = fix;
+    lastLocationSentAt = _now();
+    gpsError = null;
+  }
+
+  bool get _canTrackLocation =>
+      !_disposed &&
+      _foreground &&
+      signedIn &&
+      snapshot.approved &&
+      sessionId != null &&
+      (online || hasActiveJob);
+
+  void _recordPosition(LocationSample fix) {
+    DeviceLocationService.validate(fix);
+    lastPosition = fix;
+    gpsReady = true;
+    gpsStatus = GpsStatus.active;
+    gpsError = null;
+  }
+
+  void _syncLocationTracking() {
+    if (!_canTrackLocation) {
+      if (_positions != null || _startingGeneration != null) {
+        _stopLocationTracking();
+      }
+      return;
+    }
+    if (location is! LocationStreamService ||
+        _positions != null ||
+        _startingGeneration == _trackingGeneration) {
+      return;
+    }
+    final generation = _trackingGeneration;
+    final epoch = _epoch;
+    _startingGeneration = generation;
+    unawaited(_startLocationStream(generation, epoch));
+  }
+
+  Future<void> _startLocationStream(int generation, int epoch) async {
+    if (_positionCancellation != null) await _positionCancellation;
+    if (!_current(epoch) ||
+        !_canTrackLocation ||
+        generation != _trackingGeneration) {
+      return;
+    }
+    try {
+      _positions = (location as LocationStreamService).watch().listen(
+        (fix) {
+          if (!_current(epoch) ||
+              !_canTrackLocation ||
+              generation != _trackingGeneration) {
+            return;
+          }
+          try {
+            _recordPosition(fix);
+            _pendingPosition = fix;
+            _notify();
+            unawaited(_drainPositions());
+          } catch (error) {
+            _locationFailed(error);
+          }
+        },
+        onError: (Object error) {
+          if (!_current(epoch) || generation != _trackingGeneration) return;
+          _locationFailed(error);
+          _stopLocationTracking();
+        },
+        onDone: () {
+          if (generation == _trackingGeneration) _positions = null;
+        },
+      );
+    } catch (error) {
+      if (_current(epoch) && generation == _trackingGeneration) {
+        _locationFailed(error);
+      }
+    } finally {
+      if (_startingGeneration == generation) _startingGeneration = null;
+    }
+  }
+
+  Future<void> _drainPositions() async {
+    if (_drainingPosition ||
+        working ||
+        loading ||
+        !_canTrackLocation ||
+        _pendingPosition == null) {
+      return;
+    }
+    final elapsed = _lastLocationAttemptAt == null
+        ? locationInterval
+        : _now().difference(_lastLocationAttemptAt!);
+    if (elapsed < locationInterval) {
+      _locationThrottle ??= Timer(locationInterval - elapsed, () {
+        _locationThrottle = null;
+        unawaited(_drainPositions());
+      });
+      return;
+    }
+    final fix = _pendingPosition!;
+    _pendingPosition = null;
+    // The OS distance filter is also checked here for platforms that ignore it.
+    final previous = _lastSentPosition;
+    if (previous != null &&
+        elapsed < const Duration(seconds: 45) &&
+        Geolocator.distanceBetween(
+              previous.latitude,
+              previous.longitude,
+              fix.latitude,
+              fix.longitude,
+            ) <
+            locationDistance) {
+      return;
+    }
+    _drainingPosition = true;
+    final epoch = _epoch, generation = _trackingGeneration;
+    try {
+      await _sendLocation(fix, epoch);
+    } catch (error) {
+      if (_current(epoch) && generation == _trackingGeneration) {
+        _locationFailed(error);
+        // Retry only with a fresh sample; a failed send never marks GPS synced.
+      }
+    } finally {
+      _drainingPosition = false;
+      if (_current(epoch) && generation == _trackingGeneration) {
+        _notify();
+        if (_pendingPosition != null) unawaited(_drainPositions());
+      }
+    }
+  }
+
+  LocationSample? _lastSentPosition;
+
+  void _locationFailed(Object failure) {
+    locationReady = false;
+    if (failure is LocationFailure) {
+      gpsReady = false;
+      gpsStatus = failure.status;
+      locationHelp = failure.help;
+      gpsError = failure.message;
+    } else {
+      gpsStatus = gpsReady ? GpsStatus.active : GpsStatus.unavailable;
+      gpsError = 'Chưa gửi được vị trí lên máy chủ. Kiểm tra mạng rồi cập nhật lại GPS.';
+    }
+    _notify();
+  }
+
+  void _stopLocationTracking() {
+    _trackingGeneration++;
+    _startingGeneration = null;
+    _pendingPosition = null;
+    _lastSentPosition = null;
+    _locationThrottle?.cancel();
+    _locationThrottle = null;
+    final subscription = _positions;
+    _positions = null;
+    if (subscription != null) {
+      _positionCancellation = (_positionCancellation ?? Future<void>.value())
+          .then((_) => subscription.cancel());
+    }
   }
 
   Future<void> _fetch(int epoch, {bool more = false}) async {
@@ -1259,6 +1574,7 @@ class RescuerController extends ChangeNotifier {
   });
   void _schedule() {
     _timer?.cancel();
+    _syncLocationTracking();
     if (_foreground &&
         snapshot.approved &&
         ((online && canOnline) ||
@@ -1277,9 +1593,18 @@ class RescuerController extends ChangeNotifier {
   }
 
   void setForeground(bool value) {
+    payments.setForeground(value);
+    if (_foreground == value) return;
     _foreground = value;
+    if (value && tab == 3) {
+      unawaited(
+        historyPayments.refresh(historyItems.map((job) => job.assignment)),
+      );
+    }
     if (!value) {
       _timer?.cancel();
+      _stopLocationTracking();
+      gpsStatus = GpsStatus.idle;
       locationReady = false;
       gpsReady = false;
       requests = [];
@@ -1287,7 +1612,11 @@ class RescuerController extends ChangeNotifier {
       feedStatus = FeedStatus.unavailable;
     }
     if (value && !working && snapshot.approved) {
-      unawaited(online && canOnline ? refreshRequests() : refreshActiveJob());
+      unawaited(
+        online && canOnline && !hasActiveJob
+            ? refreshRequests()
+            : refreshActiveJob(),
+      );
     }
     _notify();
   }
@@ -1297,7 +1626,12 @@ class RescuerController extends ChangeNotifier {
     _disposed = true;
     _epoch++;
     _timer?.cancel();
+    _stopLocationTracking();
     unawaited(_auth?.cancel());
+    payments.removeListener(_notify);
+    historyPayments.removeListener(_notify);
+    historyPayments.dispose();
+    payments.dispose();
     super.dispose();
   }
 }

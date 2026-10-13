@@ -405,9 +405,24 @@ class RescuerFailure implements Exception {
 
 enum LocationHelp { permission, disabled, precision }
 
+enum GpsStatus {
+  idle,
+  updating,
+  active,
+  disabled,
+  denied,
+  deniedForever,
+  unavailable,
+}
+
 class LocationFailure extends RescuerFailure {
-  const LocationFailure(super.message, this.help);
+  const LocationFailure(
+    super.message,
+    this.help, {
+    this.status = GpsStatus.unavailable,
+  });
   final LocationHelp help;
+  final GpsStatus status;
 }
 
 class ReadinessItem {

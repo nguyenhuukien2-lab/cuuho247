@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../screens/preparation/preparation_screen.dart';
 import 'app_theme.dart';
+import 'mobile_app_frame.dart';
 import 'rescuer_controller.dart';
 
 class ConnectedRescuerApp extends StatefulWidget {
@@ -42,6 +43,8 @@ class _ConnectedRescuerAppState extends State<ConnectedRescuerApp>
     title: 'Cứu Hộ 24/7 Đối tác',
     debugShowCheckedModeBanner: false,
     theme: AppTheme.light,
+    builder: (context, child) =>
+        MobileAppFrame(child: child ?? const SizedBox.shrink()),
     home: widget.controller == null
         ? Scaffold(
             appBar: AppBar(title: const Text('Cấu hình ứng dụng')),

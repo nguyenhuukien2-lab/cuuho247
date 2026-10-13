@@ -7,6 +7,8 @@ import 'package:cuu_ho_247/app/navigation.dart';
 import 'package:cuu_ho_247/app/user_session.dart';
 import 'package:cuu_ho_247/screens/new_tracking_screen.dart';
 import 'package:cuu_ho_247/services/supabase_service.dart';
+import 'package:cuu_ho_247/widgets/tracking_ui.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -75,15 +77,18 @@ void main() {
     await tester.pumpWidget(MaterialApp(
         theme: AppTheme.light,
         home: Scaffold(body: NewTrackingScreen(controller: controller))));
-    await tester.scrollUntilVisible(
-        find.text('Tọa độ: 0.000000, 106.700000'), 250,
-        scrollable: find.byType(Scrollable).first, continuous: true);
-    expect(find.text('Tọa độ: 0.000000, 106.700000'), findsOneWidget);
+    await tester.scrollUntilVisible(find.byType(TrackingMapCard), 250,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    final marker =
+        tester.widget<MarkerLayer>(find.byType(MarkerLayer)).markers.single;
+    expect(marker.point.latitude, 0);
+    expect(marker.point.longitude, 106.7);
     controller.replaceRequest(request(RequestStage.searching, id: 'manual'));
     await tester.pump();
-    expect(find.text('Yêu cầu sử dụng địa chỉ nhập tay, chưa có tọa độ.'),
-        findsOneWidget);
+    expect(find.text('Vị trí nhập tay'), findsOneWidget);
     expect(find.textContaining('Tọa độ:'), findsNothing);
+    expect(find.byType(FlutterMap), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     controller.dispose();
   });
@@ -140,7 +145,14 @@ void main() {
     expect(controller.watchedIds, ['request-a']);
     controller.streams.last.add(request(RequestStage.inProgress, tick: 2));
     await tester.pump();
-    expect(find.text('Đối tác đang hỗ trợ'), findsWidgets);
+    expect(
+        find.descendant(
+            of: find.descendant(
+                of: find.byType(TrackingStatusCard),
+                matching: find.byType(TrackingStageBadge)),
+            matching: find.text('Đang hỗ trợ')),
+        findsOneWidget);
+    expect(controller.activeRequest!.stage, RequestStage.inProgress);
     controller.replaceRequest(request(RequestStage.accepted, id: 'request-b'));
     await tester.pump();
     expect(controller.watchedIds, ['request-a', 'request-b']);

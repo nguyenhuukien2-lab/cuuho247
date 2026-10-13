@@ -202,17 +202,24 @@ class SettingsRow extends StatelessWidget {
 
 /// Secondary content is available on demand without losing local widget state.
 class MoreDetails extends StatelessWidget {
-  const MoreDetails({super.key, required this.title, required this.children});
+  const MoreDetails(
+      {super.key,
+      required this.title,
+      required this.children,
+      this.embedded = false});
   final String title;
   final List<Widget> children;
+  final bool embedded;
   @override
-  Widget build(BuildContext context) => Card(
-          child: ExpansionTile(
-        key: PageStorageKey('details-$title'),
-        title: Text(title),
-        maintainState: true,
-        tilePadding: const EdgeInsets.symmetric(horizontal: 16),
-        childrenPadding: const EdgeInsets.all(16),
-        children: children,
-      ));
+  Widget build(BuildContext context) {
+    final content = ExpansionTile(
+      key: PageStorageKey('details-$title'),
+      title: Text(title),
+      maintainState: true,
+      tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+      childrenPadding: const EdgeInsets.all(16),
+      children: children,
+    );
+    return embedded ? content : Card(child: content);
+  }
 }

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" fill="none">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F97316"/>
+      <stop offset="100%" stop-color="#EA580C"/>
+    </linearGradient>
+  </defs>
+  <path d="M60 12L98 28V62C98 84.5 81.8 103.2 60 108C38.2 103.2 22 84.5 22 62V28L60 12Z" fill="url(#shieldGrad)"/>
+  <path d="M60 18L92 31.5V60C92 79.5 78.4 95.8 60 100.5V18Z" fill="#3B82F6" opacity="0.3"/>
+  <!-- Towing Hook & Medical/Rescue Cross Hybrid Motif -->
+  <path d="M54 36H66V48H78V60H66V72H54V60H42V48H54V36Z" fill="#FFFFFF"/>
+  <circle cx="60" cy="54" r="5" fill="#1D4ED8"/>
+  <path d="M38 82C44 88 51.5 92 60 93.5C68.5 92 76 88 82 82" stroke="url(#accentGrad)" stroke-width="5" stroke-linecap="round"/>
+</svg>

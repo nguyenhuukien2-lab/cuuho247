@@ -1,5 +1,4 @@
 import '../../app/mobile_ui.dart';
-import '../../core/utils/display_code.dart';
 
 import 'package:flutter/material.dart';
 
@@ -36,12 +35,13 @@ class PartnerHeader extends StatelessWidget implements PreferredSizeWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Cứu Hộ 24/7',
+                'CỨU HỘ 24/7 · ĐỐI TÁC',
                 maxLines: 2,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: RescueColors.ink,
+                  fontFamily: 'PlusJakartaSans',
+                  color: RescueColors.navy,
                 ),
               ),
               const SizedBox(height: 4),
@@ -50,7 +50,9 @@ class PartnerHeader extends StatelessWidget implements PreferredSizeWidget {
                   Icon(
                     Icons.circle,
                     size: 7,
-                    color: online ? AppColors.success : AppColors.warning,
+                    color: online
+                        ? AppColors.success
+                        : RescueColors.secondaryText,
                   ),
                   const SizedBox(width: 5),
                   Text(
@@ -76,6 +78,27 @@ class PartnerHeader extends StatelessWidget implements PreferredSizeWidget {
       const SizedBox(width: 4),
     ],
   );
+}
+
+class PartnerNavigationBar extends StatelessWidget {
+  const PartnerNavigationBar({super.key, required this.selectedIndex, required this.onSelected});
+  final int selectedIndex;
+  final ValueChanged<int>? onSelected;
+  @override
+  Widget build(BuildContext context) => NavigationBar(
+    selectedIndex: selectedIndex,
+    height: MediaQuery.textScalerOf(context).scale(11) > 14 ? 88 : 64,
+    labelTextStyle: WidgetStateProperty.resolveWith((states) => AppType.status.copyWith(
+      fontSize: 11, height: 1.3,
+      color: states.contains(WidgetState.selected) ? AppColors.orange : AppColors.muted)),
+    onDestinationSelected: onSelected,
+    destinations: const [
+      NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Trang chủ'),
+      NavigationDestination(icon: Icon(Icons.notifications_active_outlined), selectedIcon: Icon(Icons.assignment), label: 'Đơn mới'),
+      NavigationDestination(icon: Icon(Icons.local_shipping_outlined), selectedIcon: Icon(Icons.local_shipping), label: 'Đang xử lý'),
+      NavigationDestination(icon: Icon(Icons.history_outlined), selectedIcon: Icon(Icons.history), label: 'Lịch sử'),
+      NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Tài khoản'),
+    ]);
 }
 
 class NavyPanel extends StatelessWidget {
@@ -105,29 +128,29 @@ class PartnerHero extends StatelessWidget {
   final RescuerController c;
   final bool account;
   final VoidCallback? onEdit;
+
   @override
   Widget build(BuildContext context) {
     final profile = c.snapshot.profile;
-    return NavyPanel(
+    final code = profile?['rescuer_code'] as String?;
+    final vehicle = c.snapshot.vehicles
+        .where((v) => v['id'] == c.selectedVehicle)
+        .firstOrNull;
+    return AppCard(
       kind: RescueCardKind.profile,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  color: RescueColors.selected,
-                  borderRadius: BorderRadius.circular(RescueRadius.control),
-                  border: Border.all(color: RescueColors.border),
-                ),
-                child: const Icon(
-                  Icons.person_rounded,
-                  color: RescueColors.ink,
-                  size: 32,
+              CircleAvatar(
+                radius: account ? 28 : 24,
+                backgroundColor: RescueColors.container,
+                child: Icon(
+                  Icons.person_outline,
+                  size: account ? 32 : 28,
+                  color: AppColors.navy,
                 ),
               ),
               const SizedBox(width: 12),
@@ -136,77 +159,63 @@ class PartnerHero extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      profile?['full_name'] as String? ?? 'Đối tác mới',
+                      profile?['full_name'] as String? ??
+                          'Hoàn thiện hồ sơ đối tác',
                       style: RescueType.section,
                     ),
-                    const SizedBox(height: 5),
-                    if (profile != null)
-                      Text(
-                        'Mã đối tác: ${displayCode(profile['rescuer_code'] as String?)}',
-                        style: RescueType.code,
+                    if (code != null && RegExp(r'^DT-\d+$').hasMatch(code)) ...[
+                      const SizedBox(height: 4),
+                      Text(code, style: AppType.code),
+                    ],
+                    const SizedBox(height: 6),
+                    Text(
+                      reviewLabels[profile?['verification_status']] ??
+                          'Chưa nộp hồ sơ',
+                      style: RescueType.caption.copyWith(
+                        color: c.snapshot.approved
+                            ? RescueColors.successText
+                            : RescueColors.warningText,
                       ),
-                    if (account && profile?['contact_phone'] is String)
-                      Text(
-                        profile!['contact_phone'] as String,
-                        style: const TextStyle(color: RescueColors.muted),
-                      ),
-                    if (!account)
-                      const Text(
-                        'Đồng hành trên mọi hành trình',
-                        style: TextStyle(
-                          color: RescueColors.muted,
-                          fontSize: 12,
-                        ),
-                      ),
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              const Icon(
-                Icons.local_shipping_rounded,
-                color: AppColors.orange,
-                size: 30,
-              ),
+              if (account)
+                IconButton(
+                  tooltip: 'Chỉnh sửa thông tin cá nhân',
+                  onPressed: c.working ? null : onEdit,
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                ),
             ],
           ),
-          const SizedBox(height: 18),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: RescueColors.background,
-              borderRadius: BorderRadius.circular(RescueRadius.control),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.circle,
-                  size: 9,
-                  color: c.online ? AppColors.success : AppColors.orange,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    account
-                        ? reviewLabels[profile?['verification_status']] ??
-                              'Hồ sơ chưa nộp'
-                        : c.hasActiveJob
-                        ? 'Đang hỗ trợ một chuyến'
-                        : c.online
-                        ? 'Sẵn sàng ứng cứu'
-                        : 'Đang offline',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ],
-            ),
-          ),
           if (account) ...[
+            const SizedBox(height: 14),
+            ReviewBadge(profile?['verification_status'] as String?),
+          ] else ...[
             const SizedBox(height: 12),
-            AppButton(
-              label: 'Chỉnh sửa thông tin cá nhân',
-              icon: Icons.edit_outlined,
-              kind: ButtonStyleKind.secondary,
-              onPressed: onEdit ?? () => c.openSection('profile'),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: RescueColors.selected,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.local_shipping_outlined, size: 22),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      vehicle == null
+                          ? 'Chưa chọn phương tiện hoạt động'
+                          : [vehicle['display_name'], vehicle['license_plate']]
+                                .whereType<String>()
+                                .where((s) => s.trim().isNotEmpty)
+                                .join(' · '),
+                      style: RescueType.body,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ],
@@ -295,8 +304,8 @@ class LocalFilterBar extends StatelessWidget {
               label: Text(entry.value),
               selected: selected == entry.key,
               labelStyle: TextStyle(
-                fontFamily: 'Roboto',
-                color: selected == entry.key ? AppColors.navy : AppColors.muted,
+                fontFamily: 'Inter',
+                color: selected == entry.key ? Colors.white : AppColors.muted,
                 fontWeight: FontWeight.w700,
               ),
               onSelected: (_) => onSelect(entry.key),

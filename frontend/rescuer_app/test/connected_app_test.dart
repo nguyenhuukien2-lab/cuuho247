@@ -448,7 +448,12 @@ void main() {
       of: find.byKey(const ValueKey('toggle-online')),
       matching: find.byType(FilledButton),
     );
-    await tester.scrollUntilVisible(toggle, 200);
+    await tester.scrollUntilVisible(
+      toggle,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(toggle.hitTestable(), findsOneWidget);
     expect(tester.widget<FilledButton>(toggle).onPressed, isNull);
     expect(find.byType(SwitchListTile), findsNothing);
     await c.setOnline(true);
@@ -493,8 +498,8 @@ void main() {
       expect(service.calls[1].$2['p_session_id'], 'session');
       c.selectTab(1);
       await tester.pumpAndSettle();
-      expect(find.text('Chưa có yêu cầu phù hợp'), findsOneWidget);
-      expect(find.text('Hãy bật online và giữ GPS sẵn sàng'), findsOneWidget);
+      expect(find.text('Chưa có đơn phù hợp'), findsOneWidget);
+      expect(find.text('Hãy bật Online và giữ GPS sẵn sàng'), findsOneWidget);
       final beforeReload = service.calls
           .where((call) => call.$1 == 'rescuer_list_available_requests')
           .length;

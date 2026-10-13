@@ -1,10 +1,8 @@
 import 'package:cuu_ho_247/app/app_controller.dart';
 import 'package:cuu_ho_247/app/app_theme.dart';
-import 'package:cuu_ho_247/app/mobile_ui.dart';
 import 'package:cuu_ho_247/app/user_session.dart';
 import 'package:cuu_ho_247/screens/new_tracking_screen.dart';
 import 'package:cuu_ho_247/widgets/tracking_ui.dart';
-import 'package:cuu_ho_247/widgets/request_location_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -72,9 +70,67 @@ class RefreshTrackingController extends AppController {
 void main() {
   tearDown(UserSession.clear);
 
+  testWidgets(
+      'tracking header account and terminal history keep navigation callbacks',
+      (tester) async {
+    final controller = AppController()
+      ..activeRequest = fixture(RequestStage.completed);
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+            body: NewTrackingScreen(
+                controller: controller,
+                isActive: false,
+                photoRepository: photos.FakePhotos()))));
+    await tester.tap(find.byTooltip('Mở tài khoản'));
+    await tester.pumpAndSettle();
+    expect(controller.tabIndex, 4);
+    await tester.tap(find.byTooltip('Xem lịch sử yêu cầu'));
+    await tester.pumpAndSettle();
+    expect(controller.tabIndex, 3);
+    expect(controller.activeRequest!.stage, RequestStage.completed);
+    expect(find.textContaining('1900'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('quote code without amount does not fabricate a total or fees',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+            body: QuoteStatusCard(price: null, quoteCode: 'BG-000018'))));
+    expect(find.text('Mã báo giá: BG-000018'), findsOneWidget);
+    expect(find.text('Chưa có tổng tiền báo giá.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('tracking-quote-total')), findsNothing);
+    expect(find.textContaining('0đ'), findsNothing);
+    expect(find.textContaining('VAT'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'partial or invalid coordinates never render a default tracking map',
+      (tester) async {
+    for (final point in [
+      (16.075, null),
+      (double.nan, 108.235),
+      (95.0, 108.235)
+    ]) {
+      await tester.pumpWidget(MaterialApp(
+          home: Scaffold(
+              body: TrackingMapCard(
+                  request: fixture(RequestStage.accepted,
+                      latitude: point.$1, longitude: point.$2)))));
+      expect(find.byType(FlutterMap), findsNothing);
+      expect(find.byType(MarkerLayer), findsNothing);
+      expect(find.text('Địa chỉ từ đơn'), findsOneWidget);
+      expect(find.text('Vị trí nhập tay'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
+  });
+
   for (final stage in RequestStage.values) {
     testWidgets(
-        'vertical timeline reflects $stage without invented event times',
+        'six planned steps show only real creation and current $stage milestones',
         (tester) async {
       await tester.pumpWidget(MaterialApp(
           theme: AppTheme.light,
@@ -83,11 +139,15 @@ void main() {
                   child: TrackingTimeline(request: fixture(stage))))));
       final steps =
           tester.widgetList<TimelineStep>(find.byType(TimelineStep)).toList();
-      expect(steps, hasLength(6));
+      expect(steps, hasLength(stage == RequestStage.cancelled ? 7 : 6));
       expect(steps.where((step) => step.done).length,
-          [1, 2, 3, 4, 6, 1][stage.index]);
+          stage == RequestStage.completed ? 2 : 1);
+      expect(steps.where((step) => step.current).length, 1);
       expect(
-          steps.where((step) => step.current).length, stage.isTerminal ? 0 : 1);
+          steps.singleWhere((step) => step.current).title,
+          stage == RequestStage.cancelled
+              ? 'Yêu cầu đã hủy'
+              : TrackingTimeline.labels[TrackingTimeline.currentStep(stage)]);
       expect(steps.first.time, '07:09');
       expect(steps.skip(1).every((step) => step.time == null), isTrue);
       expect(tester.takeException(), isNull);
@@ -101,12 +161,12 @@ void main() {
       await tester.pumpWidget(
           MaterialApp(home: Scaffold(body: QuoteStatusCard(price: value))));
       if (value == null) {
-        expect(find.text('Đối tác sẽ gửi báo giá sau khi kiểm tra.'),
+        expect(find.text('Đối tác sẽ gửi báo giá trước khi thực hiện.'),
             findsOneWidget);
-        expect(find.text('Tổng báo giá'), findsNothing);
+        expect(find.text('Tổng tiền'), findsNothing);
       } else {
         expect(find.text(value == 0 ? '0đ' : '123.456đ'), findsOneWidget);
-        expect(find.text('Tổng báo giá'), findsOneWidget);
+        expect(find.text('Tổng tiền'), findsOneWidget);
       }
       expect(find.text('Đã chốt giá'), findsNothing);
       expect(find.textContaining('VAT'), findsNothing);
@@ -117,11 +177,11 @@ void main() {
       'status displays CH code, clear stage badge and honest update state',
       (tester) async {
     const expectedCopy = {
-      RequestStage.searching: ('Đang chờ đối tác nhận đơn', 'Chờ nhận đơn'),
+      RequestStage.searching: ('Đang tìm đối tác cứu hộ', 'Đang tìm'),
       RequestStage.accepted: ('Đối tác đã tiếp nhận yêu cầu', 'Đã nhận'),
       RequestStage.arriving: ('Đối tác đang di chuyển đến', 'Đang đến'),
-      RequestStage.inProgress: ('Đối tác đang hỗ trợ', 'Đang hỗ trợ'),
-      RequestStage.completed: ('Yêu cầu đã hoàn tất', 'Hoàn tất'),
+      RequestStage.inProgress: ('Đang hỗ trợ cứu hộ', 'Đang hỗ trợ'),
+      RequestStage.completed: ('Cứu hộ đã hoàn tất', 'Hoàn tất'),
       RequestStage.cancelled: ('Yêu cầu đã hủy', 'Đã hủy'),
     };
     for (final stage in RequestStage.values) {
@@ -130,16 +190,18 @@ void main() {
               body: SingleChildScrollView(
                   child: TrackingStatusCard(request: fixture(stage))))));
       await tester.pumpAndSettle();
-      expect(find.text('Mã đơn: CH-000042'), findsOneWidget);
+      expect(find.text('Mã đơn CH-000042'), findsOneWidget);
       final (headline, badge) = expectedCopy[stage]!;
       expect(find.text(headline), findsOneWidget);
       expect(
           find.descendant(
-              of: find.byType(RescueStatusBadge), matching: find.text(badge)),
+              of: find.byType(TrackingStageBadge), matching: find.text(badge)),
           findsOneWidget);
-      expect(find.text('Cập nhật gần nhất'), findsOneWidget);
-      expect(
-          find.text('Chưa có thời gian cập nhật trạng thái.'), findsOneWidget);
+      final travelling =
+          stage == RequestStage.accepted || stage == RequestStage.arriving;
+      expect(find.text('Cập nhật'), travelling ? findsNothing : findsOneWidget);
+      expect(find.text('Chưa có cập nhật'),
+          travelling ? findsNothing : findsOneWidget);
       expectNoInventedTrackingData();
       expect(tester.takeException(), isNull);
     }
@@ -155,14 +217,14 @@ void main() {
                   request:
                       fixture(RequestStage.arriving, updatedAt: updatedAt)))));
       if (updatedAt == null) {
-        expect(find.text('Chưa có thời gian cập nhật trạng thái.'),
-            findsOneWidget);
+        expect(find.text('Cập nhật'), findsNothing);
+        expect(find.text('Chưa có cập nhật'), findsNothing);
         expect(find.textContaining('07:09'), findsNothing);
         expect(find.textContaining('08:17'), findsNothing);
       } else {
-        expect(find.text('04/10/2026 • 08:17'), findsOneWidget);
-        expect(
-            find.text('Chưa có thời gian cập nhật trạng thái.'), findsNothing);
+        expect(find.text('08:17'), findsOneWidget);
+        expect(find.byTooltip('04/10/2026 • 08:17'), findsOneWidget);
+        expect(find.text('Chưa có cập nhật'), findsNothing);
         expect(find.textContaining('07:09'), findsNothing);
       }
       expectNoInventedTrackingData();
@@ -177,17 +239,20 @@ void main() {
       await tester.pumpWidget(MaterialApp(
           home: Scaffold(
               body: SingleChildScrollView(
-                  child: TrackingOrderCard(
-                      request: fixture(RequestStage.searching,
-                          price: price,
-                          quoteCode: price == null ? null : 'BG-000018'))))));
-      expect(find.text('CH-000042'), findsOneWidget);
+                  child: Column(children: [
+        TrackingOrderCard(
+            request: fixture(RequestStage.searching, price: price)),
+        TrackingQuotePartnerCard(
+            request: fixture(RequestStage.searching,
+                price: price, quoteCode: price == null ? null : 'BG-000018'))
+      ])))));
+      expect(find.text('CH-000042'), findsNothing);
       expect(find.text('Kéo xe'), findsOneWidget);
       expect(find.text('Ô tô'), findsOneWidget);
       expect(find.text('Địa chỉ từ đơn'), findsOneWidget);
-      expect(find.text('04/10/2026 • 07:09'), findsOneWidget);
+      expect(find.text('Tạo lúc 04/10/2026 • 07:09'), findsOneWidget);
       expect(find.text('Chưa có đối tác nhận đơn'), findsOneWidget);
-      expect(find.text('Hệ thống đang chờ đối tác phù hợp'), findsOneWidget);
+      expect(find.text('Hệ thống đang tìm đối tác phù hợp'), findsOneWidget);
       expect(find.text('Đối tác đã nhận đơn'), findsNothing);
       if (price == null) {
         expect(find.text('Chưa có báo giá'), findsOneWidget);
@@ -213,10 +278,11 @@ void main() {
                   child: Column(children: [
         TrackingStatusCard(request: request),
         TrackingOrderCard(request: request),
+        TrackingQuotePartnerCard(request: request),
         QuoteStatusCard(price: request.price, quoteCode: request.quoteCode),
       ])))));
-      expect(find.text('Mã đơn: Chưa có mã'), findsOneWidget);
-      expect(find.text('Chưa có mã'), findsOneWidget);
+      expect(find.text('Mã đơn Chưa có mã'), findsOneWidget);
+      expect(find.text('Chưa có mã'), findsNothing);
       expect(find.text('Mã báo giá: Chưa có mã'), findsOneWidget);
       expect(find.text('Đối tác đã nhận đơn'), findsOneWidget);
       expect(find.text('Chưa có thông tin liên hệ đối tác trong đơn.'),
@@ -237,10 +303,10 @@ void main() {
                           latitude: hasCoordinates ? 16.075 : null,
                           longitude: hasCoordinates ? 108.235 : null))))));
       await tester.pumpAndSettle();
-      expect(find.text('Vị trí cứu hộ đã gửi'), findsOneWidget);
+      expect(find.text('Vị trí cứu hộ'), findsOneWidget);
       expect(find.text('Địa chỉ từ đơn'), findsOneWidget);
       final location =
-          tester.widget<RequestLocationCard>(find.byType(RequestLocationCard));
+          tester.widget<TrackingMapCard>(find.byType(TrackingMapCard));
       if (hasCoordinates) {
         expect(location.coordinates!.latitude, 16.075);
         expect(location.coordinates!.longitude, 108.235);
@@ -253,7 +319,7 @@ void main() {
             findsOneWidget);
       } else {
         expect(location.coordinates, isNull);
-        expect(find.text('Chưa có tọa độ'), findsOneWidget);
+        expect(find.text('Vị trí nhập tay'), findsOneWidget);
         expect(find.byType(FlutterMap), findsNothing);
         expect(find.byType(MarkerLayer), findsNothing);
       }
@@ -275,12 +341,12 @@ void main() {
                 isActive: false,
                 photoRepository: photos.FakePhotos()))));
     await tester.pumpAndSettle();
-    final action = find.widgetWithText(FilledButton, 'Cập nhật trạng thái');
+    final action = find.byTooltip('Cập nhật trạng thái');
     expect(
         find.descendant(of: find.byType(TrackingStatusCard), matching: action),
         findsOneWidget);
     expect(tester.getTopLeft(action).dy,
-        lessThan(tester.getTopLeft(find.text('Thông tin yêu cầu')).dy));
+        lessThan(tester.getTopLeft(find.byType(TrackingMapCard)).dy));
     await tester.tap(action);
     await tester.pump();
     expect(controller.refreshes, 1);
@@ -301,11 +367,11 @@ void main() {
                 controller: controller,
                 isActive: false,
                 photoRepository: photos.FakePhotos()))));
-    expect(find.text('Bạn chưa có yêu cầu cứu hộ đang xử lý'), findsOneWidget);
+    expect(find.text('Bạn chưa có yêu cầu đang xử lý'), findsOneWidget);
     expect(find.text('Tạo yêu cầu mới để được hỗ trợ'), findsOneWidget);
     expect(find.byType(TrackingStatusCard), findsNothing);
     expect(find.byType(TrackingOrderCard), findsNothing);
-    final action = find.widgetWithText(FilledButton, 'Tạo yêu cầu cứu hộ');
+    final action = find.widgetWithText(FilledButton, 'Tạo yêu cầu mới');
     expect(action, findsOneWidget);
     expect(tester.widget<FilledButton>(action).onPressed, isNotNull);
     await tester.tap(action);
@@ -335,19 +401,19 @@ void main() {
       // Reveal the real screen content without calling the backend.
       final scrollable = find.byType(Scrollable).first;
       if (stage == RequestStage.searching || stage == RequestStage.accepted) {
-        await tester.scrollUntilVisible(find.text('Hủy yêu cầu'), 350,
+        await tester.scrollUntilVisible(find.text('Hủy yêu cầu cứu hộ'), 350,
             scrollable: scrollable);
-        expect(find.text('Hủy yêu cầu'), findsOneWidget);
-        await tester.tap(find.text('Hủy yêu cầu'));
+        expect(find.text('Hủy yêu cầu cứu hộ'), findsOneWidget);
+        await tester.tap(find.text('Hủy yêu cầu cứu hộ'));
         await tester.pumpAndSettle();
         expect(find.text('Hủy yêu cầu cứu hộ?'), findsOneWidget);
         await tester.tap(find.text('Giữ yêu cầu'));
         await tester.pumpAndSettle();
         expect(controller.activeRequest?.stage, stage);
       } else {
-        await tester.scrollUntilVisible(find.byType(EmergencySupportCard), 350,
+        await tester.scrollUntilVisible(find.byType(TrackingSupportCard), 350,
             scrollable: scrollable);
-        expect(find.text('Hủy yêu cầu'), findsNothing);
+        expect(find.text('Hủy yêu cầu cứu hộ'), findsNothing);
       }
       expectNoInventedTrackingData();
       expect(tester.takeException(), isNull);

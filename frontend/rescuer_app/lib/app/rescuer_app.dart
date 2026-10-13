@@ -10,6 +10,7 @@ import '../screens/account/account_screen.dart';
 import '../widgets/app_components.dart';
 import 'app_state.dart';
 import 'app_theme.dart';
+import 'mobile_app_frame.dart';
 
 class RescuerApp extends StatefulWidget {
   const RescuerApp({super.key, this.appState});
@@ -45,6 +46,8 @@ class _RescuerAppState extends State<RescuerApp> {
     title: 'Cứu Hộ 24/7 Đối tác',
     debugShowCheckedModeBanner: false,
     theme: AppTheme.light,
+    builder: (context, child) =>
+        MobileAppFrame(child: child ?? const SizedBox.shrink()),
     home: showSplash ? const RescuerSplashScreen() : RescuerShell(state: state),
   );
 }

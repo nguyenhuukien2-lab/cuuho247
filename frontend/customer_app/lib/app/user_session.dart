@@ -18,10 +18,11 @@ class UserSession {
     userId = user.id;
     email = user.email;
     final metadata = user.userMetadata ?? const <String, dynamic>{};
-    fullName = (profile?['full_name'] ?? metadata['full_name']) as String?;
-    phoneNumber = profile != null
-        ? profile['phone'] as String?
-        : (metadata['phone'] ?? user.phone) as String?;
+    final name = profile?['full_name'] ?? metadata['full_name'];
+    fullName = name is String ? name : null;
+    final phone =
+        profile != null ? profile['phone'] : (metadata['phone'] ?? user.phone);
+    phoneNumber = phone is String ? phone : null;
   }
 
   static void clear() {

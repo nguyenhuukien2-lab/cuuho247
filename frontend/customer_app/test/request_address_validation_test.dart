@@ -92,7 +92,13 @@ void main() {
               of: addressField(), matching: find.text(addressMessage)),
           findsOneWidget);
       expect(addressHasFocus(tester), isTrue);
-      expect(find.text('Xe nổ lốp', skipOffstage: false), findsOneWidget);
+      expect(
+          tester
+              .widget<TextFormField>(
+                  find.byType(TextFormField, skipOffstage: false).at(1))
+              .controller!
+              .text,
+          'Xe nổ lốp');
       expect(find.text('Khách hàng', skipOffstage: false), findsOneWidget);
       expect(find.text('0900000000', skipOffstage: false), findsOneWidget);
       expect(find.byType(Image, skipOffstage: false), findsOneWidget);

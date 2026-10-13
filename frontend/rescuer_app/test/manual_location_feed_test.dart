@@ -293,9 +293,11 @@ void main() {
       expect(c.requests.single.requestCode, 'CH-000019');
       expect(find.text('Mã đơn: CH-000019'), findsOneWidget);
       expect(find.text('Vá/thay lốp'), findsOneWidget);
-      expect(find.text('Loại xe: Ô tô'), findsOneWidget);
-      expect(find.text('Chưa có tọa độ GPS'), findsOneWidget);
-      expect(find.text('Chưa có khoảng cách ước tính'), findsNothing);
+      expect(find.text('Loại xe cần hỗ trợ'), findsOneWidget);
+      expect(find.text('Ô tô'), findsOneWidget);
+      expect(find.text('Vị trí nhập tay'), findsOneWidget);
+      expect(find.text('Chưa có tọa độ GPS'), findsNothing);
+      expect(find.text('Chưa có khoảng cách ước tính'), findsOneWidget);
       expect(find.textContaining(RegExp(r'\d+\s*km')), findsNothing);
       expectNoPrivateOrFakeData();
       await openPreview(tester, c, manualId);
@@ -344,7 +346,11 @@ void main() {
       await c.setOnline(true);
       c.selectTab(1);
       await tester.pumpAndSettle();
-      expect(find.text('Khoảng cách ước tính · 2 km'), findsOneWidget);
+      expect(find.text('2 km'), findsOneWidget);
+      expect(
+        find.text('Khoảng cách ước tính đến khu vực cứu hộ'),
+        findsOneWidget,
+      );
       expect(find.text('Chưa có tọa độ GPS'), findsNothing);
       expectNoPrivateOrFakeData();
       await openPreview(tester, c, c.requests.single.id);

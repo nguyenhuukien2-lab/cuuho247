@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/backend_models.dart';
+import 'payment_service.dart';
 
 class PartnerSignUpResult {
   const PartnerSignUpResult(
@@ -45,7 +46,7 @@ abstract class RescuerService {
   }
 }
 
-class SupabaseRescuerService implements RescuerService {
+class SupabaseRescuerService implements RescuerService, PaymentSource, CashPaymentCommands {
   @override
   Future<HistoryPage> history({Json? cursor}) async {
     if (userId == null) throw const RescuerFailure('Vui lòng đăng nhập lại.');
@@ -78,6 +79,19 @@ class SupabaseRescuerService implements RescuerService {
 
   SupabaseRescuerService(this.client);
   final SupabaseClient client;
+  late final SupabasePaymentSource _paymentTransport = SupabasePaymentSource(client);
+  PaymentSource get payments => this;
+
+  // Exact GD3 RPC contracts live in the shared payment transport. In particular,
+  // cash commands keep their original operation ID across uncertain retries.
+  Future<Json?> loadJobPayment(String requestId) => _paymentTransport.load(requestId);
+  Future<void> confirmCashReceived(Json params) => _paymentTransport.confirmCash(params);
+  @override
+  Future<Json?> load(String requestId) => loadJobPayment(requestId);
+  @override
+  Future<void> confirmCash(Json params) => confirmCashReceived(params);
+  @override
+  Stream<PaymentSignal> watch(String requestId) => _paymentTransport.watch(requestId);
   final Map<String, String> _pendingOperations = {};
   final Map<String, Json> _pendingUploads = {};
   static const _mutations = {

@@ -6,6 +6,7 @@ import 'package:cuu_ho_247/services/location_service.dart';
 import 'package:cuu_ho_247/services/request_details_service.dart';
 import 'package:cuu_ho_247/widgets/request_location_card.dart';
 import 'package:cuu_ho_247/widgets/rescue_location_map.dart';
+import 'package:cuu_ho_247/widgets/tracking_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -94,9 +95,11 @@ void main() {
                   isActive: false,
                   photoRepository: history.PhotosFake()))));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byType(TrackingMapCard));
+      await tester.pumpAndSettle();
       expect(find.byType(FlutterMap),
           hasCoordinates ? findsOneWidget : findsNothing);
-      if (!hasCoordinates) expect(find.text('Chưa có tọa độ'), findsOneWidget);
+      if (!hasCoordinates) expect(find.text('Vị trí nhập tay'), findsOneWidget);
     });
     testWidgets('history map presence matches coordinates=$hasCoordinates',
         (tester) async {

@@ -11,6 +11,7 @@ import 'package:cuu_ho_247/screens/new_request_screen.dart';
 import 'package:cuu_ho_247/screens/new_tracking_screen.dart';
 import 'package:cuu_ho_247/services/request_details_service.dart';
 import 'package:cuu_ho_247/widgets/customer_profile_card.dart';
+import 'package:cuu_ho_247/widgets/booking_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -135,7 +136,11 @@ void main() {
           'Lịch sử',
           'Tài khoản'
         ]) {
-          expect(find.text(label), findsOneWidget);
+          expect(
+              find.descendant(
+                  of: find.byType(CustomerBottomNav),
+                  matching: find.text(label)),
+              findsOneWidget);
         }
         await tester.pumpWidget(const SizedBox.shrink());
       });

@@ -6,13 +6,15 @@ import '../../app/mobile_ui.dart';
 import '../../app/rescuer_controller.dart';
 import '../../models/backend_models.dart';
 import '../../widgets/app_components.dart';
+import '../payment/job_payment_section.dart';
 import 'preparation_components.dart';
 import 'job_finance_section.dart';
+import 'job_progress_timeline.dart';
+import 'gps_status_detail.dart';
 
 class ActiveJobPanel extends StatefulWidget {
   const ActiveJobPanel({super.key, required this.c});
   final RescuerController c;
-
   @override
   State<ActiveJobPanel> createState() => _ActiveJobPanelState();
 }
@@ -47,31 +49,228 @@ class _ActiveJobPanelState extends State<ActiveJobPanel> {
         if (assignment != null) ...[
           PartnerSection(
             key: const ValueKey('active-job-header'),
-            title: 'Hành động',
+            compact: true,
+            title: 'Chuyến đang xử lý',
             icon: Icons.navigation_outlined,
-            accent: AppColors.orange,
+            background: RescueColors.selected,
             children: [
-              Text(
-                'Mã đơn: ${preparationDisplayCode(assignment.requestCode, prefix: 'CH')}',
-                style: AppType.section,
+              GpsStatusDetail(c: c),
+              Wrap(
+                spacing: 10,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    'Mã đơn: ${preparationDisplayCode(assignment.requestCode, prefix: 'CH')}',
+                    style: RescueType.section,
+                  ),
+                  RescueStatusBadge(
+                    status: assignment.state,
+                    label: assignment.stateLabel,
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: RescueStatusBadge(
-                  status: assignment.state,
-                  label: assignment.stateLabel,
-                ),
-              ),
-              const SizedBox(height: 12),
               Text(
                 c.jobStatus == JobStatus.ready
-                    ? _nextGuide(assignment)
+                    ? 'Việc tiếp theo: ${_nextGuide(assignment)}'
                     : 'Tải lại thông tin chuyến để tiếp tục thao tác.',
                 style: AppType.body,
               ),
-              if (assignment.nextState != null) ...[
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (job != null) ...[
+            Container(
+              key: const ValueKey('active-job-map'),
+              padding: const EdgeInsets.all(20),
+              constraints: const BoxConstraints(minHeight: 220),
+              decoration: BoxDecoration(
+                color: RescueColors.containerHigh,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Icon(
+                    Icons.location_on,
+                    color: AppColors.orange,
+                    size: 40,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _hasCoordinates(job)
+                        ? 'Vị trí hiện trường'
+                        : 'Chưa có vị trí hiện trường',
+                    textAlign: TextAlign.center,
+                    style: AppType.section,
+                  ),
+                  const SizedBox(height: 6),
+                  if (_hasCoordinates(job)) ...[
+                    Text(
+                      '${job.latitude!.toStringAsFixed(6)}, ${job.longitude!.toStringAsFixed(6)}',
+                      textAlign: TextAlign.center,
+                      style: AppType.code,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Xem bản đồ tại vị trí thực tế trong Google Maps.',
+                      textAlign: TextAlign.center,
+                      style: AppType.caption,
+                    ),
+                    const SizedBox(height: 12),
+                    AppButton(
+                      kind: ButtonStyleKind.secondary,
+                      label: 'Mở Google Maps',
+                      icon: Icons.near_me_outlined,
+                      onPressed: () => _open(
+                        context,
+                        Uri.https('www.google.com', '/maps/search/', {
+                          'api': '1',
+                          'query': '${job.latitude},${job.longitude}',
+                        }),
+                        'Không mở được bản đồ. Kiểm tra ứng dụng bản đồ hoặc trình duyệt.',
+                      ),
+                    ),
+                  ] else
+                    const Text(
+                      'Chưa có GPS. Xác nhận điểm cứu hộ với khách.',
+                      textAlign: TextAlign.center,
+                      style: AppType.body,
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            PartnerSection(
+              key: const ValueKey('active-job-customer'),
+              title: 'Thông tin hiện trường',
+              icon: Icons.person_outline,
+              children: [
+                if (job.contactName?.trim().isNotEmpty == true)
+                  _field('Khách hàng', job.contactName!),
+                if (job.contactPhone?.trim().isNotEmpty == true)
+                  _field('Số điện thoại', job.contactPhone!)
+                else
+                  const Text(
+                    'Đơn chưa có số điện thoại liên hệ.',
+                    style: AppType.body,
+                  ),
+                if (job.contactPhone != null &&
+                    RegExp(r'^\+?[0-9]{8,15}$').hasMatch(job.contactPhone!))
+                  AppButton(
+                    label: 'Gọi ngay',
+                    icon: Icons.phone_in_talk_outlined,
+                    kind: ButtonStyleKind.secondary,
+                    onPressed: () => _open(
+                      context,
+                      Uri(scheme: 'tel', path: job.contactPhone),
+                      'Không mở được ứng dụng gọi điện. Bạn có thể sao chép số ở trên.',
+                    ),
+                  )
+                else if (job.contactPhone?.trim().isNotEmpty == true)
+                  const Text(
+                    'Số liên hệ chưa hỗ trợ gọi trực tiếp. Kiểm tra lại với khách hàng.',
+                    style: AppType.caption,
+                  ),
+                const Divider(height: 28),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final vehicle = LabeledValue(
+                      label: 'Xe gặp sự cố',
+                      value: customerVehicles[job.vehicle] ?? 'Chưa có loại xe',
+                    );
+                    final service = LabeledValue(
+                      label: 'Phương án cứu hộ',
+                      value: serviceLabels[job.service] ?? 'Dịch vụ cứu hộ',
+                    );
+                    if (constraints.maxWidth < 310 ||
+                        MediaQuery.textScalerOf(context).scale(14) > 18) {
+                      return Column(
+                        children: [
+                          vehicle,
+                          const SizedBox(height: 12),
+                          service,
+                        ],
+                      );
+                    }
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: vehicle),
+                        const SizedBox(width: 12),
+                        Expanded(child: service),
+                      ],
+                    );
+                  },
+                ),
                 const SizedBox(height: 16),
+                LabeledValue(
+                  label: 'Vị trí thực địa',
+                  icon: Icons.pin_drop_outlined,
+                  value: job.address?.trim().isNotEmpty == true
+                      ? job.address!
+                      : 'Đơn chưa có địa chỉ cứu hộ.',
+                ),
+                if (job.description?.trim().isNotEmpty == true) ...[
+                  const Divider(height: 28),
+                  _field('Ghi chú sự cố', job.description!),
+                ],
+              ],
+            ),
+            const SizedBox(height: 20),
+          ],
+          PartnerSection(
+            key: const ValueKey('active-job-progress'),
+            title: 'Tiến trình tác nghiệp',
+            icon: Icons.checklist,
+            children: [JobProgressTimeline(assignment: assignment)],
+          ),
+          const SizedBox(height: 20),
+          PartnerSection(
+            key: const ValueKey('active-job-finance'),
+            title: 'Bảng kê chi phí ca cứu hộ',
+            icon: Icons.receipt_long_outlined,
+            children: [
+              if (assignment.state == 'in_progress')
+                JobFinanceSection(
+                  key: _financeKey,
+                  c: c,
+                  assignment: assignment,
+                  embedded: true,
+                  showCompletionAction: false,
+                )
+              else if (assignment.currentQuoteId != null) ...[
+                Text(
+                  'Mã báo giá: ${preparationDisplayCode(assignment.quoteCode, prefix: 'BG')}',
+                  style: AppType.code,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  formatMoney(assignment.totalVnd, assignment.currency),
+                  style: AppType.section,
+                ),
+                const SizedBox(height: 8),
+                const StatusBadge(
+                  label: 'Báo giá đã gửi',
+                  tone: BadgeTone.green,
+                ),
+              ] else
+                const Text('Chưa có báo giá', style: AppType.body),
+            ],
+          ),
+          const SizedBox(height: 20),
+          JobPaymentSection(
+            key: const ValueKey('active-job-payment'),
+            c: c,
+            assignment: assignment,
+          ),
+          const SizedBox(height: 20),
+          Column(
+            key: const ValueKey('active-job-actions'),
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (assignment.nextState != null)
                 AppButton(
                   key: const ValueKey('advance-job'),
                   label: c.updatingJobState != null
@@ -80,9 +279,8 @@ class _ActiveJobPanelState extends State<ActiveJobPanel> {
                   icon: Icons.navigation_outlined,
                   loading: c.updatingJobState != null,
                   onPressed: c.canAdvanceJob ? c.advanceJob : null,
-                ),
-              ] else if (assignment.state == 'in_progress') ...[
-                const SizedBox(height: 16),
+                )
+              else if (assignment.state == 'in_progress')
                 if (assignment.currentQuoteId == null)
                   AppButton(
                     key: const ValueKey('open-quote'),
@@ -106,95 +304,28 @@ class _ActiveJobPanelState extends State<ActiveJobPanel> {
                           )
                         : null,
                   ),
-              ],
-
-              if (job != null) ...[
-                const Divider(height: 28),
-                if (job.contactName?.trim().isNotEmpty == true)
-                  _field('Khách hàng', job.contactName!),
-                if (job.contactPhone?.trim().isNotEmpty == true)
-                  _field('Số điện thoại', job.contactPhone!)
-                else
-                  const Text(
-                    'Đơn chưa có số điện thoại liên hệ.',
-                    style: AppType.body,
-                  ),
-                const SizedBox(height: 8),
-                if (job.contactPhone != null &&
-                    RegExp(r'^\+?[0-9]{8,15}$').hasMatch(job.contactPhone!))
-                  AppButton(
-                    label: 'Gọi ngay',
-                    icon: Icons.phone_in_talk_outlined,
-                    kind: ButtonStyleKind.secondary,
-                    onPressed: () => _open(
-                      context,
-                      Uri(scheme: 'tel', path: job.contactPhone),
-                      'Không mở được ứng dụng gọi điện. Bạn có thể sao chép số ở trên.',
-                    ),
-                  )
-                else if (job.contactPhone?.trim().isNotEmpty == true)
-                  const Text(
-                    'Số liên hệ chưa hỗ trợ gọi trực tiếp. Kiểm tra lại với khách hàng.',
-                    style: AppType.caption,
-                  ),
-                const SizedBox(height: 12),
-                if (_hasCoordinates(job))
-                  AppButton(
-                    kind: ButtonStyleKind.secondary,
-                    label: 'Mở Google Maps',
-                    icon: Icons.map_outlined,
-                    onPressed: () => _open(
-                      context,
-                      Uri.https('www.google.com', '/maps/search/', {
-                        'api': '1',
-                        'query': '${job.latitude},${job.longitude}',
-                      }),
-                      'Không mở được bản đồ. Kiểm tra ứng dụng bản đồ hoặc trình duyệt.',
-                    ),
-                  )
-                else
-                  const Text(
-                    'Chưa có GPS. Xác nhận điểm cứu hộ với khách.',
-                    style: AppType.body,
-                  ),
-              ],
-              if (assignment.state == 'in_progress') ...[
-                const Divider(height: 28),
-                JobFinanceSection(
-                  key: _financeKey,
-                  c: c,
-                  assignment: assignment,
-                  embedded: true,
-                  showCompletionAction: false,
-                ),
-              ],
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
         ],
-        if (c.jobStatus == JobStatus.loading) ...[
+        if (c.jobStatus == JobStatus.loading)
           const PreparationEmpty(
             kind: RescueFeedbackKind.loading,
             title: 'Đang tải chuyến',
             message: 'Đang kiểm tra thông tin chuyến đã nhận.',
             icon: Icons.sync,
           ),
-          const SizedBox(height: 16),
-        ],
-        if (c.jobStatus == JobStatus.error) ...[
+        if (c.jobStatus == JobStatus.error)
           PreparationEmpty(
             kind: RescueFeedbackKind.error,
             title: 'Chưa tải được thông tin chuyến',
             message: c.jobError ?? 'Kiểm tra kết nối rồi thử tải lại.',
             icon: Icons.cloud_off,
           ),
-          const SizedBox(height: 16),
-        ],
-        if (c.jobStatus == JobStatus.empty) ...[
+        if (c.jobStatus == JobStatus.empty)
           PreparationEmpty(
             title: 'Chưa có chuyến đang xử lý',
-            message:
-                'Bật online và vào Đơn mới để nhận yêu cầu cứu hộ phù hợp.',
+            message: 'Vào tab Đơn mới để nhận chuyến',
             icon: Icons.local_shipping_outlined,
             action: AppButton(
               label: 'Xem đơn mới',
@@ -202,60 +333,13 @@ class _ActiveJobPanelState extends State<ActiveJobPanel> {
               onPressed: c.working ? null : () => c.selectTab(1),
             ),
           ),
-          const SizedBox(height: 16),
-        ],
-        if (c.jobStatus == JobStatus.unavailable) ...[
+        if (c.jobStatus == JobStatus.unavailable)
           const PreparationEmpty(
             title: 'Chưa thể xem chuyến',
             message: 'Đăng nhập và kiểm tra trạng thái duyệt hồ sơ trước khi tiếp tục.',
             icon: Icons.verified_user_outlined,
           ),
-          const SizedBox(height: 16),
-        ],
-
-        if (job != null) ...[
-          PartnerSection(
-            key: const ValueKey('active-job-info'),
-            title: 'Thông tin chuyến',
-            icon: Icons.assignment_outlined,
-            children: [
-              _field(
-                'Dịch vụ',
-                serviceLabels[job.service] ?? 'Chưa có thông tin dịch vụ',
-              ),
-              _field(
-                'Loại xe',
-                customerVehicles[job.vehicle] ?? 'Chưa có thông tin loại xe',
-              ),
-              _field(
-                'Địa điểm',
-                job.address?.trim().isNotEmpty == true
-                    ? job.address!
-                    : 'Đơn chưa có địa chỉ cứu hộ.',
-              ),
-              if (_hasCoordinates(job) &&
-                  job.address?.trim().isNotEmpty != true)
-                _field(
-                  'Tọa độ cứu hộ',
-                  '${job.latitude!.toStringAsFixed(6)}, ${job.longitude!.toStringAsFixed(6)}',
-                ),
-              if (job.assignment.acceptedAt != null)
-                _field('Nhận lúc', _time(job.assignment.acceptedAt!)),
-              if (job.description?.trim().isNotEmpty == true)
-                _field('Ghi chú sự cố', job.description!),
-            ],
-          ),
-          const SizedBox(height: 16),
-        ],
-        if (assignment != null) ...[
-          PartnerSection(
-            key: const ValueKey('active-job-progress'),
-            title: 'Tiến trình',
-            icon: Icons.route_outlined,
-            children: [_ActiveJobTimeline(assignment: assignment)],
-          ),
-          const SizedBox(height: 16),
-        ],
+        const SizedBox(height: 12),
         AppButton(
           kind: ButtonStyleKind.quiet,
           label: 'Tải lại chuyến',
@@ -271,15 +355,15 @@ class _ActiveJobPanelState extends State<ActiveJobPanel> {
 
   static String _nextGuide(JobAssignment assignment) =>
       switch (assignment.state) {
-        'accepted' => 'Xác nhận điểm cứu hộ rồi bắt đầu di chuyển.',
-        'en_route' => 'Tới điểm cứu hộ, bấm “Đã đến nơi”.',
-        'arrived' => 'Kiểm tra sự cố và bắt đầu hỗ trợ.',
+        'accepted' => 'Bắt đầu di chuyển.',
+        'en_route' => 'Xác nhận đã đến nơi.',
+        'arrived' => 'Bắt đầu hỗ trợ.',
         'in_progress' =>
           assignment.currentQuoteId == null
-              ? 'Gửi báo giá trước khi hoàn tất chuyến.'
+              ? 'Tạo báo giá.'
               : assignment.hasQuote
-              ? 'Hỗ trợ xong, xác nhận hoàn tất chuyến.'
-              : 'Báo giá đã gửi. Tải lại chuyến để kiểm tra tổng tiền trước khi hoàn tất.',
+              ? 'Hoàn tất hỗ trợ.'
+              : 'Tải lại để kiểm tra báo giá.',
         'completed' => 'Chuyến đã hoàn tất. Xem thông tin trong lịch sử.',
         'cancelled' => 'Chuyến đã hủy. Xem thông tin trong lịch sử.',
         _ => 'Tải lại chuyến để kiểm tra trạng thái hiện tại.',
@@ -320,96 +404,4 @@ class _ActiveJobPanelState extends State<ActiveJobPanel> {
       ],
     ),
   );
-}
-
-String _time(DateTime value) {
-  final t = value.toLocal();
-  String two(int n) => n.toString().padLeft(2, '0');
-  return '${two(t.hour)}:${two(t.minute)} · ${two(t.day)}/${two(t.month)}/${t.year}';
-}
-
-/// Only server milestones have times; a quote is an action, not a new job state.
-class _ActiveJobTimeline extends StatelessWidget {
-  const _ActiveJobTimeline({required this.assignment});
-  final JobAssignment assignment;
-
-  @override
-  Widget build(BuildContext context) {
-    final steps = [
-      ('accepted', 'Đã nhận đơn', assignment.acceptedAt),
-      ('en_route', 'Đang đến điểm cứu hộ', assignment.enRouteAt),
-      ('arrived', 'Đã đến nơi', assignment.arrivedAt),
-      ('in_progress', 'Đang hỗ trợ khách', assignment.inProgressAt),
-      ('completed', 'Hoàn tất chuyến', assignment.completedAt),
-      if (assignment.state == 'cancelled' || assignment.cancelledAt != null)
-        ('cancelled', 'Đã hủy', assignment.cancelledAt),
-    ];
-    return Column(
-      children: [
-        for (final (state, label, time) in steps)
-          if (state == assignment.state || time != null)
-            Container(
-              key: ValueKey('job-step-$state'),
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: state == assignment.state
-                    ? RescueColors.selected
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(RescueRadius.control),
-                border: state == assignment.state
-                    ? Border.all(color: AppColors.orange)
-                    : null,
-              ),
-              child: Semantics(
-                label:
-                    '$label: ${state == assignment.state
-                        ? 'Hiện tại'
-                        : time != null
-                        ? 'Đã ghi nhận'
-                        : 'Chưa ghi nhận'}',
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      state == assignment.state
-                          ? Icons.radio_button_checked
-                          : time != null
-                          ? Icons.check_rounded
-                          : Icons.radio_button_unchecked,
-                      color: state == assignment.state
-                          ? AppColors.orange
-                          : AppColors.muted,
-                      size: 22,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            label,
-                            style: AppType.body.copyWith(
-                              fontWeight: state == assignment.state
-                                  ? FontWeight.w700
-                                  : FontWeight.w400,
-                              color: state == assignment.state
-                                  ? AppColors.navy
-                                  : AppColors.muted,
-                            ),
-                          ),
-                          if (state == assignment.state)
-                            const Text('Hiện tại', style: AppType.caption),
-                          if (time != null)
-                            Text(_time(time), style: AppType.caption),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-      ],
-    );
-  }
 }

@@ -124,6 +124,6 @@ void main() {
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     expect(find.byType(NewHistoryScreen), findsOneWidget);
-    expect(find.text('Nhật Ký Cứu Hộ An Toàn'), findsOneWidget);
+    expect(find.text('NHẬT KÝ CỨU HỘ'), findsOneWidget);
   });
 }

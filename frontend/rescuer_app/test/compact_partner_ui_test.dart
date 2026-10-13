@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rescuer/app/app_theme.dart';
+import 'package:rescuer/app/mobile_ui.dart';
 import 'package:rescuer/app/rescuer_controller.dart';
 import 'package:rescuer/models/backend_models.dart';
 import 'package:rescuer/screens/preparation/account_overview.dart';
 import 'package:rescuer/screens/preparation/history_panel.dart';
 import 'package:rescuer/screens/preparation/new_request_preview.dart';
+import 'package:rescuer/screens/preparation/partner_accordion.dart';
 import 'package:rescuer/screens/preparation/preparation_components.dart';
 import 'package:rescuer/screens/preparation/preparation_forms.dart';
 import 'package:rescuer/screens/preparation/preparation_screen.dart';
@@ -48,10 +50,14 @@ RescuerSnapshot operatingProfile() {
   );
 }
 
-Future<void> reveal(WidgetTester tester, Finder target) async {
+Future<void> reveal(
+  WidgetTester tester,
+  Finder target, {
+  double delta = 180,
+}) async {
   await tester.scrollUntilVisible(
     target,
-    180,
+    delta,
     scrollable: find.byType(Scrollable).first,
   );
   await tester.pumpAndSettle();
@@ -75,6 +81,118 @@ void expectNoUuid() => expect(
 );
 
 void main() {
+  testWidgets('manual labels and horizontal chips stay readable at 320px', (
+    tester,
+  ) async {
+    final base = operatingProfile();
+    final s = FakeService()
+      ..userId = 'rescuer'
+      ..snapshot = RescuerSnapshot(
+        profile: base.profile,
+        vehicles: base.vehicles,
+        services: base.services,
+        capabilities: [
+          for (final code in ['tire', 'battery', 'towing', 'fuel', 'other'])
+            {...base.capabilities.first, 'service_code': code},
+        ],
+      )
+      ..page = const RequestPage([manualRequest, gpsRequest], null);
+    final c = RescuerController(s, FakeLocation());
+    addTearDown(() => s.changes.close());
+    await mount(tester, c);
+    tester.view.physicalSize = const Size(320, 740);
+    tester.platformDispatcher.textScaleFactorTestValue = 1.8;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<NavigationBar>(find.byType(NavigationBar)).destinations,
+      hasLength(5),
+    );
+    final services = find.byKey(const ValueKey('work-services'));
+    await reveal(tester, services);
+    final serviceScroll = tester.widget<SingleChildScrollView>(services);
+    expect(serviceScroll.scrollDirection, Axis.horizontal);
+    final badges = find.descendant(
+      of: services,
+      matching: find.byType(StatusBadge),
+    );
+    expect(badges, findsNWidgets(3));
+    final badgeRects = [
+      for (final e in badges.evaluate())
+        tester.getRect(find.byWidget(e.widget)),
+    ];
+    expect(badgeRects.map((r) => r.center.dy).toSet(), hasLength(1));
+    await tester.drag(services, const Offset(-600, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('+3 dịch vụ').hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await c.setOnline(true);
+    await navTo(tester, 'Đơn mới');
+    final filters = find.byKey(const ValueKey('new-orders-filters'));
+    await reveal(tester, filters);
+    expect(
+      tester.widget<SingleChildScrollView>(filters).scrollDirection,
+      Axis.horizontal,
+    );
+    for (final key in [
+      'filter-all',
+      'filter-towing',
+      'filter-battery_tire',
+      'filter-other',
+    ]) {
+      final chip = find.byKey(ValueKey(key));
+      final chipRect = tester.getRect(chip);
+      final viewport = tester.getRect(filters);
+      expect(chipRect.top, greaterThan(viewport.top));
+      expect(chipRect.bottom, lessThan(viewport.bottom));
+    }
+    await tester.drag(filters, const Offset(-800, 0));
+    await tester.pumpAndSettle();
+    final other = find.byKey(const ValueKey('filter-other'));
+    expect(other.hitTestable(), findsOneWidget);
+    final before = s.calls.length;
+    await tester.tap(other);
+    await tester.pumpAndSettle();
+    expect(find.byType(NewRequestCard), findsNothing);
+    expect(s.calls.length, before);
+    await tester.drag(filters, const Offset(800, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('filter-all')));
+    await tester.pumpAndSettle();
+    final preview = find.byKey(ValueKey('preview-${manualRequest.id}'));
+    await reveal(tester, preview);
+    final card = find.ancestor(
+      of: preview,
+      matching: find.byType(NewRequestCard),
+    );
+    expect(
+      find.descendant(of: card, matching: find.text('Vị trí nhập tay')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('V? tr?'), findsNothing);
+    expect(find.textContaining('�'), findsNothing);
+    expect(find.text('Chưa có tọa độ GPS'), findsNothing);
+    expect(find.textContaining('ETA'), findsNothing);
+    expect(find.textContaining('0901234567'), findsNothing);
+    expect(find.textContaining('0 km'), findsNothing);
+    expectNoUuid();
+    final ignore = find.byKey(ValueKey('ignore-${manualRequest.id}'));
+    expect(
+      tester.getRect(ignore).top,
+      greaterThanOrEqualTo(tester.getRect(preview).bottom),
+    );
+    expect(preview.hitTestable(), findsOneWidget);
+    await reveal(tester, ignore);
+    expect(ignore.hitTestable(), findsOneWidget);
+    await tester.tap(ignore);
+    await tester.pumpAndSettle();
+    expect(find.byKey(ValueKey('preview-${manualRequest.id}')), findsNothing);
+    expect(c.requests, hasLength(2));
+    expect(s.calls.length, before);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets(
     'compact vehicle row preserves offline selection and locks changes online',
     (tester) async {
@@ -102,6 +220,7 @@ void main() {
       addTearDown(() => s.changes.close());
       await mount(tester, c);
       final choose = find.byKey(const ValueKey('dashboard-choose-vehicle'));
+      await reveal(tester, choose);
       await tester.tap(choose);
       await tester.pumpAndSettle();
       expect(find.text('Chọn xe đang dùng'), findsOneWidget);
@@ -110,6 +229,7 @@ void main() {
       expect(c.selectedVehicle, 'vehicle-2');
       expect(find.text('TEST02 · Xe hỗ trợ 2'), findsOneWidget);
       expect(s.calls, isEmpty);
+      await reveal(tester, find.byKey(const ValueKey('toggle-online')));
       await tester.tap(find.byKey(const ValueKey('toggle-online')));
       await tester.pumpAndSettle();
       expect(c.online, isTrue);
@@ -118,6 +238,7 @@ void main() {
       expect(tester.widget<TextButton>(choose).onPressed, isNull);
       c.selectVehicle('vehicle');
       expect(c.selectedVehicle, 'vehicle-2');
+      await reveal(tester, find.byKey(const ValueKey('dashboard-gps')));
       await tester.tap(find.byKey(const ValueKey('dashboard-gps')));
       await tester.pumpAndSettle();
       expect(c.tab, 4);
@@ -140,18 +261,26 @@ void main() {
       await mount(tester, c);
       tester.view.physicalSize = const Size(320, 740);
       await navTo(tester, 'Trang chủ');
+      await reveal(tester, find.byKey(const ValueKey('toggle-online')));
       expect(find.text('Bật Online'), findsOneWidget);
-      final openJob = find.widgetWithText(FilledButton, 'Mở chuyến');
+      final openJob = find.widgetWithText(FilledButton, 'Tiếp tục tác nghiệp');
       await reveal(tester, openJob);
       expect(openJob.hitTestable(), findsOneWidget);
-      expect(tester.getRect(openJob).bottom, lessThan(660));
+      expect(
+        tester.getRect(openJob).bottom,
+        lessThanOrEqualTo(tester.getRect(find.byType(NavigationBar)).top),
+      );
       expect(find.text('Mã đơn: CH-000042'), findsOneWidget);
       expect(c.canClaim, isFalse);
       expect(s.calls, isEmpty);
       await tester.tap(openJob);
       await tester.pumpAndSettle();
       expect(c.tab, 2);
-      expect(find.byKey(const ValueKey('open-quote')), findsOneWidget);
+      await reveal(tester, find.byKey(const ValueKey('open-quote')));
+      expect(
+        find.byKey(const ValueKey('open-quote')).hitTestable(),
+        findsOneWidget,
+      );
       expect(s.calls, isEmpty);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
@@ -183,7 +312,7 @@ void main() {
       addTearDown(() => s.changes.close());
       await mount(tester, c);
       final work = find.byKey(const ValueKey('dashboard-work'));
-      expect(tester.getSize(work).height, lessThanOrEqualTo(350));
+      expect(tester.getSize(work).width, lessThanOrEqualTo(390));
       expect(find.byType(SwitchListTile), findsNothing);
       expect(find.textContaining('Dịch vụ đang bật:'), findsNothing);
       final chips = find.byKey(const ValueKey('work-services'));
@@ -191,7 +320,7 @@ void main() {
         find.descendant(of: chips, matching: find.byType(StatusBadge)),
         findsNWidgets(3),
       );
-      expect(find.text('+3'), findsOneWidget);
+      expect(find.text('+3 dịch vụ'), findsOneWidget);
       final toggle = find.byKey(const ValueKey('toggle-online'));
       final filled = find.descendant(
         of: toggle,
@@ -203,9 +332,11 @@ void main() {
       );
       final gps = find.byKey(const ValueKey('dashboard-gps'));
       expect(
-        (tester.getCenter(gps).dy - tester.getCenter(toggle).dy).abs(),
-        lessThan(2),
+        tester.getRect(gps).top,
+        greaterThanOrEqualTo(tester.getRect(toggle).bottom),
       );
+      await reveal(tester, filled);
+      expect(filled.hitTestable(), findsOneWidget);
       await tester.tap(filled);
       await tester.pumpAndSettle();
       expect(c.online, isTrue);
@@ -221,15 +352,9 @@ void main() {
             .color,
         AppColors.success,
       );
-      expect(
-        tester
-            .widget<StatusBadge>(
-              find.byKey(const ValueKey('work-online-status')),
-            )
-            .tone,
-        BadgeTone.green,
-      );
-      expect(find.text('Tắt Online'), findsOneWidget);
+      expect(tester.widget<Switch>(find.byType(Switch)).value, isTrue);
+      expect(find.text('ĐANG TRỰC TUYẾN'), findsOneWidget);
+      expect(find.text('Tạm dừng nhận đơn'), findsOneWidget);
       expect(s.calls.map((call) => call.$1), [
         'rescuer_set_online',
         'rescuer_update_location',
@@ -250,20 +375,16 @@ void main() {
         groups.where((w) => w is PartnerSection || w is PreparationOnline),
         hasLength(3),
       );
-      expect(find.text('Có 2 đơn phù hợp'), findsOneWidget);
+      expect(find.byKey(const ValueKey('dashboard-orders')), findsNothing);
       expect(find.byType(NewRequestCard), findsNothing);
       expect(find.byKey(ValueKey('preview-${manualRequest.id}')), findsNothing);
       expectNoUuid();
-      final position = tester
-          .state<ScrollableState>(find.byType(Scrollable).first)
-          .position;
-      position.jumpTo(position.maxScrollExtent);
-      await tester.pumpAndSettle();
       final openOrders = find.byKey(const ValueKey('dashboard-open-orders'));
+      await reveal(tester, openOrders);
       expect(openOrders.hitTestable(), findsOneWidget);
       expect(
         tester.getRect(openOrders).bottom,
-        lessThan(tester.getRect(find.byType(NavigationBar)).top - 20),
+        lessThanOrEqualTo(tester.getRect(find.byType(NavigationBar)).top),
       );
       expect(
         tester
@@ -282,11 +403,18 @@ void main() {
       );
       await reveal(tester, find.byKey(ValueKey('preview-${manualRequest.id}')));
       expect(find.text('Mã đơn: CH-000019'), findsOneWidget);
-      expect(find.text('Chưa có tọa độ GPS'), findsOneWidget);
-      expect(find.text('Khoảng cách ước tính · 2 km'), findsOneWidget);
+      expect(find.text('Vị trí nhập tay'), findsOneWidget);
+      expect(find.text('Chưa có tọa độ GPS'), findsNothing);
+      await reveal(tester, find.text('2 km'));
+      expect(find.text('2 km'), findsOneWidget);
       expect(find.textContaining('0 km'), findsNothing);
       expectNoUuid();
       final calls = s.calls.length;
+      await reveal(
+        tester,
+        find.byKey(ValueKey('preview-${manualRequest.id}')),
+        delta: -180,
+      );
       await tester.tap(find.byKey(ValueKey('preview-${manualRequest.id}')));
       await tester.pumpAndSettle();
       expect(find.byType(NewRequestPreview), findsOneWidget);
@@ -311,7 +439,7 @@ void main() {
               ),
             )
             .color,
-        AppColors.warning,
+        RescueColors.secondaryText,
       );
       expect(s.calls.last.$1, 'rescuer_set_online');
       expect(s.calls.last.$2['p_online'], isFalse);
@@ -331,10 +459,10 @@ void main() {
       addTearDown(() => s.changes.close());
       await mount(tester, c);
       await c.setOnline(true);
-      for (final (status, text) in [
-        (FeedStatus.loading, 'Đang tìm đơn phù hợp'),
-        (FeedStatus.error, 'Chưa tải được đơn mới'),
-        (FeedStatus.unavailable, 'Mở Đơn mới để kiểm tra điều kiện.'),
+      for (final status in [
+        FeedStatus.loading,
+        FeedStatus.error,
+        FeedStatus.unavailable,
       ]) {
         c.feedStatus = status;
         c.selectTab(0);
@@ -343,7 +471,12 @@ void main() {
           tester,
           find.byKey(const ValueKey('dashboard-open-orders')),
         );
-        expect(find.text(text), findsOneWidget);
+        expect(find.byKey(const ValueKey('dashboard-orders')), findsNothing);
+        expect(find.byKey(const ValueKey('dashboard-current')), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('dashboard-open-orders')).hitTestable(),
+          findsOneWidget,
+        );
         expect(find.text('Có 2 đơn phù hợp'), findsNothing);
         expect(find.byType(NewRequestCard), findsNothing);
         expectNoUuid();
@@ -354,7 +487,7 @@ void main() {
   );
 
   testWidgets(
-    'account has three groups, one DT code and all six editors remain reachable without chips',
+    'account accordions keep identity, editors and GPS controls reachable',
     (tester) async {
       final s = FakeService()
         ..userId = 'rescuer'
@@ -363,20 +496,30 @@ void main() {
       addTearDown(() => s.changes.close());
       await mount(tester, c);
       await navTo(tester, 'Tài khoản');
-      expect(find.byType(PartnerSection), findsNWidgets(3));
+      expect(find.byType(PartnerAccordion), findsNWidgets(7));
       expect(find.byType(ChoiceChip), findsNothing);
-      expect(find.text('Mã đối tác: DT-000042'), findsOneWidget);
-      expect(find.text('Đã được duyệt'), findsOneWidget);
+      expect(find.text('DT-000042'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('account-identity')),
+          matching: find.text('Đã được duyệt'),
+        ),
+        findsNWidgets(2),
+      );
       expect(find.text('Lịch sử chuyến'), findsNothing);
       const editors = <(String, String, Type)>[
-        ('Thông tin cá nhân', 'profile', PreparationProfile),
-        ('Hồ sơ xác minh', 'documents', PreparationDocuments),
-        ('Xe của tôi', 'vehicles', PreparationVehicles),
-        ('Dịch vụ cứu hộ', 'services', PreparationServices),
-        ('Trạng thái duyệt', 'review', PreparationReview),
-        ('GPS & quyền vị trí', 'gps', PreparationGps),
+        ('Chỉnh sửa hồ sơ', 'profile', PreparationProfile),
+        ('Tải / bổ sung giấy tờ', 'documents', PreparationDocuments),
+        ('Thêm / sửa phương tiện', 'vehicles', PreparationVehicles),
+        ('Quản lý dịch vụ', 'services', PreparationServices),
+        ('Xem trạng thái / gửi xác minh', 'review', PreparationReview),
       ];
       for (final (label, section, type) in editors) {
+        final group = section == 'review' ? 'documents' : section;
+        final toggle = find.byKey(ValueKey('accordion-$group-toggle'));
+        await reveal(tester, toggle);
+        await tester.tap(toggle);
+        await tester.pumpAndSettle();
         await reveal(tester, find.text(label));
         await tester.tap(find.text(label));
         await tester.pumpAndSettle();
@@ -389,6 +532,16 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.byType(AccountOverview), findsOneWidget);
       }
+      final gpsToggle = find.byKey(const ValueKey('accordion-gps-toggle'));
+      await reveal(tester, gpsToggle);
+      await tester.tap(gpsToggle);
+      await tester.pumpAndSettle();
+      await reveal(tester, find.text('Kiểm tra GPS'));
+      await tester.tap(find.text('Kiểm tra GPS'));
+      await tester.pumpAndSettle();
+      expect(c.gpsReady, isTrue);
+      expect(find.text('Mở Cài đặt quyền vị trí'), findsOneWidget);
+      expect(find.text('Mở Cài đặt GPS'), findsOneWidget);
       expect(s.calls, isEmpty);
       await reveal(tester, find.text('Đăng xuất'));
       await tester.tap(find.text('Đăng xuất'));
@@ -402,19 +555,24 @@ void main() {
   );
 
   testWidgets(
-    'active job has exactly three groups with one order code and grouped quote/actions',
+    'active job has exactly four groups with one order code and distinct quote/actions',
     (tester) async {
       final s = ActiveUiFake();
       final c = RescuerController(s, FakeLocation())..start();
       addTearDown(() => s.changes.close());
       await mountPanel(tester, c, size: const Size(320, 740), scale: 1.5);
-      expect(find.byType(PartnerSection), findsNWidgets(3));
+      expect(find.byType(PartnerSection), findsNWidgets(4));
       expect(find.byType(AppCard), findsNothing);
       expect(find.text('Mã đơn: CH-000042'), findsOneWidget);
-      final actions = find.byKey(const ValueKey('active-job-header'));
+      final actions = find.byKey(const ValueKey('active-job-actions'));
       for (final key in ['open-quote', 'quote-main', 'send-quote']) {
         expect(
-          find.descendant(of: actions, matching: find.byKey(ValueKey(key))),
+          find.descendant(
+            of: key == 'open-quote'
+                ? actions
+                : find.byKey(const ValueKey('active-job-finance')),
+            matching: find.byKey(ValueKey(key)),
+          ),
           findsOneWidget,
         );
       }
@@ -446,15 +604,16 @@ void main() {
       await navTo(tester, 'Lịch sử');
       expect(find.byType(HistoryPanel), findsOneWidget);
       expect(find.text('Mã đơn: CH-000042'), findsOneWidget);
-      expect(find.text('120.000 ₫'), findsOneWidget);
-      expect(find.text('Xem chi tiết chuyến'), findsNothing);
-      await reveal(
-        tester,
-        find.byKey(const ValueKey('expand-history-assignment')),
+      expect(find.text('Chi phí đã ghi nhận'), findsOneWidget);
+      expect(find.text('120.000 ₫'), findsNWidgets(2));
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('history-assignment')),
+          matching: find.text('120.000 ₫'),
+        ),
+        findsOneWidget,
       );
-      await tester.tap(find.byKey(const ValueKey('expand-history-assignment')));
-      await tester.pumpAndSettle();
-      expect(find.text('Xem chi tiết chuyến'), findsOneWidget);
+      expect(find.text('Chi tiết chuyến đã kết thúc'), findsNothing);
       await reveal(tester, find.text('Xem chi tiết chuyến'));
       await tester.tap(find.text('Xem chi tiết chuyến'));
       await tester.pumpAndSettle();

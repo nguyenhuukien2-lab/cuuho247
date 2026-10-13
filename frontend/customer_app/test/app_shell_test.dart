@@ -16,7 +16,7 @@ void main() {
 
     await tester.tap(find.text('Đặt cứu hộ'));
     await tester.pump();
-    expect(find.text('Chọn dịch vụ'), findsOneWidget);
+    expect(find.text('Dịch vụ'), findsNWidgets(2));
     expect(find.byType(ServiceGrid), findsOneWidget);
   });
 }

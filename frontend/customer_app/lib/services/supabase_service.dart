@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../app/app_controller.dart';
 import 'request_debug_log.dart';
+import 'payment_service.dart';
 
 class BackendConfiguration {
   static const url = String.fromEnvironment('SUPABASE_URL');
@@ -33,10 +34,16 @@ class SignUpResult {
 
 class SupabaseService {
   SupabaseService._();
+  static PaymentSource? paymentSource({SupabaseClient? client}) =>
+      client != null || BackendConfiguration.isConfigured
+          ? SupabasePaymentSource(client ?? _client)
+          : null;
   static const locationRequiredFailure =
       AppFailure('Vui lòng nhập địa chỉ cứu hộ', locationRequired: true);
   static const _networkFailure = AppFailure(
       'Không kết nối được máy chủ. Thông tin đã nhập vẫn được giữ. Hãy kiểm tra kết nối Internet và thử lại.');
+  static const _readFailure = AppFailure(
+      'Không đọc được dữ liệu từ máy chủ. Vui lòng kiểm tra kết nối và tải lại.');
   // Legacy screens are not routed by the current app, but these aliases keep
   // them analyzable until that UI is removed.
   static String get supabaseUrl => BackendConfiguration.url;
@@ -91,21 +98,45 @@ class SupabaseService {
     }
   }
 
-  static Future<Map<String, dynamic>?> fetchProfile() async {
-    final user = _requireUser();
+  static SupabaseClient _authenticatedClient(SupabaseClient? client) {
+    if (client == null) _requireUser();
+    final database = client ?? _client;
+    if (database.auth.currentUser == null) {
+      throw const AppFailure('Vui lòng đăng nhập lại.', sessionExpired: true);
+    }
+    return database;
+  }
+
+  static void _checkOwner(SupabaseClient database, String owner) {
+    if (database.auth.currentUser?.id != owner) {
+      throw const AppFailure('Phiên đăng nhập đã thay đổi.',
+          sessionExpired: true);
+    }
+  }
+
+  static Future<Map<String, dynamic>?> fetchProfile(
+      {SupabaseClient? client}) async {
+    final database = _authenticatedClient(client);
+    final owner = database.auth.currentUser!.id;
     try {
-      return await _client
+      final row = await database
           .from('customer_profiles')
           .select()
-          .eq('user_id', user.id)
+          .eq('user_id', owner)
           .maybeSingle()
           .timeout(const Duration(seconds: 20));
+      _checkOwner(database, owner);
+      return row;
     } on PostgrestException catch (error) {
       throw _databaseFailure(error);
     } on http.ClientException {
       throw _networkFailure;
     } on TimeoutException {
       throw _networkFailure;
+    } on AppFailure {
+      rethrow;
+    } catch (_) {
+      throw _readFailure;
     }
   }
 
@@ -159,6 +190,12 @@ class SupabaseService {
           .toList();
     } on AppFailure {
       rethrow;
+    } on PostgrestException catch (error, stackTrace) {
+      final failure = _databaseFailure(error);
+      if (failure.sessionExpired) throw failure;
+      logRequestFailure('service.withDisplayCodes', error, stackTrace,
+          client: database);
+      return rows;
     } catch (error, stackTrace) {
       logRequestFailure('service.withDisplayCodes', error, stackTrace,
           client: database);
@@ -166,21 +203,25 @@ class SupabaseService {
     }
   }
 
-  static Future<RescueRequestData?> fetchActiveRequest() async {
-    final user = _requireUser();
+  static Future<RescueRequestData?> fetchActiveRequest(
+      {SupabaseClient? client}) async {
+    final database = _authenticatedClient(client);
+    final owner = database.auth.currentUser!.id;
     try {
-      final row = await _client
+      final row = await database
           .from('rescue_requests')
           .select()
-          .eq('customer_id', user.id)
+          .eq('customer_id', owner)
           .inFilter('status',
               const ['searching', 'accepted', 'arriving', 'in_progress'])
           .order('created_at', ascending: false)
           .limit(1)
           .maybeSingle()
           .timeout(const Duration(seconds: 20));
+      _checkOwner(database, owner);
       if (row == null) return null;
-      final enriched = await withDisplayCodes([row]);
+      final enriched = await withDisplayCodes([row], client: database);
+      _checkOwner(database, owner);
       return RescueRequestData.fromJson(enriched.single);
     } on PostgrestException catch (error) {
       throw _databaseFailure(error);
@@ -188,30 +229,57 @@ class SupabaseService {
       throw _networkFailure;
     } on TimeoutException {
       throw _networkFailure;
+    } on AppFailure {
+      rethrow;
+    } catch (_) {
+      throw _readFailure;
     }
   }
 
-  static Future<List<RescueRequestData>> fetchHistory() async {
-    final user = _requireUser();
+  static Future<List<RescueRequestData>> fetchHistory(
+      {SupabaseClient? client}) async {
+    final database = _authenticatedClient(client);
+    final owner = database.auth.currentUser!.id;
     try {
-      final rows = await _client
-          .from('rescue_requests')
-          .select()
-          .eq('customer_id', user.id)
-          .inFilter('status', const ['completed', 'cancelled'])
-          .order('created_at', ascending: false)
-          .limit(100)
-          .timeout(const Duration(seconds: 20));
-      final enriched = await withDisplayCodes(rows);
-      return enriched
-          .map<RescueRequestData>(RescueRequestData.fromJson)
-          .toList(growable: false);
+      const pageSize = 100; // Display-code RPC accepts at most 100 IDs.
+      final history = <String, RescueRequestData>{};
+      Map<String, dynamic>? cursor;
+      while (true) {
+        var query = database
+            .from('rescue_requests')
+            .select()
+            .eq('customer_id', owner)
+            .inFilter('status', const ['completed', 'cancelled']);
+        if (cursor != null) {
+          query = query.or('created_at.lt.${cursor['created_at']},'
+              'and(created_at.eq.${cursor['created_at']},id.lt.${cursor['id']})');
+        }
+        final rows = await query
+            .order('created_at', ascending: false)
+            .order('id', ascending: false)
+            .limit(pageSize)
+            .timeout(const Duration(seconds: 20));
+        _checkOwner(database, owner);
+        final enriched = await withDisplayCodes(rows, client: database);
+        _checkOwner(database, owner);
+        for (final row in enriched) {
+          final request = RescueRequestData.fromJson(row);
+          history[request.id] = request;
+        }
+        if (rows.length < pageSize) break;
+        cursor = rows.last;
+      }
+      return history.values.toList(growable: false);
     } on PostgrestException catch (error) {
       throw _databaseFailure(error);
     } on http.ClientException {
       throw _networkFailure;
     } on TimeoutException {
       throw _networkFailure;
+    } on AppFailure {
+      rethrow;
+    } catch (_) {
+      throw _readFailure;
     }
   }
 
@@ -294,28 +362,54 @@ class SupabaseService {
     }
   }
 
-  static Future<RescueRequestData> cancelRequest(String requestId) async {
-    _requireUser();
+  static Future<RescueRequestData> cancelRequest(String requestId,
+      {SupabaseClient? client}) async {
+    final database = _authenticatedClient(client);
+    final owner = database.auth.currentUser!.id;
     try {
-      final row = await _client
-          .rpc('cancel_own_rescue_request', params: {'request_id': requestId})
-          .single()
-          .timeout(const Duration(seconds: 20));
-      return RescueRequestData.fromJson(Map<String, dynamic>.from(row as Map));
+      Map<String, dynamic> row;
+      try {
+        row = await database
+            .rpc('cancel_own_rescue_request', params: {'request_id': requestId})
+            .single()
+            .timeout(const Duration(seconds: 20));
+      } on PostgrestException catch (error) {
+        if (error.code != 'P0001' ||
+            error.message != 'REQUEST_NOT_CANCELLABLE') {
+          rethrow;
+        }
+        _checkOwner(database, owner);
+        final existing = await database
+            .from('rescue_requests')
+            .select()
+            .eq('id', requestId)
+            .eq('customer_id', owner)
+            .maybeSingle()
+            .timeout(const Duration(seconds: 20));
+        if (existing == null || existing['status'] != 'cancelled') rethrow;
+        row = existing;
+      }
+      _checkOwner(database, owner);
+      return RescueRequestData.fromJson(row);
     } on PostgrestException catch (error) {
       throw _databaseFailure(error);
     } on http.ClientException {
       throw _networkFailure;
     } on TimeoutException {
       throw _networkFailure;
+    } on AppFailure {
+      rethrow;
+    } catch (_) {
+      throw _readFailure;
     }
   }
 
   /// One row per channel; each successful (re)join reloads a snapshot to recover
   /// changes missed while disconnected. Canceling the stream removes the channel.
-  static Stream<RescueRequestData> watchRequest(String requestId) {
-    final user = _requireUser();
-    final client = _client;
+  static Stream<RescueRequestData> watchRequest(String requestId,
+      {SupabaseClient? client}) {
+    final database = _authenticatedClient(client);
+    final user = database.auth.currentUser!;
     late final StreamController<RescueRequestData> stream;
     RealtimeChannel? channel;
     StreamSubscription<AuthState>? auth;
@@ -323,7 +417,9 @@ class SupabaseService {
     var changeVersion = 0;
 
     bool getCanEmit() =>
-        !stopped && !stream.isClosed && client.auth.currentUser?.id == user.id;
+        !stopped &&
+        !stream.isClosed &&
+        database.auth.currentUser?.id == user.id;
 
     Future<void> emit(Map<String, dynamic> row, int version) async {
       if (!getCanEmit() ||
@@ -332,8 +428,9 @@ class SupabaseService {
       try {
         // Status delivery must not wait for optional quote-code metadata.
         stream.add(RescueRequestData.fromJson(row));
-        final enriched = await withDisplayCodes([row]);
-        if (getCanEmit() && version == changeVersion &&
+        final enriched = await withDisplayCodes([row], client: database);
+        if (getCanEmit() &&
+            version == changeVersion &&
             enriched.single['quote_code'] != null) {
           stream.add(RescueRequestData.fromJson(enriched.single));
         }
@@ -348,7 +445,7 @@ class SupabaseService {
     Future<void> reload() async {
       final version = ++changeVersion;
       try {
-        final row = await client
+        final row = await database
             .from('rescue_requests')
             .select()
             .eq('id', requestId)
@@ -366,12 +463,12 @@ class SupabaseService {
 
     stream = StreamController<RescueRequestData>(
       onListen: () {
-        auth = client.auth.onAuthStateChange.listen((state) {
+        auth = database.auth.onAuthStateChange.listen((state) {
           if (state.session?.user.id != user.id) {
             unawaited(stream.close());
           }
         });
-        channel = client
+        channel = database
             .channel('customer-request:$requestId:${newClientRequestId()}')
             .onPostgresChanges(
               event: PostgresChangeEvent.update,
@@ -403,7 +500,7 @@ class SupabaseService {
         changeVersion++;
         await auth?.cancel();
         final current = channel;
-        if (current != null) await client.removeChannel(current);
+        if (current != null) await database.removeChannel(current);
       },
     );
     return stream.stream;
@@ -447,7 +544,10 @@ class SupabaseService {
       return const AppFailure(
           'Bạn đang có một yêu cầu được xử lý. Hãy mở tab Đang xử lý để kiểm tra yêu cầu hiện tại.');
     }
-    if (message == 'AUTHENTICATION_REQUIRED' || error.code == 'PGRST302') {
+    // maybeSingle can preserve an HTTP status instead of the PostgREST code.
+    if (message == 'AUTHENTICATION_REQUIRED' ||
+        error.code == 'PGRST302' ||
+        error.code == '401') {
       return const AppFailure(
           'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
           sessionExpired: true);
@@ -456,7 +556,7 @@ class SupabaseService {
       return const AppFailure(
           'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
           sessionExpired: true);
-    if (error.code == '42501') {
+    if (error.code == '42501' || error.code == '403') {
       return const AppFailure('Bạn không có quyền thực hiện thao tác này.');
     }
     if (error.code == 'P0001') {

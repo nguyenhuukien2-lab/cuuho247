@@ -317,7 +317,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Đã nhận đơn thành công.'), findsWidgets);
       expect(find.text('Xem trước yêu cầu'), findsNothing);
-      expect(find.text('Hành động'), findsOneWidget);
+      expect(find.byKey(const ValueKey('active-job-actions')), findsOneWidget);
       expect(find.byKey(const ValueKey('advance-job')), findsOneWidget);
       await tester.scrollUntilVisible(
         find.text('0901234567'),

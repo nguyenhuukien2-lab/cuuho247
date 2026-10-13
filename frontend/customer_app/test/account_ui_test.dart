@@ -6,6 +6,7 @@ import 'package:cuu_ho_247/screens/new_account_screen.dart';
 import 'package:cuu_ho_247/screens/customer_vehicles_screen.dart';
 import 'package:cuu_ho_247/screens/customer_saved_addresses_screen.dart';
 import 'package:cuu_ho_247/services/customer_vehicle_service.dart';
+import 'package:cuu_ho_247/services/customer_profile_service.dart';
 import 'package:cuu_ho_247/services/supabase_service.dart';
 import 'package:cuu_ho_247/widgets/account_ui.dart';
 import 'package:flutter/material.dart';
@@ -26,7 +27,141 @@ class LogoutController extends AppController {
   }
 }
 
+class CodedProfileFake extends profiles.ProfileFake {
+  @override
+  Future<CustomerProfile> load() async => const CustomerProfile(
+      userId: 'owner',
+      customerCode: 'KH-000042',
+      fullName: 'Nguyễn An',
+      phone: '0901234567',
+      email: 'an@example.com');
+}
+
 void main() {
+  testWidgets(
+      'hero code chip, two compact statistics and profile actions fit 320px',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 740);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    var edits = 0, reloads = 0;
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: const TextScaler.linear(1.8)),
+          child: child!),
+      home: Scaffold(
+          body: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: CustomerAccountHeaderCard(
+                  name: 'Nguyễn An',
+                  customerCode: 'KH-000042',
+                  phone: '0901234567',
+                  email: 'an@example.com',
+                  vehicleCount: 2,
+                  completedCount: 3,
+                  onEdit: () => edits++,
+                  onReload: () => reloads++))),
+    ));
+    await tester.pumpAndSettle();
+    final chip = find.byKey(const ValueKey('account-customer-code-chip'));
+    expect(find.descendant(of: chip, matching: find.text('Mã KH: KH-000042')),
+        findsOneWidget);
+    expect(find.byType(AccountMetricTile), findsNWidgets(2));
+    final metrics = find.byType(AccountMetricTile);
+    expect(tester.getSize(metrics.at(0)).width,
+        tester.getSize(metrics.at(1)).width);
+    await tester.ensureVisible(find.byTooltip('Chỉnh sửa thông tin'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Chỉnh sửa thông tin'));
+    await tester.tap(find.byTooltip('Tải lại hồ sơ'));
+    expect(edits, 1);
+    expect(reloads, 1);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets(
+      'styled empty vehicle and address cards fit 320px with large text',
+      (tester) async {
+    UserSession.userId = 'owner';
+    final controller = AppController();
+    addTearDown(controller.dispose);
+    tester.view.physicalSize = const Size(320, 740);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: const TextScaler.linear(1.8)),
+          child: child!),
+      home: Scaffold(
+          body: NewAccountScreen(
+              controller: controller,
+              profileRepository: CodedProfileFake(),
+              vehicleRepository: cars.VehiclesFake(),
+              addressRepository: addresses.AddressesFake())),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('Mã KH: KH-000042'), findsOneWidget);
+    expect(find.byTooltip('Chỉnh sửa thông tin'), findsOneWidget);
+    for (final text in [
+      'Chưa có xe đã lưu',
+      'Thêm phương tiện để đặt cứu hộ nhanh hơn',
+      'Chưa có địa chỉ đã lưu',
+      'Lưu địa chỉ thường dùng để đặt cứu hộ nhanh hơn',
+      'Đăng xuất tài khoản',
+      'Hệ thống cứu hộ 24/7'
+    ]) {
+      await tester.scrollUntilVisible(find.text(text), 120,
+          scrollable: find.byType(Scrollable).first);
+      await tester.pumpAndSettle();
+      expect(find.text(text).hitTestable(), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
+    expect(find.byType(AccountVehicleCard), findsNothing);
+    expect(find.textContaining('1900'), findsNothing);
+    expect(find.textContaining('Điểm thưởng'), findsNothing);
+    expect(
+        find.textContaining(RegExp(
+            r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
+            caseSensitive: false)),
+        findsNothing);
+  });
+  testWidgets('hero shows real KH code and hides unsupported statistics',
+      (tester) async {
+    UserSession.userId = 'owner';
+    final controller = AppController();
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: NewAccountScreen(
+      controller: controller,
+      profileRepository: CodedProfileFake(),
+      vehicleRepository: cars.VehiclesFake()..vehicles = [cars.truck],
+      addressRepository: addresses.AddressesFake()
+        ..addresses = [addresses.saved],
+    ))));
+    await tester.pumpAndSettle();
+    expect(find.text('Mã KH: KH-000042'), findsOneWidget);
+    expect(find.text('Nguyễn An'), findsOneWidget);
+    expect(find.text('0901234567'), findsOneWidget);
+    expect(find.text('Xe đã lưu'), findsOneWidget);
+    expect(
+        tester
+            .widget<CustomerAccountHeaderCard>(
+                find.byType(CustomerAccountHeaderCard))
+            .completedCount,
+        isNull);
+    expect(
+        find.textContaining(RegExp(
+            r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
+            caseSensitive: false)),
+        findsNothing);
+    expect(find.textContaining('Điểm thưởng'), findsNothing);
+    expect(find.textContaining('1900'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
   setUp(() => UserSession.userId = 'owner');
   tearDown(UserSession.clear);
   Future<void> mount(WidgetTester tester, AppController controller,
@@ -70,12 +205,17 @@ void main() {
         find.byType(CustomerAccountHeaderCard));
     expect(header.vehicleCount, 1);
     expect(header.name, profiles.original.fullName);
-    await tap(tester, find.byTooltip('Quản lý xe'));
+    expect(find.text(cars.truck.brandModel), findsOneWidget);
+    expect(find.text(cars.truck.licensePlate), findsOneWidget);
+    await tap(tester, find.text('Thêm phương tiện mới'));
     expect(find.byType(CustomerVehiclesScreen), findsOneWidget);
     vehicles.vehicles = [];
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     expect(find.byType(AccountVehicleCard), findsNothing);
+    await tester.scrollUntilVisible(
+        find.byType(CustomerAccountHeaderCard), -180,
+        scrollable: find.byType(Scrollable).first);
     expect(
         tester
             .widget<CustomerAccountHeaderCard>(

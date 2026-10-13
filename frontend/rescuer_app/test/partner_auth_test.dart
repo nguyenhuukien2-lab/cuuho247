@@ -364,7 +364,12 @@ void main() {
         addTearDown(() => s.changes.close());
         await mount(tester, c);
         if (['pending', 'submitted'].contains(status)) {
-          expect(find.text('Chờ duyệt hồ sơ'), findsOneWidget);
+          expect(
+            find.text(
+              'Hồ sơ đang được kiểm tra. Bấm tải lại để cập nhật kết quả xét duyệt.',
+            ),
+            findsOneWidget,
+          );
           expect(find.text('Đang chờ duyệt'), findsOneWidget);
         } else {
           expect(
@@ -379,7 +384,12 @@ void main() {
           of: find.byKey(const ValueKey('toggle-online')),
           matching: find.byType(FilledButton),
         );
-        await tester.scrollUntilVisible(toggle, 200);
+        await tester.scrollUntilVisible(
+          toggle,
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(toggle.hitTestable(), findsOneWidget);
         expect(tester.widget<FilledButton>(toggle).onPressed, isNull);
         expect(find.byType(SwitchListTile), findsNothing);
         await c.setOnline(true);
@@ -407,7 +417,7 @@ void main() {
     await c.signIn('approved@example.invalid', 'existing-password');
     await tester.pumpAndSettle();
     expect(find.byType(NavigationBar), findsOneWidget);
-    expect(find.text('Trạng thái làm việc'), findsOneWidget);
+    expect(find.text('ĐANG NGOẠI TUYẾN'), findsOneWidget);
     expect(
       tester
           .widget<FilledButton>(
@@ -424,7 +434,7 @@ void main() {
       find.descendant(of: nav, matching: find.text('Tài khoản')),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Đã được duyệt'), findsOneWidget);
+    expect(find.text('Đã được duyệt'), findsWidgets);
     await tester.tap(
       find.descendant(of: nav, matching: find.text('Trang chủ')),
     );

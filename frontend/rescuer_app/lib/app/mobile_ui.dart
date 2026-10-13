@@ -1,95 +1,108 @@
 import 'package:flutter/material.dart';
 
-// Keep presentation tokens and behavior in sync in the two standalone apps.
+// Partner app presentation tokens; independent of the customer app.
 abstract final class RescueColors {
-  static const navy = Color(0xFF0B2540);
-  static const navySoft = Color(0xFF213D5B);
-  static const accent = Color(0xFFC2410C);
-  static const accentPressed = Color(0xFF9A3412);
-  static const accentSoft = Color(0xFFFFF0E6);
-  static const background = Color(0xFFF5F7FA);
+  static const secondaryText = Color(0xFF4B5563);
+  static const disabledText = Color(0xFF9CA3AF);
+  static const offlineSoft = Color(0xFFF3F4F6);
+  static const successText = Color(0xFF15803D);
+  static const successBorder = Color(0xFF86EFAC);
+  static const warningText = Color(0xFFB45309);
+  static const manualLocationText = Color(0xFF92400E);
+  static const infoText = Color(0xFF1D4ED8);
+  static const dangerText = Color(0xFFB91C1C);
+  static const accentBorder = Color(0xFFFED7AA);
+  static const navy = Color(0xFF0B2E4F);
+  static const navySoft = Color(0xFF001932);
+  static const accent = Color(0xFFFD761A);
+  static const accentPressed = Color(0xFFC2410C);
+  static const accentSoft = Color(0xFFFFF1E8);
+  static const background = Color(0xFFF9F9FF);
   static const surface = Colors.white;
-  static const ink = Color(0xFF17283C);
-  static const muted = Color(0xFF596B80);
-  static const border = Color(0xFFDCE3EA);
-  static const selected = Color(0xFFEAF0F6);
-  static const disabled = Color(0xFFE5EAF0);
-  static const success = Color(0xFF16734F);
-  static const successSoft = Color(0xFFE9F7F0);
-  static const warning = Color(0xFF8A570B);
-  static const warningSoft = Color(0xFFFFF5E5);
-  static const danger = Color(0xFFB42318);
-  static const dangerSoft = Color(0xFFFFEFED);
-  static const info = Color(0xFF245B91);
-  static const infoSoft = Color(0xFFEDF4FA);
-  static const progress = Color(0xFF51428F);
-  static const progressSoft = Color(0xFFF1EEFA);
+  static const ink = Color(0xFF141B2B);
+  static const muted = Color(0xFF43474E);
+  static const border = Color(0xFFE5E7EB);
+  static const containerHigh = Color(0xFFE1E8FD);
+  static const container = Color(0xFFE9EDFF);
+  static const selected = Color(0xFFF1F3FF);
+  static const disabled = Color(0xFFF3F4F6);
+  static const success = Color(0xFF16A34A);
+  static const successSoft = Color(0xFFDCFCE7);
+  static const warning = Color(0xFFF59E0B);
+  static const warningSoft = Color(0xFFFEF3C7);
+  static const danger = Color(0xFFDC2626);
+  static const dangerSoft = Color(0xFFFEE2E2);
+  static const info = Color(0xFF2563EB);
+  static const infoSoft = Color(0xFFDBEAFE);
+  static const progress = Color(0xFFC2410C);
+  static const progressSoft = Color(0xFFFFF1E8);
 }
 
 abstract final class RescueSpace {
   static const xs = 4.0, sm = 8.0, md = 12.0, lg = 16.0;
   static const xl = 24.0, xxl = 32.0;
-  static const page = EdgeInsets.fromLTRB(lg, lg, lg, xxl);
+  static const bottomSafe = 96.0;
+  static const page = EdgeInsets.fromLTRB(lg, lg, lg, bottomSafe);
 }
 
 abstract final class RescueRadius {
-  static const small = 8.0, control = 12.0, card = 16.0, pill = 100.0;
+  static const small = 8.0, control = 16.0, card = 12.0, pill = 999.0;
 }
 
 abstract final class RescueType {
   static const page = TextStyle(
-    fontFamily: 'Roboto',
+    fontFamily: 'PlusJakartaSans',
     fontSize: 24,
     height: 1.25,
     fontWeight: FontWeight.w700,
     letterSpacing: 0,
-    color: RescueColors.ink,
+    color: RescueColors.navy,
   );
   static const section = TextStyle(
-    fontFamily: 'Roboto',
+    fontFamily: 'PlusJakartaSans',
     fontSize: 18,
     height: 1.35,
     fontWeight: FontWeight.w700,
     letterSpacing: 0,
-    color: RescueColors.ink,
+    color: RescueColors.navy,
   );
   static const title = TextStyle(
-    fontFamily: 'Roboto',
+    fontFamily: 'PlusJakartaSans',
     fontSize: 16,
     height: 1.35,
-    fontWeight: FontWeight.w600,
-    color: RescueColors.ink,
+    fontWeight: FontWeight.w700,
+    color: RescueColors.navy,
   );
   static const body = TextStyle(
-    fontFamily: 'Roboto',
+    fontFamily: 'Inter',
     fontSize: 14,
     height: 1.5,
     color: RescueColors.ink,
   );
   static const caption = TextStyle(
-    fontFamily: 'Roboto',
+    fontFamily: 'Inter',
     fontSize: 12,
     height: 1.4,
     color: RescueColors.muted,
   );
   static const code = TextStyle(
-    fontFamily: 'Roboto',
+    fontFamily: 'Inter',
     fontSize: 13,
     height: 1.4,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w700,
     letterSpacing: .2,
     color: RescueColors.muted,
   );
   static const status = TextStyle(
-    fontFamily: 'Roboto',
+    fontFamily: 'Inter',
     fontSize: 12,
     height: 1.35,
     fontWeight: FontWeight.w600,
   );
   static const button = TextStyle(
-    fontFamily: 'Roboto',
-    fontSize: 14,
-    height: 1.3,
+    fontFamily: 'PlusJakartaSans',
+    fontSize: 16,
+    height: 1.5,
     fontWeight: FontWeight.w700,
     letterSpacing: 0,
   );
@@ -111,7 +124,7 @@ abstract final class RescueButtons {
       _ => RescueColors.navy,
     };
     return ButtonStyle(
-      minimumSize: const WidgetStatePropertyAll(Size(48, 52)),
+      minimumSize: const WidgetStatePropertyAll(Size(48, 56)),
       padding: const WidgetStatePropertyAll(
         EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
@@ -137,7 +150,7 @@ abstract final class RescueButtons {
       }),
       foregroundColor: WidgetStateProperty.resolveWith(
         (states) => states.contains(WidgetState.disabled)
-            ? RescueColors.muted
+            ? RescueColors.disabledText
             : foreground,
       ),
       side: kind == RescueButtonKind.outline
@@ -189,15 +202,15 @@ class RescueButton extends StatelessWidget {
     final style = RescueButtons.style(kind);
     final Widget button = switch (kind) {
       RescueButtonKind.outline => OutlinedButton(
-          onPressed: callback,
-          style: style,
-          child: child,
-        ),
+        onPressed: callback,
+        style: style,
+        child: child,
+      ),
       RescueButtonKind.quiet => TextButton(
-          onPressed: callback,
-          style: style,
-          child: child,
-        ),
+        onPressed: callback,
+        style: style,
+        child: child,
+      ),
       _ => FilledButton(onPressed: callback, style: style, child: child),
     };
     return Semantics(liveRegion: loading, child: button);
@@ -212,19 +225,18 @@ abstract final class RescueSurfaces {
   ];
   static BoxDecoration decoration([
     RescueCardKind kind = RescueCardKind.information,
-  ]) =>
-      BoxDecoration(
-        color: RescueColors.surface,
-        borderRadius: BorderRadius.circular(RescueRadius.card),
-        border: Border.all(
-          color: kind == RescueCardKind.status
-              ? RescueColors.navy.withValues(alpha: .24)
-              : RescueColors.border,
-        ),
-        boxShadow: kind == RescueCardKind.order || kind == RescueCardKind.status
-            ? shadow
-            : null,
-      );
+  ]) => BoxDecoration(
+    color: RescueColors.surface,
+    borderRadius: BorderRadius.circular(
+      kind == RescueCardKind.order ? 18 : RescueRadius.card,
+    ),
+    border: Border.all(
+      color: kind == RescueCardKind.order
+          ? RescueColors.accentBorder.withValues(alpha: .35)
+          : RescueColors.border.withValues(alpha: .4),
+    ),
+    boxShadow: shadow,
+  );
 }
 
 class RescueCard extends StatelessWidget {
@@ -239,15 +251,15 @@ class RescueCard extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   @override
   Widget build(BuildContext context) => Container(
-        width: double.infinity,
-        decoration: RescueSurfaces.decoration(kind),
-        child: Material(
-          type: MaterialType.transparency,
-          borderRadius: BorderRadius.circular(RescueRadius.card),
-          clipBehavior: Clip.antiAlias,
-          child: Padding(padding: padding, child: child),
-        ),
-      );
+    width: double.infinity,
+    decoration: RescueSurfaces.decoration(kind),
+    child: Material(
+      type: MaterialType.transparency,
+      borderRadius: BorderRadius.circular(RescueRadius.card),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(padding: padding, child: child),
+    ),
+  );
 }
 
 // Presentation mapping only: no state transitions or domain model conversion.
@@ -255,95 +267,95 @@ abstract final class RescueStatus {
   static (String, Color, Color, IconData) appearance(String? status) =>
       switch (status) {
         'searching' => (
-            'Đang tìm',
-            RescueColors.warning,
-            RescueColors.warningSoft,
-            Icons.search_rounded,
-          ),
+          'Đang tìm',
+          RescueColors.infoText,
+          RescueColors.infoSoft,
+          Icons.search_rounded,
+        ),
         'accepted' => (
-            'Đã nhận',
-            RescueColors.info,
-            RescueColors.infoSoft,
-            Icons.task_alt_rounded,
-          ),
+          'Đã nhận',
+          RescueColors.infoText,
+          RescueColors.infoSoft,
+          Icons.task_alt_rounded,
+        ),
         'arriving' || 'en_route' => (
-            'Đang đến',
-            RescueColors.info,
-            RescueColors.infoSoft,
-            Icons.navigation_rounded,
-          ),
+          'Đang đến',
+          RescueColors.infoText,
+          RescueColors.infoSoft,
+          Icons.navigation_rounded,
+        ),
         'arrived' => (
-            'Đã đến nơi',
-            RescueColors.info,
-            RescueColors.infoSoft,
-            Icons.place_outlined,
-          ),
+          'Đã đến nơi',
+          RescueColors.infoText,
+          RescueColors.infoSoft,
+          Icons.place_outlined,
+        ),
         'in_progress' => (
-            'Đang hỗ trợ',
-            RescueColors.progress,
-            RescueColors.progressSoft,
-            Icons.build_outlined,
-          ),
+          'Đang hỗ trợ',
+          RescueColors.progress,
+          RescueColors.progressSoft,
+          Icons.build_outlined,
+        ),
         'completed' => (
-            'Hoàn tất',
-            RescueColors.success,
-            RescueColors.successSoft,
-            Icons.check_circle_outline,
-          ),
+          'Hoàn tất',
+          RescueColors.successText,
+          RescueColors.successSoft,
+          Icons.check_circle_outline,
+        ),
         'cancelled' => (
-            'Đã hủy',
-            RescueColors.danger,
-            RescueColors.dangerSoft,
-            Icons.cancel_outlined,
-          ),
+          'Đã hủy',
+          RescueColors.dangerText,
+          RescueColors.dangerSoft,
+          Icons.cancel_outlined,
+        ),
         'approved' => (
-            'Đã được duyệt',
-            RescueColors.success,
-            RescueColors.successSoft,
-            Icons.verified_outlined,
-          ),
+          'Đã được duyệt',
+          RescueColors.successText,
+          RescueColors.successSoft,
+          Icons.verified_outlined,
+        ),
         'pending' || 'submitted' => (
-            'Đang chờ duyệt',
-            RescueColors.warning,
-            RescueColors.warningSoft,
-            Icons.schedule,
-          ),
+          'Đang chờ duyệt',
+          RescueColors.warningText,
+          RescueColors.warningSoft,
+          Icons.schedule,
+        ),
         'suspended' => (
-            'Tạm ngưng hoạt động',
-            RescueColors.danger,
-            RescueColors.dangerSoft,
-            Icons.pause_circle_outline,
-          ),
+          'Tạm ngưng hoạt động',
+          RescueColors.dangerText,
+          RescueColors.dangerSoft,
+          Icons.pause_circle_outline,
+        ),
         'rejected' => (
-            'Bị từ chối',
-            RescueColors.danger,
-            RescueColors.dangerSoft,
-            Icons.cancel_outlined,
-          ),
+          'Bị từ chối',
+          RescueColors.dangerText,
+          RescueColors.dangerSoft,
+          Icons.cancel_outlined,
+        ),
         'expired' => (
-            'Hết hạn',
-            RescueColors.danger,
-            RescueColors.dangerSoft,
-            Icons.event_busy_outlined,
-          ),
+          'Hết hạn',
+          RescueColors.dangerText,
+          RescueColors.dangerSoft,
+          Icons.event_busy_outlined,
+        ),
         'draft' => (
-            'Hồ sơ nháp',
-            RescueColors.muted,
-            RescueColors.selected,
-            Icons.edit_outlined,
-          ),
+          'Hồ sơ nháp',
+          RescueColors.muted,
+          RescueColors.selected,
+          Icons.edit_outlined,
+        ),
         null => (
-            'Chưa nộp',
-            RescueColors.muted,
-            RescueColors.selected,
-            Icons.info_outline,
-          ),
+          'Chưa nộp',
+          RescueColors.muted,
+          RescueColors.selected,
+          Icons.info_outline,
+        ),
         _ => (
-            'Chưa xác định',
-            RescueColors.muted,
-            RescueColors.selected,
-            Icons.info_outline,
-          ),
+          'Chưa xác định',
+          RescueColors.muted,
+          RescueColors.selected,
+          Icons.info_outline,
+        ),
       };
 }
 
@@ -397,20 +409,20 @@ class RescueFeedback extends StatelessWidget {
   Widget build(BuildContext context) {
     final (color, background, fallback) = switch (kind) {
       RescueFeedbackKind.error => (
-          RescueColors.danger,
-          RescueColors.dangerSoft,
-          Icons.error_outline,
-        ),
+        RescueColors.danger,
+        RescueColors.dangerSoft,
+        Icons.error_outline,
+      ),
       RescueFeedbackKind.unavailable => (
-          RescueColors.warning,
-          RescueColors.warningSoft,
-          Icons.cloud_off_outlined,
-        ),
+        RescueColors.warning,
+        RescueColors.warningSoft,
+        Icons.cloud_off_outlined,
+      ),
       RescueFeedbackKind.success => (
-          RescueColors.success,
-          RescueColors.successSoft,
-          Icons.check_circle_outline,
-        ),
+        RescueColors.success,
+        RescueColors.successSoft,
+        Icons.check_circle_outline,
+      ),
       _ => (RescueColors.navy, RescueColors.selected, Icons.inbox_outlined),
     };
     return Semantics(
@@ -462,7 +474,7 @@ abstract final class RescueTheme {
     );
     return ThemeData(
       useMaterial3: true,
-      fontFamily: 'Roboto',
+      fontFamily: 'Inter',
       scaffoldBackgroundColor: RescueColors.background,
       colorScheme: ColorScheme.fromSeed(
         seedColor: RescueColors.navy,
@@ -476,7 +488,7 @@ abstract final class RescueTheme {
         onSecondaryContainer: RescueColors.navy,
         surface: RescueColors.surface,
         onSurface: RescueColors.ink,
-        onSurfaceVariant: RescueColors.muted,
+        onSurfaceVariant: RescueColors.secondaryText,
         outline: RescueColors.border,
         error: RescueColors.danger,
       ),
@@ -497,17 +509,17 @@ abstract final class RescueTheme {
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: RescueColors.background,
-        foregroundColor: RescueColors.ink,
+        foregroundColor: RescueColors.navy,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
         titleTextStyle: TextStyle(
-          fontFamily: 'Roboto',
+          fontFamily: 'Inter',
           fontSize: 20,
           height: 1.3,
           fontWeight: FontWeight.w700,
-          color: RescueColors.ink,
+          color: RescueColors.navy,
         ),
       ),
       cardTheme: CardThemeData(
@@ -542,33 +554,38 @@ abstract final class RescueTheme {
         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: 72,
+        height: 64,
         elevation: 0,
         backgroundColor: RescueColors.surface,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: RescueColors.selected,
+        indicatorColor: Colors.transparent,
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => RescueType.caption.copyWith(
             color: states.contains(WidgetState.selected)
-                ? RescueColors.navy
+                ? RescueColors.accent
                 : RescueColors.muted,
             fontWeight: states.contains(WidgetState.selected)
                 ? FontWeight.w700
                 : FontWeight.w500,
           ),
         ),
-        iconTheme: const WidgetStatePropertyAll(
-          IconThemeData(size: 24, color: RescueColors.navy),
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            size: 22,
+            color: states.contains(WidgetState.selected)
+                ? RescueColors.accent
+                : RescueColors.muted,
+          ),
         ),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: RescueColors.surface,
-        selectedColor: RescueColors.selected,
-        checkmarkColor: RescueColors.navy,
+        selectedColor: RescueColors.navySoft,
+        checkmarkColor: Colors.white,
         labelStyle: RescueType.status.copyWith(color: RescueColors.navy),
         side: const BorderSide(color: RescueColors.border),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(RescueRadius.control),
+          borderRadius: BorderRadius.circular(RescueRadius.pill),
         ),
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(

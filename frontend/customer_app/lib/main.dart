@@ -6,6 +6,7 @@ import 'app/app_shell.dart';
 import 'app/app_theme.dart';
 import 'app/navigation.dart';
 import 'screens/new_auth_screen.dart';
+import 'screens/payment_screen.dart';
 import 'services/supabase_service.dart';
 
 Future<void> main() async {
@@ -66,6 +67,12 @@ class _RescueAppState extends State<RescueApp> {
         '/history': (_) => AppShell(controller: controller, initialIndex: 3),
         '/account': (_) => AppShell(controller: controller, initialIndex: 4),
         '/login': (_) => NewAuthScreen(controller: controller),
+        '/payment': (context) {
+          final argument = ModalRoute.of(context)?.settings.arguments;
+          return PaymentScreen(
+              controller: controller,
+              requestId: argument is String ? argument : '');
+        },
       },
     );
   }

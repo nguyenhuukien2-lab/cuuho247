@@ -1,4 +1,4 @@
-import 'request_steps.dart';
+import 'request_steps.dart' hide tapRequest;
 import 'dart:async';
 
 import 'package:cuu_ho_247/app/app_controller.dart';
@@ -9,6 +9,16 @@ import 'package:cuu_ho_247/services/customer_vehicle_service.dart';
 import 'package:cuu_ho_247/widgets/saved_vehicle_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+Future<void> tapRequest(WidgetTester tester, Finder target) async {
+  await revealRequest(tester, target);
+  await tester.pumpAndSettle();
+  await tester.ensureVisible(target);
+  await tester.pumpAndSettle();
+  expect(target.hitTestable(), findsOneWidget);
+  await tester.tap(target);
+  await tester.pumpAndSettle();
+}
 
 const truck = CustomerVehicle(
     id: 'truck',
@@ -105,6 +115,63 @@ void main() {
             CustomerVehiclesScreen(controller: controller, repository: repo)));
     await tester.pumpAndSettle();
   }
+
+  testWidgets('type and brand suggestions only edit draft until save at 320px',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 740);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 1.8;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final repo = VehiclesFake();
+    await mount(tester, repo);
+    expect(find.byType(ActionChip), findsNothing);
+    await tapRequest(tester, find.text('Thêm xe'));
+    for (final label in [
+      'Honda',
+      'Yamaha',
+      'Toyota',
+      'Mazda',
+      'Hyundai',
+      'Kia',
+      'Ford',
+      'VinFast'
+    ]) {
+      expect(find.byKey(ValueKey('vehicle-brand-$label')), findsOneWidget);
+    }
+    for (final type in ['motorbike', 'car', 'truck']) {
+      expect(find.byKey(ValueKey('vehicle-type-$type')), findsOneWidget);
+    }
+    await tapRequest(
+        tester, find.byKey(const ValueKey('vehicle-type-motorbike')));
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<ChoiceChip>(
+                find.byKey(const ValueKey('vehicle-type-motorbike')))
+            .selected,
+        isTrue);
+    await tapRequest(tester, find.byKey(const ValueKey('vehicle-brand-Honda')));
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<TextFormField>(find.byType(TextFormField).first)
+            .controller!
+            .text,
+        'Honda');
+    expect(repo.vehicles, isEmpty);
+    await enterRequest(
+        tester, find.byType(TextFormField).first, 'Honda Air Blade');
+    await tapRequest(tester, find.text('Lưu xe'));
+    await tester.pumpAndSettle();
+    expect(repo.vehicles, hasLength(1));
+    expect(repo.vehicles.single.kind, VehicleKind.motorbike);
+    expect(repo.vehicles.single.brandModel, 'Honda Air Blade');
+    expect(repo.vehicles.single.licensePlate, isEmpty);
+    expect(find.byType(ActionChip), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
       'empty, add validation, failed save keeps input, edit and confirmed delete',
@@ -243,8 +310,6 @@ void main() {
             body: NewRequestScreen(
                 controller: capture, vehicleRepository: repo))));
     await tester.pumpAndSettle();
-    await tapRequest(tester, find.text('Phương tiện thủ công'));
-    await tester.pumpAndSettle();
     await tapRequest(tester, find.text('Isuzu QKR').last);
     await tester.pumpAndSettle();
     final fields = find.byType(TextFormField, skipOffstage: false);
@@ -262,6 +327,9 @@ void main() {
     // submitting again so the floating snackbar cannot cover the CTA.
     ScaffoldMessenger.of(tester.element(find.byType(NewRequestScreen)))
         .removeCurrentSnackBar();
+    await tester.pumpAndSettle();
+    await tapRequest(
+        tester, find.byKey(const ValueKey('booking-manual-vehicle-toggle')));
     await tester.pumpAndSettle();
     await revealRequest(
         tester, find.byType(DropdownButtonFormField<VehicleKind>));

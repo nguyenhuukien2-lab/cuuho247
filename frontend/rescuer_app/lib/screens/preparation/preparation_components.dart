@@ -35,6 +35,44 @@ const serviceLabels = {
   'other': 'Hỗ trợ khác',
 };
 
+/// Leave vertical room for the chips' tap targets while scrolling horizontally.
+class PreparationFilterBar extends StatelessWidget {
+  const PreparationFilterBar({
+    super.key,
+    required this.labels,
+    required this.selected,
+    required this.onSelect,
+  });
+  final Map<String, String> labels;
+  final String selected;
+  final ValueChanged<String> onSelect;
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    key: const ValueKey('new-orders-filters'),
+    scrollDirection: Axis.horizontal,
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Row(
+      children: [
+        for (final entry in labels.entries)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              key: ValueKey('filter-${entry.key}'),
+              label: Text(entry.value),
+              selected: selected == entry.key,
+              labelStyle: TextStyle(
+                color: selected == entry.key ? Colors.white : AppColors.muted,
+                fontWeight: FontWeight.w700,
+              ),
+              onSelected: (_) => onSelect(entry.key),
+            ),
+          ),
+      ],
+    ),
+  );
+}
+
 /// Display public order/quote codes only; internal UUIDs stay out of the UI.
 String preparationDisplayCode(String? code, {required String prefix}) {
   final value = code?.trim();
@@ -153,20 +191,24 @@ class PartnerSection extends StatelessWidget {
     required this.icon,
     required this.children,
     this.accent = AppColors.navy,
+    this.background = AppColors.surface,
     this.trailing,
+    this.compact = false,
   });
   final String title;
   final IconData icon;
   final Color accent;
+  final Color background;
   final List<Widget> children;
   final Widget? trailing;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) => Material(
-    color: AppColors.surface,
+    color: background,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(AppRadii.lg),
-      side: BorderSide(color: accent.withValues(alpha: .22)),
+      side: BorderSide(color: AppColors.line.withValues(alpha: .4)),
     ),
     child: Padding(
       padding: const EdgeInsets.all(16),
@@ -175,20 +217,22 @@ class PartnerSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: .09),
-                  borderRadius: BorderRadius.circular(10),
+              if (!compact)
+                Container(
+                  padding: EdgeInsets.zero,
+                  child: Icon(icon, color: accent, size: 21),
                 ),
-                child: Icon(icon, color: accent, size: 21),
+              if (!compact) const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: compact ? RescueType.title : AppType.section,
+                ),
               ),
-              const SizedBox(width: 10),
-              Expanded(child: Text(title, style: AppType.section)),
               if (trailing != null) trailing!,
             ],
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: compact ? 8 : 14),
           ...children,
         ],
       ),

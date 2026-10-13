@@ -59,7 +59,7 @@ class AppButton extends StatelessWidget {
   );
 }
 
-enum BadgeTone { neutral, blue, orange, green, red }
+enum BadgeTone { neutral, blue, orange, green, red, amber, manualLocation }
 
 class StatusBadge extends StatelessWidget {
   const StatusBadge({
@@ -75,17 +75,33 @@ class StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (color, background) = switch (tone) {
-      BadgeTone.neutral => (AppColors.muted, AppColors.background),
-      BadgeTone.blue => (AppColors.blue, AppColors.blueSoft),
-      BadgeTone.orange => (AppColors.warning, AppColors.warningSoft),
-      BadgeTone.green => (AppColors.success, AppColors.successSoft),
-      BadgeTone.red => (AppColors.danger, AppColors.dangerSoft),
+      BadgeTone.neutral => (
+        RescueColors.secondaryText,
+        RescueColors.offlineSoft,
+      ),
+      BadgeTone.blue => (RescueColors.infoText, AppColors.blueSoft),
+      BadgeTone.orange => (RescueColors.accentPressed, AppColors.orangeSoft),
+      BadgeTone.green => (RescueColors.successText, AppColors.successSoft),
+      BadgeTone.red => (RescueColors.dangerText, AppColors.dangerSoft),
+      BadgeTone.amber => (RescueColors.warningText, AppColors.warningSoft),
+      BadgeTone.manualLocation => (
+        RescueColors.manualLocationText,
+        AppColors.warningSoft,
+      ),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(AppRadii.pill),
+        border: Border.all(
+          color: switch (tone) {
+            BadgeTone.green => RescueColors.successBorder,
+            BadgeTone.orange => RescueColors.accentBorder,
+            BadgeTone.neutral => RescueColors.border,
+            _ => background,
+          },
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -167,6 +183,11 @@ class InfoBanner extends StatelessWidget {
       BadgeTone.neutral => (AppColors.navy, AppColors.background),
       BadgeTone.blue => (AppColors.blue, AppColors.blueSoft),
       BadgeTone.orange => (AppColors.warning, AppColors.warningSoft),
+      BadgeTone.amber => (RescueColors.warningText, AppColors.warningSoft),
+      BadgeTone.manualLocation => (
+        RescueColors.manualLocationText,
+        AppColors.warningSoft,
+      ),
       BadgeTone.green => (AppColors.success, AppColors.successSoft),
       BadgeTone.red => (AppColors.danger, AppColors.dangerSoft),
     };

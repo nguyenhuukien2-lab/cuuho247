@@ -8,6 +8,10 @@ import '../services/request_debug_log.dart';
 import '../services/customer_profile_service.dart';
 import '../services/customer_vehicle_service.dart';
 import 'user_session.dart';
+import 'customer_gps_controller.dart';
+import '../services/location_service.dart';
+import '../services/payment_service.dart';
+import 'payment_watcher.dart';
 
 enum VehicleKind { motorbike, car, truck, other }
 
@@ -87,8 +91,9 @@ class RescueRequestData {
   final String? clientRequestId;
   final String? vehicleId;
 
-  factory RescueRequestData.fromJson(Map<String, dynamic> json) =>
-      RescueRequestData(
+  factory RescueRequestData.fromJson(Map<String, dynamic> json) {
+    try {
+      return RescueRequestData(
         id: json['id'] as String,
         requestCode: json['request_code'] as String?,
         quoteCode: json['quote_code'] as String?,
@@ -110,9 +115,258 @@ class RescueRequestData {
         contactPhone: json['contact_phone'] as String? ?? '',
         price: json['quoted_price'] as int?,
       );
+    } catch (_) {
+      throw const AppFailure(
+          'Dữ liệu yêu cầu từ máy chủ không hợp lệ hoặc chưa được hỗ trợ. Vui lòng tải lại.');
+    }
+  }
 }
 
 class AppController extends ChangeNotifier {
+  AppController(
+      {this.client,
+      CustomerLocationService? locationService,
+      PaymentSource? paymentSource,
+      String Function()? paymentOperationId})
+      : payments = PaymentWatcher(
+            paymentSource ?? SupabaseService.paymentSource(client: client)),
+        _paymentOperationId = paymentOperationId ?? newPaymentOperationId,
+        gps = CustomerGpsController(
+            locationService ?? const GeolocatorLocationService()) {
+    gps.addListener(_gpsChanged);
+    _paymentCommandOwner = payments.source?.userId;
+    payments.addListener(_paymentChanged);
+  }
+  final SupabaseClient? client;
+  final CustomerGpsController gps;
+  final PaymentWatcher payments;
+
+  final String Function() _paymentOperationId;
+  final Map<String, _PaymentAction> _paymentActions = {};
+  String? _paymentCommandOwner, _paymentRouteRequest, _paymentRouteOwner;
+  Object? _paymentRouteToken;
+  int _paymentCommandGeneration = 0;
+
+  Future<void> loadPayment(String requestId) => watchPayment(requestId);
+  Future<void> watchPayment(String requestId) {
+    // Background tracking/hydration must not steal an explicitly opened route.
+    if (_paymentRouteToken != null &&
+        (_paymentRouteRequest != requestId ||
+            _paymentRouteOwner != payments.source?.userId))
+      return Future<void>.value();
+    return payments.watch(requestId);
+  }
+
+  Future<void> refreshPayment() => payments.refresh();
+  void clearPayment() {
+    _paymentCommandGeneration++;
+    _paymentActions.clear();
+    payments.clear();
+  }
+
+  Object bindPaymentRequest(String requestId) {
+    final token = Object();
+    _paymentRouteToken = token;
+    _paymentRouteRequest = requestId;
+    _paymentRouteOwner = payments.source?.userId;
+    if (!isPaymentRequestId(requestId) || _paymentRouteOwner == null) {
+      clearPayment();
+    }
+    return token;
+  }
+
+  bool ownsPaymentRoute(Object? token, String requestId, String? owner) =>
+      token != null &&
+      identical(token, _paymentRouteToken) &&
+      requestId == _paymentRouteRequest &&
+      owner != null &&
+      owner == _paymentRouteOwner &&
+      owner == payments.source?.userId;
+
+  void releasePaymentRequest(Object? token) {
+    if (!identical(token, _paymentRouteToken)) return;
+    _paymentRouteToken = null;
+    _paymentRouteRequest = null;
+    _paymentRouteOwner = null;
+  }
+
+  bool paymentSubmitting(String id) => _paymentActions[id]?.task != null;
+  String? paymentCommandError(String id) => _paymentActions[id]?.error;
+  String? paymentCommandNotice(String id) => _paymentActions[id]?.notice;
+  bool paymentSelectionNeedsRefresh(String id) =>
+      _paymentActions[id]?.selectionAcknowledged ?? false;
+  bool paymentMethodRetryBlocked(String id, {required bool bank}) => bank
+      ? _paymentActions[id]?.cash != null
+      : _paymentActions[id]?.bank != null;
+
+  void _paymentChanged() {
+    final owner = payments.source?.userId;
+    if (_paymentCommandOwner != owner) {
+      _paymentCommandOwner = owner;
+      // A page from an earlier login must stay invalid even after A -> B -> A.
+      _paymentRouteOwner = null;
+      _paymentCommandGeneration++;
+      _paymentActions.clear();
+    }
+    _gpsChanged();
+  }
+
+  Future<bool> preparePayment(String requestId) =>
+      _paymentCommand(requestId, selectCash: false);
+  Future<bool> selectCashPayment(String requestId) =>
+      _paymentCommand(requestId, selectCash: true);
+  Future<bool> selectBankPayment(String requestId) =>
+      _paymentCommand(requestId, selectCash: false, selectBank: true);
+
+  Future<bool> _paymentCommand(String id,
+      {required bool selectCash, bool selectBank = false}) {
+    final source = payments.source;
+    final owner = source?.userId;
+    if (_disposed ||
+        owner == null ||
+        owner != _paymentCommandOwner ||
+        !isPaymentRequestId(id) ||
+        payments.requestId != id ||
+        (_paymentRouteToken != null &&
+            (_paymentRouteOwner != owner || _paymentRouteRequest != id))) {
+      return Future<bool>.value(false);
+    }
+    final state = _paymentActions.putIfAbsent(id, _PaymentAction.new);
+    if (state.task != null) return state.task!;
+    if (source is! PaymentCommands) {
+      state.error = 'PAYMENT_COMMAND_UNAVAILABLE';
+      _gpsChanged();
+      return Future<bool>.value(false);
+    }
+    final dto = payments.payment;
+    if ((selectBank && state.cash != null) ||
+        (selectCash && state.bank != null)) {
+      return Future<bool>.value(false);
+    }
+    if (selectBank && state.bank == null) {
+      if (source is! BankPaymentSource ||
+          !payments.bankAvailable ||
+          payments.stale ||
+          dto == null ||
+          dto.requestId != id ||
+          dto.status != 'pending' ||
+          dto.method != null ||
+          payments.loading ||
+          payments.error != null ||
+          state.selectionAcknowledged) return Future<bool>.value(false);
+      state.bank = BankPaymentSelection(
+          requestId: id,
+          paymentId: dto.paymentId,
+          expectedVersion: dto.version,
+          operationId: _paymentOperationId());
+    }
+    if (selectCash && state.cash == null) {
+      if (dto == null ||
+          dto.requestId != id ||
+          dto.status != 'pending' ||
+          dto.method != null ||
+          payments.loading ||
+          payments.error != null ||
+          state.selectionAcknowledged) return Future<bool>.value(false);
+      state.cash = CashPaymentSelection(
+          requestId: id,
+          paymentId: dto.paymentId,
+          expectedVersion: dto.version,
+          operationId: _paymentOperationId());
+    }
+    if (!selectCash &&
+        !selectBank &&
+        (dto != null || payments.loading || payments.error != null)) {
+      return Future<bool>.value(false);
+    }
+    final generation = _paymentCommandGeneration;
+    bool current() =>
+        !_disposed &&
+        generation == _paymentCommandGeneration &&
+        source!.userId == owner &&
+        identical(_paymentActions[id], state);
+    final completion = Completer<bool>();
+    state.task =
+        completion.future; // Reserve before notifying: double taps share it.
+    state.error = null;
+    state.notice = null;
+    _gpsChanged();
+    unawaited(() async {
+      var success = false;
+      try {
+        final commands = source as PaymentCommands;
+        if (selectBank) {
+          await (source as BankPaymentSource).selectBank(state.bank!);
+        } else if (selectCash) {
+          await commands.selectCash(state.cash!);
+        } else {
+          await commands.prepare(id);
+        }
+        if (!current()) return;
+        state.cash = null;
+        state.bank = null;
+        state.selectionAcknowledged = selectCash || selectBank;
+        state.notice = selectCash
+            ? 'Đã chọn tiền mặt. Chờ đối tác xác nhận thu tiền.'
+            : null;
+        success = true;
+      } on PaymentAccessDenied {
+        if (!current()) return;
+        state.cash = null;
+        state.bank = null;
+        state.error = 'PAYMENT_NOT_ACCESSIBLE';
+        if (payments.requestId == id) payments.clear();
+      } on PaymentCommandFailure catch (failure) {
+        if (!current()) return;
+        state.error = failure.code;
+        if (!failure.outcomeUnknown) {
+          state.cash = null;
+          state.bank = null;
+        }
+      } catch (_) {
+        if (!current()) return;
+        // Includes timeout from an injected transport; preserve the exact payload.
+        state.error = 'PAYMENT_COMMAND_UNCERTAIN';
+      } finally {
+        if (current()) {
+          // Never use a command/replay DTO as payment state.
+          if (payments.requestId == id &&
+              state.error != 'PAYMENT_NOT_ACCESSIBLE') {
+            await payments.refresh();
+          }
+          if (current()) {
+            state.task = null;
+            _gpsChanged();
+          }
+        }
+        completion.complete(success && current());
+      }
+    }());
+    return completion.future;
+  }
+
+  void _watchCurrentPayment() {
+    if (activeRequest != null) {
+      if (payments.requestId != activeRequest!.id) {
+        unawaited(watchPayment(activeRequest!.id));
+      }
+      return;
+    }
+    if (payments.requestId != null) return;
+    final request =
+        history.where((r) => r.stage == RequestStage.completed).firstOrNull;
+    if (request != null) unawaited(watchPayment(request.id));
+  }
+
+  void _gpsChanged() {
+    if (!_disposed) notifyListeners();
+  }
+
+  void setForeground(bool value) {
+    gps.setForeground(value);
+    payments.setForeground(value);
+  }
+
   int tabIndex = 0;
   VehicleKind vehicle = VehicleKind.car;
   CustomerVehicle? selectedSavedVehicle;
@@ -128,32 +382,51 @@ class AppController extends ChangeNotifier {
   int _requestRevision = 0;
   int _profileRevision = 0;
   bool _disposed = false;
+  bool _initialized = false;
 
-  bool get backendConfigured => BackendConfiguration.isConfigured;
+  bool get backendConfigured =>
+      client != null || BackendConfiguration.isConfigured;
   bool get isLoggedIn => UserSession.isLoggedIn;
 
   Future<void> initialize() async {
+    if (_initialized || _disposed) return;
+    _initialized = true;
+    gps.setUser(UserSession.userId);
     if (!backendConfigured) {
       restoringSession = false;
       loadError = 'Backend chưa được cấu hình.';
       notifyListeners();
       return;
     }
-    _authSubscription = SupabaseService.authStateChanges.listen((state) async {
+    _authSubscription =
+        (client?.auth.onAuthStateChange ?? SupabaseService.authStateChanges)
+            .listen((state) async {
+      // The explicit current-user restore below owns initial hydration.
+      if (state.event == AuthChangeEvent.initialSession) return;
       await _restoreUser(state.session?.user);
     });
-    await _restoreUser(SupabaseService.currentUser);
+    await _restoreUser(client != null
+        ? client!.auth.currentUser
+        : SupabaseService.currentUser);
   }
 
   Future<void> _restoreUser(User? user) async {
     if (_disposed) return;
     final version = ++_sessionVersion;
-    if (UserSession.userId != user?.id) {
+    final sameUser = user != null && UserSession.userId == user.id;
+    if (!sameUser) {
+      clearPayment();
       selectedSavedVehicle = null;
       activeRequest = null;
       history = [];
     }
-    UserSession.restore(user);
+    if (sameUser) {
+      // Token refresh must not replace an edited profile with old Auth metadata.
+      UserSession.email = user.email;
+    } else {
+      UserSession.restore(user);
+    }
+    gps.setUser(UserSession.userId);
     restoringSession = false;
     // Notify immediately on identity changes, before any profile/network wait,
     // so tracking cannot keep a subscription belonging to the previous user.
@@ -168,17 +441,34 @@ class AppController extends ChangeNotifier {
     }
     try {
       final profileRevision = _profileRevision;
-      final profile = await SupabaseService.fetchProfile();
+      final profile = await SupabaseService.fetchProfile(client: client);
       if (_disposed || version != _sessionVersion) return;
       if (profileRevision == _profileRevision) {
         UserSession.restore(user, profile: profile);
       }
-      await refreshRequests();
     } on AppFailure catch (error) {
       if (_disposed || version != _sessionVersion) return;
       loadError = error.message;
+      if (error.sessionExpired) {
+        _clearSession();
+        notifyListeners();
+        return;
+      }
       notifyListeners();
     }
+    if (!_disposed && version == _sessionVersion) await refreshRequests();
+  }
+
+  void _clearSession() {
+    clearPayment();
+    _sessionVersion++;
+    _requestRevision++;
+    UserSession.clear();
+    gps.setUser(null);
+    selectedSavedVehicle = null;
+    activeRequest = null;
+    history = [];
+    loadingRequests = false;
   }
 
   Future<void> refreshRequests() async {
@@ -190,22 +480,28 @@ class AppController extends ChangeNotifier {
     notifyListeners();
     try {
       final results = await Future.wait<dynamic>([
-        SupabaseService.fetchActiveRequest(),
-        SupabaseService.fetchHistory(),
+        SupabaseService.fetchActiveRequest(client: client),
+        SupabaseService.fetchHistory(client: client),
       ]);
       if (_disposed ||
           version != _sessionVersion ||
           revision != _requestRevision) return;
       activeRequest = results[0] as RescueRequestData?;
       history = results[1] as List<RescueRequestData>;
+      _watchCurrentPayment();
     } on AppFailure catch (error) {
       if (_disposed ||
           version != _sessionVersion ||
           revision != _requestRevision) return;
       loadError = error.message;
-      if (error.sessionExpired) UserSession.clear();
+      if (error.sessionExpired) {
+        _clearSession();
+        notifyListeners();
+      }
     } finally {
-      if (!_disposed && version == _sessionVersion) {
+      if (!_disposed &&
+          version == _sessionVersion &&
+          revision == _requestRevision) {
         loadingRequests = false;
         notifyListeners();
       }
@@ -214,6 +510,8 @@ class AppController extends ChangeNotifier {
 
   void selectTab(int value) {
     tabIndex = value;
+    gps.setUser(UserSession.userId);
+    if (isLoggedIn && [0, 1, 2].contains(value)) unawaited(gps.refresh());
     notifyListeners();
   }
 
@@ -229,6 +527,8 @@ class AppController extends ChangeNotifier {
   void startRequest({RescueService? service}) {
     if (service != null) selectedService = service;
     tabIndex = 1;
+    gps.setUser(UserSession.userId);
+    if (isLoggedIn) unawaited(gps.refresh());
     notifyListeners();
   }
 
@@ -280,6 +580,7 @@ class AppController extends ChangeNotifier {
         clientRequestId: clientRequestId,
         vehicle: vehicle,
         vehicleId: selectedSavedVehicle?.id,
+        client: client,
         service: service,
         locationText: trimmedAddress,
         description: description,
@@ -305,6 +606,8 @@ class AppController extends ChangeNotifier {
       }
       loadError = null;
       _requestRevision++;
+      loadingRequests = false;
+      unawaited(watchPayment(request.id));
       notifyListeners();
       return request;
     } catch (error, stackTrace) {
@@ -323,7 +626,7 @@ class AppController extends ChangeNotifier {
   }
 
   Stream<RescueRequestData> watchRequest(String requestId) =>
-      SupabaseService.watchRequest(requestId);
+      SupabaseService.watchRequest(requestId, client: client);
 
   void applyTrackingUpdate(RescueRequestData request) {
     final current = activeRequest;
@@ -333,6 +636,8 @@ class AppController extends ChangeNotifier {
         current.id != request.id ||
         request.updatedAt.isBefore(current.updatedAt)) return;
     _requestRevision++;
+    unawaited(watchPayment(request.id));
+    loadingRequests = false;
     loadError = null;
     if (request.stage.isTerminal) {
       activeRequest = null;
@@ -348,9 +653,11 @@ class AppController extends ChangeNotifier {
     final customerId = UserSession.userId;
     final request = activeRequest;
     if (request == null) return;
-    final cancelled = await SupabaseService.cancelRequest(request.id);
+    final cancelled =
+        await SupabaseService.cancelRequest(request.id, client: client);
     if (_disposed || customerId != UserSession.userId) return;
     _requestRevision++;
+    loadingRequests = false;
     if (activeRequest?.id == cancelled.id) activeRequest = null;
     history = [cancelled, ...history.where((item) => item.id != cancelled.id)];
     tabIndex = 3;
@@ -362,18 +669,20 @@ class AppController extends ChangeNotifier {
     selectedService = request.service;
     vehicle = request.vehicle;
     tabIndex = 1;
+    gps.setUser(UserSession.userId);
+    if (isLoggedIn) unawaited(gps.refresh());
     notifyListeners();
   }
 
   Future<void> signOut() async {
-    await SupabaseService.signOut();
+    clearPayment();
+    if (client == null) {
+      await SupabaseService.signOut();
+    } else {
+      await client!.auth.signOut();
+    }
     if (_disposed) return;
-    _sessionVersion++;
-    _requestRevision++;
-    UserSession.clear();
-    selectedSavedVehicle = null;
-    activeRequest = null;
-    history = [];
+    _clearSession();
     notifyListeners();
   }
 
@@ -382,6 +691,20 @@ class AppController extends ChangeNotifier {
     _disposed = true;
     _sessionVersion++;
     _authSubscription?.cancel();
+    gps.removeListener(_gpsChanged);
+    gps.dispose();
+    _paymentCommandGeneration++;
+    _paymentActions.clear();
+    payments.removeListener(_paymentChanged);
+    payments.dispose();
     super.dispose();
   }
+}
+
+class _PaymentAction {
+  Future<bool>? task;
+  CashPaymentSelection? cash;
+  BankPaymentSelection? bank;
+  String? error, notice;
+  bool selectionAcknowledged = false;
 }

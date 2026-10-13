@@ -12,10 +12,18 @@ class RescueLocationMap extends StatefulWidget {
       this.coordinates,
       this.onSelected,
       this.locked = false,
-      this.showDefaultLocation = false});
+      this.height = 240,
+      this.showRecenterButton = false,
+      this.showDefaultLocation = false,
+      this.additionalMarkers = const [],
+      this.polylines = const []});
   final RescueCoordinates? coordinates;
   final ValueChanged<RescueCoordinates>? onSelected;
   final bool locked, showDefaultLocation;
+  final double height;
+  final bool showRecenterButton;
+  final List<Marker> additionalMarkers;
+  final List<Polyline> polylines;
   static const daNang = LatLng(16.0544, 108.2022);
   @visibleForTesting
   static TileProvider Function()? tileProviderFactory;
@@ -98,12 +106,21 @@ class _RescueLocationMapState extends State<RescueLocationMap> {
       ClipRRect(
           borderRadius: BorderRadius.circular(AppRadius.featured),
           child: SizedBox(
-              height: 240,
+              height: widget.height,
               child: FlutterMap(
                   mapController: controller,
                   options: MapOptions(
                       initialCenter: center,
                       initialZoom: point == null ? 12 : 16,
+                      initialCameraFit: widget.additionalMarkers.isEmpty &&
+                              widget.polylines.isEmpty
+                          ? null
+                          : CameraFit.coordinates(coordinates: [
+                              center,
+                              ...widget.additionalMarkers
+                                  .map((marker) => marker.point),
+                              ...widget.polylines.expand((line) => line.points),
+                            ], padding: const EdgeInsets.all(40), maxZoom: 16),
                       minZoom: 3,
                       maxZoom: 19,
                       onMapReady: () => ready = true,
@@ -130,6 +147,8 @@ class _RescueLocationMapState extends State<RescueLocationMap> {
                         tileProvider: provider,
                         maxNativeZoom: 19,
                         errorTileCallback: (_, __, ___) => failedTile()),
+                    if (widget.polylines.isNotEmpty)
+                      PolylineLayer(polylines: widget.polylines),
                     MarkerLayer(markers: [
                       if (point != null)
                         Marker(
@@ -141,8 +160,26 @@ class _RescueLocationMapState extends State<RescueLocationMap> {
                                 key: ValueKey('rescue-location-marker'),
                                 semanticLabel: 'Vị trí khách hàng cần cứu hộ',
                                 size: 44,
-                                color: AppColors.orange))
+                                color: AppColors.orange)),
+                      ...widget.additionalMarkers,
                     ]),
+                    if (widget.showRecenterButton && point != null)
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: Material(
+                          color: Colors.white,
+                          shape: const CircleBorder(),
+                          child: IconButton(
+                            tooltip: 'Định vị điểm cứu hộ',
+                            icon: const Icon(Icons.my_location, size: 20),
+                            color: const Color(0xFF2563EB),
+                            onPressed: () {
+                              if (ready) controller.move(center, 16);
+                            },
+                          ),
+                        ),
+                      ),
                     if (widget.onSelected != null && !widget.locked)
                       const Positioned(
                           top: 12,

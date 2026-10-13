@@ -51,23 +51,14 @@ void main() {
     test(
         'reserve → ${duplicate ? 'duplicate object retry' : 'upload'} → complete uses customer JWT',
         () async {
-      final calls = <String>[];
+      final calls = <http.Request>[];
       final transport = MockClient((request) async {
-        calls.add(request.url.path);
-        expect(request.headers['authorization'], 'Bearer test-customer-token');
+        calls.add(request);
         if (request.url.path.endsWith('reserve_customer_request_photo')) {
-          final body = jsonDecode(request.body) as Map;
-          expect(body['p_request_id'], requestId);
-          expect(body['p_photo_id'], photoId);
-          expect(body['p_byte_size'], 3);
           return jsonResponse(
               request, {'storage_path': path, 'uploaded_at': null});
         }
         if (request.url.path.contains('/storage/v1/object/')) {
-          expect(request.method, 'POST');
-          expect(request.headers['x-upsert'], 'false');
-          expect(request.headers['content-type'], 'image/png');
-          expect(request.bodyBytes, [1, 2, 3]);
           return duplicate
               ? jsonResponse(
                   request,
@@ -79,19 +70,44 @@ void main() {
                   409)
               : jsonResponse(request, {'Key': 'rescue-request-photos/$path'});
         }
-        expect(request.url.path.endsWith('complete_customer_request_photo'),
-            isTrue);
         return jsonResponse(
             request, {'id': photoId, 'uploaded_at': '2026-10-01T01:00:00Z'});
       });
       final repository =
           SupabaseRequestPhotoRepository(client: await clientFor(transport));
       await repository.upload(requestId, selected());
-      expect(calls, [
+      // Assert outside the transport: upload recovery intentionally catches
+      // errors, which must never swallow an assertion from this test.
+      expect(calls.map((request) => request.url.path), [
         '/rest/v1/rpc/reserve_customer_request_photo',
         '/storage/v1/object/rescue-request-photos/$path',
         '/rest/v1/rpc/complete_customer_request_photo',
       ]);
+      for (final request in calls) {
+        expect(request.method, 'POST');
+        expect(request.headers['authorization'], 'Bearer test-customer-token');
+      }
+      expect(jsonDecode(calls.first.body), {
+        'p_request_id': requestId,
+        'p_photo_id': photoId,
+        'p_content_type': 'image/png',
+        'p_byte_size': 3,
+      });
+      final upload = calls[1];
+      expect(upload.headers['x-upsert'], 'false');
+      final contentType = upload.headers['content-type']!;
+      expect(contentType, startsWith('multipart/form-data; boundary='));
+      final boundary = contentType.split('boundary=').last;
+      final filePart = latin1
+          .decode(upload.bodyBytes)
+          .split('--$boundary')
+          .singleWhere((part) => part.contains('filename=""'));
+      final split = filePart.indexOf('\r\n\r\n');
+      expect(filePart.substring(0, split).toLowerCase(),
+          contains('content-type: image/png'));
+      expect(latin1.encode(filePart.substring(split + 4, filePart.length - 2)),
+          [1, 2, 3]);
+      expect(jsonDecode(calls.last.body), {'p_photo_id': photoId});
     });
   }
 

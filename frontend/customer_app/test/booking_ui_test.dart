@@ -2,6 +2,7 @@ import 'package:cuu_ho_247/app/app_controller.dart';
 import 'package:cuu_ho_247/app/app_theme.dart';
 import 'package:cuu_ho_247/screens/new_request_screen.dart';
 import 'package:cuu_ho_247/widgets/booking_ui.dart';
+import 'package:cuu_ho_247/widgets/booking_form_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -22,7 +23,7 @@ void main() {
             child: child!),
         home: Scaffold(body: NewRequestScreen(controller: controller))));
     await tester.pumpAndSettle();
-    expect(tester.getSize(find.byType(CustomerAppHeader)).height,
+    expect(tester.getSize(find.byType(BookingFormHeader)).height,
         lessThanOrEqualTo(80));
     expect(tester.takeException(), isNull);
     tester.view.viewInsets = const FakeViewPadding(bottom: 300);

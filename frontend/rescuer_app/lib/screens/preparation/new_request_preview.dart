@@ -37,65 +37,136 @@ class NewRequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final distance = request.availableDistanceKm;
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _RequestHeading(request: request),
-        const SizedBox(height: 10),
-        _RequestService(request: request),
-        const SizedBox(height: 10),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            const Icon(
-              Icons.location_on_outlined,
-              color: AppColors.muted,
-              size: 18,
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                request.hasApproximateLocation
-                    ? 'Khu vực cứu hộ gần đúng'
-                    : 'Chưa có tọa độ GPS',
-                style: AppType.caption,
-              ),
+            Text('Mã đơn: ${_requestCode(request)}', style: RescueType.section),
+            StatusBadge(
+              label: serviceLabels[request.service] ?? 'Dịch vụ cứu hộ',
+              tone: BadgeTone.orange,
+              icon: serviceIcon(request.service),
             ),
           ],
         ),
-        if (request.availableDistanceKm != null) ...[
-          const SizedBox(height: 4),
-          Text(_distance(request), style: AppType.caption),
-        ],
         const SizedBox(height: 12),
-        AppButton(
-          key: ValueKey('preview-${request.id}'),
-          label: 'Xem trước',
-          icon: Icons.visibility_outlined,
-          onPressed: onPreview,
-        ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton.icon(
-            label: const Text('Bỏ qua'),
-            icon: const Icon(Icons.close_rounded, size: 16),
-            onPressed: onIgnore,
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: RescueColors.containerHigh,
+            borderRadius: BorderRadius.circular(12),
           ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: RescueColors.navy,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  request.hasApproximateLocation
+                      ? Icons.near_me_outlined
+                      : Icons.location_off_outlined,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      distance != null
+                          ? '$distance km'
+                          : request.hasApproximateLocation
+                          ? 'Khu vực gần đúng'
+                          : 'Vị trí nhập tay',
+                      style: RescueType.section,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      distance != null
+                          ? 'Khoảng cách ước tính đến khu vực cứu hộ'
+                          : 'Chưa có khoảng cách ước tính',
+                      style: AppType.caption,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        LabeledValue(
+          label: 'Loại xe cần hỗ trợ',
+          value: customerVehicles[request.vehicle] ?? 'Xe khác',
+          icon: Icons.directions_car_outlined,
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: RescueColors.selected,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.lock_outline, size: 16),
+              SizedBox(width: 8),
+              Expanded(child: Text(_privacyMessage, style: AppType.caption)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final ignore = AppButton(
+              key: ValueKey('ignore-${request.id}'),
+              label: 'Bỏ qua',
+              icon: Icons.close,
+              kind: ButtonStyleKind.secondary,
+              onPressed: onIgnore,
+            );
+            final accept = AppButton(
+              key: ValueKey('preview-${request.id}'),
+              label: 'Nhận đơn ngay',
+              icon: Icons.bolt,
+              onPressed: onPreview,
+            );
+            if (constraints.maxWidth < 310 ||
+                MediaQuery.textScalerOf(context).scale(16) > 20) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [accept, const SizedBox(height: 8), ignore],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(flex: 2, child: ignore),
+                const SizedBox(width: 8),
+                Expanded(flex: 3, child: accept),
+              ],
+            );
+          },
         ),
       ],
     );
     return embedded
-        ? Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: Column(
-              children: [
-                const Divider(height: 1),
-                const SizedBox(height: 12),
-                content,
-              ],
-            ),
-          )
-        : AppCard(kind: RescueCardKind.order, child: content);
+        ? Padding(padding: const EdgeInsets.only(top: 12), child: content)
+        : AppCard(
+            kind: RescueCardKind.order,
+            padding: const EdgeInsets.all(16),
+            child: content,
+          );
   }
 }
 

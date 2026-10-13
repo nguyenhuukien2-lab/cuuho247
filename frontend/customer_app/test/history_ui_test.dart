@@ -65,12 +65,12 @@ void main() {
     await tester.pumpWidget(MaterialApp(
         theme: AppTheme.light,
         home: Scaffold(body: NewHistoryScreen(controller: controller))));
-    expect(find.text('Chưa có lịch sử cứu hộ'), findsOneWidget);
+    expect(find.text('Chưa có chuyến cứu hộ'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('history-filter-2')));
     await tester.pumpAndSettle();
     expect(find.text('Không có chuyến nào đã hủy'), findsOneWidget);
     expect(find.byType(HistoryTripCard), findsNothing);
-    final action = find.text('Tạo yêu cầu cứu hộ');
+    final action = find.text('Đặt cứu hộ');
     await tester.ensureVisible(action);
     await tester.tap(action);
     expect(controller.tabIndex, 1);
@@ -83,7 +83,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(
         theme: AppTheme.light,
         home: Scaffold(body: NewHistoryScreen(controller: controller))));
-    expect(find.text('Chưa có dữ liệu'), findsOneWidget);
+    expect(find.text('Chưa tải được số chuyến'), findsOneWidget);
     expect(find.byKey(const ValueKey('history-total')), findsNothing);
     expect(find.byKey(const ValueKey('history-count-0')), findsNothing);
     expect(find.byType(HistoryEmptyState), findsNothing);
@@ -102,7 +102,6 @@ void main() {
               request: trip('id', RequestStage.completed, RescueService.tire,
                   price: price),
               onDetails: () {}),
-          const WarrantyBanner(),
         ])))));
     await mount(null);
     expect(find.text('Chi phí / báo giá'), findsNothing);
@@ -110,8 +109,7 @@ void main() {
     expect(find.textContaining('100%'), findsNothing);
     expect(find.textContaining('VAT'), findsNothing);
     await mount(0);
-    expect(find.text('Chi phí / báo giá'), findsOneWidget);
-    expect(find.textContaining('0'), findsWidgets);
+    expect(find.text('0đ'), findsOneWidget);
     expect(find.textContaining('Địa điểm thật từ phản hồi'), findsOneWidget);
   });
 }

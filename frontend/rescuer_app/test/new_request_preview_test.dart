@@ -104,11 +104,15 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Mã đơn: CH-000123'), findsOneWidget);
       expect(find.text('Kéo xe'), findsOneWidget);
-      expect(find.text('Loại xe: Xe tải'), findsOneWidget);
-      expect(find.text('Yêu cầu mới'), findsOneWidget);
-      expect(find.text('Khu vực cứu hộ gần đúng'), findsOneWidget);
-      expect(find.text('Khoảng cách ước tính · 3 km'), findsOneWidget);
-      expect(find.text('Xem trước'), findsOneWidget);
+      expect(find.text('Loại xe cần hỗ trợ'), findsOneWidget);
+      expect(find.text('Xe tải'), findsOneWidget);
+      expect(find.text('Khu vực cứu hộ gần đúng'), findsNothing);
+      expect(find.text('3 km'), findsOneWidget);
+      expect(
+        find.text('Khoảng cách ước tính đến khu vực cứu hộ'),
+        findsOneWidget,
+      );
+      expect(find.text('Nhận đơn ngay'), findsOneWidget);
       expect(find.text('Nhận đơn'), findsNothing);
       expect(find.textContaining('10.775'), findsNothing);
       expect(find.textContaining('106.695'), findsNothing);
@@ -328,15 +332,13 @@ void main() {
         );
         expect(find.text('Mã đơn: Chưa có mã'), findsOneWidget);
         expect(find.text('Kích bình'), findsOneWidget);
-        expect(find.text('Loại xe: Xe máy'), findsOneWidget);
+        expect(find.text('Loại xe cần hỗ trợ'), findsOneWidget);
+        expect(find.text('Xe máy'), findsOneWidget);
         if (distance < 0) {
-          expect(find.text('Chưa có khoảng cách ước tính'), findsNothing);
+          expect(find.text('Chưa có khoảng cách ước tính'), findsOneWidget);
           expect(find.textContaining(' km'), findsNothing);
         } else {
-          expect(
-            find.text('Khoảng cách ước tính · $distance km'),
-            findsOneWidget,
-          );
+          expect(find.text('$distance km'), findsOneWidget);
         }
         expectPrivateDataHidden();
         expect(tester.takeException(), isNull);

@@ -82,6 +82,53 @@ Future<void> sendRequest(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('GPS selection refreshes a stale fix before creating a request',
+      (tester) async {
+    final controller = CapturingController();
+    final service = FakeLocationService();
+    await mountForm(tester, controller, service);
+    await tapRequest(tester, find.text('Lấy vị trí hiện tại'));
+    service.pending.complete(LocationResult(LocationStatus.acquired, 'GPS',
+        coordinates: const RescueCoordinates(10.7, 106.7),
+        capturedAt: DateTime.now().subtract(const Duration(minutes: 3))));
+    await tester.pumpAndSettle();
+    service.pending = Completer<LocationResult>();
+    await tapRequest(tester, find.byType(CheckboxListTile));
+    await tapRequest(tester, find.text('XÁC NHẬN ĐẶT CỨU HỘ'));
+    await tester.pump();
+    expect(service.calls, 2);
+    expect(controller.submissions, isEmpty);
+    service.pending.complete(LocationResult(LocationStatus.acquired, 'GPS',
+        coordinates: const RescueCoordinates(10.8, 106.8),
+        accuracy: 9,
+        capturedAt: DateTime.now()));
+    await tester.pumpAndSettle();
+    expect(controller.submissions.single.latitude, 10.8);
+    expect(controller.submissions.single.longitude, 106.8);
+  });
+
+  testWidgets('failed stale GPS refresh cannot submit old coordinates',
+      (tester) async {
+    final controller = CapturingController();
+    final service = FakeLocationService();
+    await mountForm(tester, controller, service);
+    await tapRequest(tester, find.text('Lấy vị trí hiện tại'));
+    service.pending.complete(located);
+    await tester.pumpAndSettle();
+    service.pending = Completer<LocationResult>();
+    await tapRequest(tester, find.byType(CheckboxListTile));
+    await tapRequest(tester, find.text('XÁC NHẬN ĐẶT CỨU HỘ'));
+    await tester.pump();
+    service.pending.complete(
+        const LocationResult(LocationStatus.denied, 'Chưa cấp quyền vị trí'));
+    await tester.pumpAndSettle();
+    expect(controller.submissions, isEmpty);
+    await requestStep(tester, 2);
+    await tapRequest(tester, find.text('Chỉ dùng địa chỉ nhập tay'));
+    await sendRequest(tester);
+    expect(controller.submissions.single.latitude, isNull);
+  });
+
   testWidgets('no automatic prompt; manual form sends null coordinates',
       (tester) async {
     final controller = CapturingController();
@@ -112,7 +159,7 @@ void main() {
     expect(controller.submissions.single,
         (address: '123 Nguyễn Huệ', latitude: 10.7769, longitude: 106.7009));
     await requestStep(tester, 2);
-    expect(find.text('Chưa lấy vị trí'), findsOneWidget);
+    expect(find.text('Vị trí nhập tay'), findsOneWidget);
     await sendRequest(tester);
     expect(controller.submissions.last.latitude, isNull);
   });

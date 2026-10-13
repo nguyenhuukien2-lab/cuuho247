@@ -13,6 +13,15 @@ class FakeGeolocator extends GeolocatorPlatform {
   Object? error;
   Completer<Position>? pending;
   double latitude = 10.7769;
+  DateTime? capturedAt;
+  final positions = StreamController<Position>();
+
+  @override
+  Stream<Position> getPositionStream({LocationSettings? locationSettings}) {
+    expect(locationSettings?.accuracy, LocationAccuracy.high);
+    expect(locationSettings?.distanceFilter, 20);
+    return positions.stream;
+  }
 
   @override
   Future<bool> isLocationServiceEnabled() async => enabled;
@@ -34,7 +43,7 @@ class FakeGeolocator extends GeolocatorPlatform {
     return Position(
       latitude: latitude,
       longitude: 106.7009,
-      timestamp: DateTime.utc(2026),
+      timestamp: capturedAt ?? DateTime.now().toUtc(),
       accuracy: 10,
       altitude: 0,
       altitudeAccuracy: 0,
@@ -47,6 +56,23 @@ class FakeGeolocator extends GeolocatorPlatform {
 }
 
 void main() {
+  test('production stream preserves device coordinates and real metadata',
+      () async {
+    final platform = FakeGeolocator();
+    final position = await platform.getCurrentPosition(
+        locationSettings:
+            const LocationSettings(timeLimit: Duration(seconds: 20)));
+    final received = GeolocatorLocationService(platform: platform, isWeb: false)
+        .watchLocation()
+        .first;
+    await Future<void>.delayed(Duration.zero);
+    platform.positions.add(position);
+    final result = await received;
+    expect(result.coordinates?.latitude, position.latitude);
+    expect(result.accuracy, position.accuracy);
+    expect(result.capturedAt, position.timestamp);
+    await platform.positions.close();
+  });
   test('Android requests permission once and returns real coordinates',
       () async {
     final platform = FakeGeolocator();
@@ -56,6 +82,8 @@ void main() {
     expect(result.status, LocationStatus.acquired);
     expect(result.coordinates?.latitude, 10.7769);
     expect(result.coordinates?.longitude, 106.7009);
+    expect(result.accuracy, 10);
+    expect(result.capturedAt, isNotNull);
     expect(platform.permissionRequests, 1);
   });
 
@@ -81,6 +109,11 @@ void main() {
           await GeolocatorLocationService(platform: platform, isWeb: false)
               .getCurrentLocation();
       expect(result.status, LocationStatus.denied);
+      expect(
+          result.issue,
+          permission == LocationPermission.deniedForever
+              ? LocationIssue.deniedForever
+              : null);
       expect(result.coordinates, isNull);
       expect(platform.positionRequests, 0);
       expect(platform.permissionRequests,
@@ -95,6 +128,7 @@ void main() {
         await GeolocatorLocationService(platform: platform, isWeb: false)
             .getCurrentLocation();
     expect(result.status, LocationStatus.unavailable);
+    expect(result.issue, LocationIssue.disabled);
     expect(platform.permissionRequests, 0);
     expect(platform.positionRequests, 0);
   });
@@ -147,5 +181,16 @@ void main() {
     }
     expect(const RescueCoordinates(0, 0).isValid, isTrue);
     expect(const RescueCoordinates(10, 181).isValid, isFalse);
+  });
+
+  test('stale device GPS is rejected instead of used as current position',
+      () async {
+    final platform = FakeGeolocator()
+      ..capturedAt = DateTime.now().subtract(const Duration(minutes: 3));
+    final result =
+        await GeolocatorLocationService(platform: platform, isWeb: true)
+            .getCurrentLocation();
+    expect(result.coordinates, isNull);
+    expect(result.issue, LocationIssue.stale);
   });
 }

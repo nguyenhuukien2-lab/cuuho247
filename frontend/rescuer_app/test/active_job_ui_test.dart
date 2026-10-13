@@ -108,7 +108,7 @@ void expectNoFakeData() {
 
 void main() {
   for (final size in [const Size(320, 740), const Size(390, 844)]) {
-    testWidgets('primary action stays in header on $size with large text', (
+    testWidgets('primary action remains reachable on $size with large text', (
       tester,
     ) async {
       final s = ActiveUiFake()
@@ -148,7 +148,13 @@ void main() {
         );
         final action = find.byKey(ValueKey(key));
         expect(action, findsOneWidget);
-        expect(find.descendant(of: header, matching: action), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('active-job-actions')),
+            matching: action,
+          ),
+          findsOneWidget,
+        );
         expect(
           find.descendant(of: action, matching: find.text(label)),
           findsOneWidget,
@@ -158,6 +164,9 @@ void main() {
           matching: find.byType(FilledButton),
         );
         expect(tester.widget<FilledButton>(button).onPressed, isNotNull);
+        await tester.ensureVisible(action);
+        await tester.pumpAndSettle();
+        expect(action.hitTestable(), findsOneWidget);
         expect(tester.getRect(action).bottom, lessThanOrEqualTo(size.height));
         if (i == 4) {
           expect(find.text('Mã báo giá: BG-000018'), findsOneWidget);
@@ -195,16 +204,8 @@ void main() {
     expect(find.text('Ô tô'), findsOneWidget);
     expect(find.text('Gọi ngay'), findsOneWidget);
     expect(find.text('Mở Google Maps'), findsOneWidget);
-    final info = find
-        .ancestor(
-          of: find.text('Thông tin chuyến'),
-          matching: find.byType(Column),
-        )
-        .first;
-    expect(
-      tester.getTopLeft(find.byKey(const ValueKey('advance-job'))).dy,
-      lessThan(tester.getTopLeft(info).dy),
-    );
+    expect(find.byKey(const ValueKey('active-job-info')), findsNothing);
+    expect(find.byKey(const ValueKey('active-job-header')), findsOneWidget);
     expectNoFakeData();
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());

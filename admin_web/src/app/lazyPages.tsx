@@ -15,3 +15,7 @@ export const SettingsPage = lazy(() => import('../pages/SettingsPage').then((m) 
 export const LoginPage = lazy(() => import('../pages/LoginPage').then((m) => ({ default: m.LoginPage })))
 
 export const AuditLogsPage = lazy(() => import('../pages/AuditLogsPage').then((m) => ({ default: m.AuditLogsPage })))
+export const PaymentOverviewPage = lazy(() => import('../pages/PaymentOverviewPage').then((m) => ({ default: m.PaymentOverviewPage })))
+export const PaymentListPage = lazy(() => import('../pages/PaymentListPage').then((m) => ({ default: m.PaymentListPage })))
+export const PaymentDetailPage = lazy(() => import('../pages/PaymentDetailPage').then((m) => ({ default: m.PaymentDetailPage })))
+export const BankTransactionsPage = lazy(() => import('../pages/BankTransactionsPage').then((m) => ({ default: m.BankTransactionsPage })))

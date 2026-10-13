@@ -109,7 +109,7 @@ class _JobFinanceSectionState extends State<JobFinanceSection> {
           formatMoney(a.totalVnd, a.currency),
           style: AppType.pageTitle.copyWith(
             color: AppColors.orange,
-            fontSize: 30,
+            fontSize: 24,
           ),
         ),
         const SizedBox(height: 8),
@@ -209,7 +209,7 @@ class _JobFinanceSectionState extends State<JobFinanceSection> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: AppColors.orangeSoft,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -255,11 +255,7 @@ class _JobFinanceSectionState extends State<JobFinanceSection> {
     return widget.embedded
         ? Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text('Báo giá dịch vụ', style: AppType.section),
-              const SizedBox(height: 12),
-              ...children,
-            ],
+            children: [...children],
           )
         : PreparationCard(
             title: 'Báo giá dịch vụ',

@@ -9,6 +9,7 @@ import '../../models/backend_models.dart';
 import '../../widgets/app_components.dart';
 import 'preparation_components.dart';
 import 'ui_v2_components.dart';
+import '../payment/job_payment_section.dart';
 
 class HistoryPanel extends StatefulWidget {
   const HistoryPanel({super.key, required this.c});
@@ -27,39 +28,109 @@ class _HistoryPanelState extends State<HistoryPanel> {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      PartnerSection(
-        title: 'Lịch sử chuyến',
-        icon: Icons.history,
-        children: [
-          if ([
-            FeedStatus.ready,
-            FeedStatus.empty,
-          ].contains(c.historyStatus)) ...[
-            Text('${c.historyItems.length} chuyến đã tải', style: AppType.body),
-            if (c.historyItems.any(
-                  (j) =>
-                      j.assignment.state == 'completed' &&
-                      j.assignment.totalVnd != null,
-                ) &&
-                c.historyItems
-                    .where((j) => j.assignment.totalVnd != null)
-                    .every((j) => j.assignment.currency == 'VND')) ...[
-              const SizedBox(height: 6),
-              Text(
-                'Chi phí đã ghi nhận: ${formatMoney(c.historyItems.where((j) => j.assignment.state == 'completed').fold<int>(0, (sum, j) => sum + (j.assignment.totalVnd ?? 0)), 'VND')}',
-                style: AppType.body.copyWith(fontWeight: FontWeight.w700),
+      Container(
+        key: const ValueKey('history-summary'),
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.navy,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.query_stats,
+                  color: AppColors.orange,
+                  size: 22,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Tổng kết hoạt động',
+                    style: AppType.section.copyWith(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if ([
+              FeedStatus.ready,
+              FeedStatus.empty,
+            ].contains(c.historyStatus)) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _metric(
+                        '${c.historyItems.length}',
+                        'Chuyến đã tải',
+                      ),
+                    ),
+                    Expanded(
+                      child: _metric(
+                        '${c.historyItems.where((j) => j.assignment.state == 'completed').length}',
+                        'Hoàn tất',
+                      ),
+                    ),
+                    Expanded(
+                      child: _metric(
+                        '${c.historyItems.where((j) => j.assignment.state == 'cancelled').length}',
+                        'Đã hủy',
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 14),
+              if (c.historyItems.any(
+                    (j) =>
+                        j.assignment.state == 'completed' &&
+                        j.assignment.totalVnd != null,
+                  ) &&
+                  c.historyItems
+                      .where((j) => j.assignment.totalVnd != null)
+                      .every((j) => j.assignment.currency == 'VND')) ...[
+                Text(
+                  'Chi phí đã ghi nhận',
+                  style: AppType.caption.copyWith(color: Colors.white70),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  formatMoney(
+                    c.historyItems
+                        .where((j) => j.assignment.state == 'completed')
+                        .fold<int>(
+                          0,
+                          (sum, j) => sum + (j.assignment.totalVnd ?? 0),
+                        ),
+                    'VND',
+                  ),
+                  style: AppType.pageTitle.copyWith(color: Colors.white),
+                ),
+                const SizedBox(height: 4),
+              ],
               Text(
                 c.historyCursor != null
                     ? 'Theo chuyến đã tải · còn lịch sử'
                     : 'Theo chuyến đã tải · chưa gồm thanh toán',
-                style: AppType.caption,
+                style: AppType.caption.copyWith(color: Colors.white70),
               ),
-            ],
-          ] else
-            const Text('Chuyến hoàn tất và đã hủy', style: AppType.caption),
-        ],
+            ] else
+              Text(
+                'Chuyến hoàn tất và đã hủy. Tải lịch sử để xem số liệu.',
+                style: AppType.body.copyWith(color: Colors.white70),
+              ),
+          ],
+        ),
       ),
       const SizedBox(height: 16),
       LocalFilterBar(
@@ -113,70 +184,95 @@ class _HistoryPanelState extends State<HistoryPanel> {
       for (final j in _visible) ...[
         AppCard(
           key: ValueKey('history-${j.assignment.id}'),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
           kind: RescueCardKind.history,
-          child: ExpansionTile(
-            key: ValueKey('expand-history-${j.assignment.id}'),
-            tilePadding: EdgeInsets.zero,
-            childrenPadding: const EdgeInsets.only(bottom: 10),
-            title: Text(
-              'Mã đơn: ${displayCode(j.assignment.requestCode)}',
-              style: AppType.code,
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 6),
-                Text(
-                  serviceLabels[j.service] ?? 'Dịch vụ cứu hộ',
-                  style: AppType.body,
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    RescueStatusBadge(
-                      status: j.assignment.state,
-                      label: j.assignment.stateLabel,
-                    ),
-                    if (j.assignment.totalVnd != null)
-                      Text(
-                        formatMoney(
-                          j.assignment.totalVnd,
-                          j.assignment.currency,
-                        ),
-                        style: AppType.body.copyWith(
-                          color: AppColors.navy,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _time(
-                    j.assignment.completedAt ??
-                        j.assignment.cancelledAt ??
-                        j.assignment.acceptedAt,
-                  ),
-                  style: AppType.caption,
-                ),
-              ],
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  customerVehicles[j.vehicle] ?? 'Phương tiện khác',
-                  style: AppType.body,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: RescueColors.selected,
+                    child: Icon(
+                      serviceIcon(j.service),
+                      color: AppColors.navy,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Mã đơn: ${displayCode(j.assignment.requestCode)}',
+                          style: RescueType.title,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${serviceLabels[j.service] ?? 'Dịch vụ cứu hộ'} · ${customerVehicles[j.vehicle] ?? 'Phương tiện khác'}',
+                          style: AppType.caption,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 10,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  RescueStatusBadge(
+                    status: j.assignment.state,
+                    label: j.assignment.stateLabel,
+                  ),
+                  Text(
+                    _time(
+                      j.assignment.completedAt ??
+                          j.assignment.cancelledAt ??
+                          j.assignment.acceptedAt,
+                    ),
+                    style: AppType.caption,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: RescueColors.selected,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const LabeledValue(
+                  label: 'Địa điểm hỗ trợ',
+                  value: 'Địa điểm không được cung cấp trong lịch sử',
+                  icon: Icons.location_on_outlined,
                 ),
               ),
-              const SizedBox(height: 10),
+              if (j.assignment.totalVnd != null) ...[
+                const SizedBox(height: 12),
+                const Text('Chi phí ca', style: AppType.caption),
+                Text(
+                  formatMoney(j.assignment.totalVnd, j.assignment.currency),
+                  style: AppType.section,
+                ),
+              ],
+              const Divider(height: 24),
+              JobPaymentSection(
+                key: ValueKey('history-payment-${j.assignment.id}'),
+                c: c,
+                assignment: j.assignment,
+                history: true,
+              ),
+              const SizedBox(height: 8),
               AppButton(
+                key: ValueKey('history-detail-${j.assignment.id}'),
                 label: 'Xem chi tiết chuyến',
-                kind: ButtonStyleKind.outline,
+                icon: Icons.arrow_forward,
+                kind: ButtonStyleKind.quiet,
                 onPressed: c.working
                     ? null
                     : () => c.loadHistoryDetail(j.assignment.id),
@@ -237,9 +333,25 @@ class _HistoryPanelState extends State<HistoryPanel> {
                   style: AppType.caption,
                 ),
               ),
+            JobPaymentSection(
+              key: ValueKey('history-detail-payment-${j.assignment.id}'),
+              c: c,
+              assignment: j.assignment,
+            ),
           ],
         ),
       ],
+    ],
+  );
+  static Widget _metric(String value, String label) => Column(
+    children: [
+      Text(value, style: AppType.pageTitle.copyWith(color: Colors.white)),
+      const SizedBox(height: 4),
+      Text(
+        label,
+        textAlign: TextAlign.center,
+        style: AppType.caption.copyWith(color: Colors.white70),
+      ),
     ],
   );
   static String _state(String? s) =>

@@ -11,6 +11,7 @@ import '../../widgets/app_components.dart';
 import 'preparation_components.dart';
 import 'preparation_forms.dart';
 import 'active_job_panel.dart';
+import 'gps_status_detail.dart';
 import 'history_panel.dart';
 import 'ui_v2_components.dart';
 import 'account_overview.dart';
@@ -195,6 +196,8 @@ class _PreparationScreenState extends State<PreparationScreen> {
                         ? c.refreshActiveJob
                         : c.tab == 3
                         ? c.refreshHistory
+                        : c.tab == 1
+                        ? c.refreshRequests
                         : c.refreshProfile,
                     child: ListView(
                       key: ValueKey('${c.tab}-${c.accountSection}'),
@@ -205,7 +208,8 @@ class _PreparationScreenState extends State<PreparationScreen> {
                         16,
                         12,
                         16,
-                        48 + MediaQuery.viewPaddingOf(context).bottom,
+                        RescueSpace.bottomSafe +
+                            MediaQuery.viewPaddingOf(context).bottom,
                       ),
                       children: [
                         if (c.working) ...[
@@ -258,43 +262,12 @@ class _PreparationScreenState extends State<PreparationScreen> {
                   ),
                 ),
               ),
-        bottomNavigationBar: NavigationBar(
+        bottomNavigationBar: PartnerNavigationBar(
           selectedIndex: c.tab,
-          height: 80,
-          labelTextStyle: WidgetStatePropertyAll(
-            AppType.status.copyWith(fontSize: 11, height: 1.15),
-          ),
-          onDestinationSelected: (index) {
+          onSelected: (index) {
             if (index == 4) setState(() => _accountOverview = true);
             c.selectTab(index);
           },
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.radar_outlined),
-              selectedIcon: Icon(Icons.radar),
-              label: 'Trang chủ',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.assignment_outlined),
-              selectedIcon: Icon(Icons.assignment),
-              label: 'Đơn mới',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.local_shipping_outlined),
-              selectedIcon: Icon(Icons.local_shipping),
-              label: 'Đang xử lý',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.history_outlined),
-              selectedIcon: Icon(Icons.history),
-              label: 'Lịch sử',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: 'Tài khoản',
-            ),
-          ],
         ),
       );
     },
@@ -315,48 +288,30 @@ class _PreparationScreenState extends State<PreparationScreen> {
           PreparationProfile(key: ValueKey(c.userId), c: c),
         ]
       : [
+          PartnerHero(c: c),
+          const SizedBox(height: 12),
           PreparationOnline(c: c, onEdit: _editSection),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           _currentWork(c),
           const SizedBox(height: 16),
-          PartnerSection(
-            key: const ValueKey('dashboard-orders'),
-            title: 'Đơn mới phù hợp',
-            icon: Icons.assignment_outlined,
-            accent: AppColors.orange,
+          PreparationChecklist(c: c),
+          const SizedBox(height: 16),
+          const PartnerSection(
+            title: 'Hiệu suất ca hôm nay',
+            icon: Icons.query_stats,
             children: [
-              Text(_feedSummary(c), style: AppType.body),
-              if (c.feedStatus == FeedStatus.ready && c.cursor != null)
-                const Text('Trong danh sách đã tải', style: AppType.caption),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  key: const ValueKey('dashboard-open-orders'),
-                  icon: const Icon(Icons.arrow_forward, size: 18),
-                  label: const Text('Xem đơn mới'),
-                  onPressed: c.working ? null : () => c.selectTab(1),
-                ),
+              Text(
+                'Chưa có thống kê hoạt động trong ngày.',
+                style: AppType.caption,
               ),
             ],
           ),
         ];
 
-  String _feedSummary(RescuerController c) {
-    if (c.hasActiveJob) return 'Tiếp tục chuyến trước khi nhận đơn mới.';
-    if (!c.canOnline) return 'Hoàn thiện hồ sơ để tìm đơn.';
-    if (!c.online) return 'Bật Online để tìm đơn phù hợp.';
-    return switch (c.feedStatus) {
-      FeedStatus.ready => 'Có ${c.requests.length} đơn phù hợp',
-      FeedStatus.empty => 'Có 0 đơn phù hợp',
-      FeedStatus.loading => 'Đang tìm đơn phù hợp',
-      FeedStatus.error => 'Chưa tải được đơn mới',
-      FeedStatus.unavailable => 'Mở Đơn mới để kiểm tra điều kiện.',
-    };
-  }
-
   Widget _currentWork(RescuerController c) => PartnerSection(
     key: const ValueKey('dashboard-current'),
-    title: 'Công việc hiện tại',
+    compact: true,
+    title: c.hasActiveJob ? 'Ca đang xử lý' : 'Tiếp nhận cứu hộ',
     icon: Icons.local_shipping_outlined,
     accent: c.hasActiveJob ? AppColors.orange : AppColors.navy,
     children: [
@@ -371,11 +326,30 @@ class _PreparationScreenState extends State<PreparationScreen> {
           label: (c.activeJob?.assignment ?? c.claimedAssignment)?.stateLabel,
         ),
         const SizedBox(height: 12),
-        AppButton(label: 'Mở chuyến', onPressed: () => c.selectTab(2)),
+        if (c.activeJob case final job?) ...[
+          Text(
+            serviceLabels[job.service] ?? 'Dịch vụ cứu hộ',
+            style: AppType.section,
+          ),
+          if (job.address?.trim().isNotEmpty == true) ...[
+            const SizedBox(height: 8),
+            LabeledValue(
+              label: 'Vị trí hiện trường',
+              value: job.address!,
+              icon: Icons.near_me_outlined,
+            ),
+          ],
+          const SizedBox(height: 14),
+        ],
+        AppButton(
+          label: 'Tiếp tục tác nghiệp',
+          icon: Icons.navigation_outlined,
+          onPressed: () => c.selectTab(2),
+        ),
       ] else ...[
         Text(
           c.jobStatus == JobStatus.empty
-              ? 'Chưa có chuyến đang xử lý'
+              ? 'Bạn đang rảnh'
               : c.jobStatus == JobStatus.error
               ? 'Chưa kiểm tra được chuyến'
               : c.snapshot.approved
@@ -387,7 +361,7 @@ class _PreparationScreenState extends State<PreparationScreen> {
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
-              key: const ValueKey('current-open-orders'),
+              key: const ValueKey('dashboard-open-orders'),
               icon: const Icon(Icons.arrow_forward, size: 18),
               label: const Text('Xem đơn mới'),
               onPressed: c.working ? null : () => c.selectTab(1),
@@ -408,6 +382,7 @@ class _PreparationScreenState extends State<PreparationScreen> {
   List<Widget> _account(RescuerController c) => _accountOverview
       ? [
           AccountOverview(
+            key: ValueKey(c.userId),
             c: c,
             onEdit: _editSection,
             onLogout: c.working ? null : () => _logout(c),
@@ -508,10 +483,25 @@ class _PreparationScreenState extends State<PreparationScreen> {
     }
     return [
       if (!embedded) ...[
-        const Text('Đơn mới phù hợp', style: AppType.pageTitle),
+        PartnerSection(
+          title: 'Đơn cứu hộ đang chờ tiếp nhận',
+          icon: Icons.radar,
+          background: RescueColors.containerHigh,
+          children: [
+            Text(
+              c.locationReady ? 'GPS đã đồng bộ' : 'Đang chờ đồng bộ GPS',
+              style: AppType.body,
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Chỉ hiển thị đơn phù hợp với xe và dịch vụ của bạn',
+              style: AppType.caption,
+            ),
+          ],
+        ),
         const SizedBox(height: 16),
       ],
-      LocalFilterBar(
+      PreparationFilterBar(
         labels: const {
           'all': 'Tất cả',
           'towing': 'Kéo xe',
@@ -546,8 +536,13 @@ class _PreparationScreenState extends State<PreparationScreen> {
       if (c.feedStatus == FeedStatus.empty)
         PreparationEmpty(
           embedded: embedded,
-          title: 'Chưa có yêu cầu phù hợp',
-          message: 'Hãy bật online và giữ GPS sẵn sàng',
+          title: 'Chưa có đơn phù hợp',
+          message: 'Hãy bật Online và giữ GPS sẵn sàng',
+          action: AppButton(
+            label: 'Tải lại',
+            kind: ButtonStyleKind.outline,
+            onPressed: c.working ? null : c.refreshRequests,
+          ),
         ),
       if (c.feedStatus == FeedStatus.error)
         PreparationEmpty(
@@ -658,12 +653,13 @@ class PreparationChecklist extends StatelessWidget {
   final RescuerController c;
   @override
   Widget build(BuildContext context) => PreparationCard(
-    title: 'Điều kiện vận hành tiếp nhận',
-    subtitle: 'Hoàn thiện lần lượt để sẵn sàng hoạt động.',
+    title: 'Kiểm tra sẵn sàng trước ca',
+    subtitle:
+        '${c.checklist.where((i) => i.complete).length}/${c.checklist.length} điều kiện đã đạt',
     icon: Icons.checklist,
     children: [
       LinearProgressIndicator(
-        value: c.checklist.where((i) => i.complete).length / 6,
+        value: c.checklist.where((i) => i.complete).length / c.checklist.length,
         minHeight: 6,
         borderRadius: BorderRadius.circular(8),
       ),
@@ -686,11 +682,11 @@ class PreparationChecklist extends StatelessWidget {
                     Text(
                       const {
                             'profile': 'Hồ sơ đối tác',
-                            'vehicles': 'Phương tiện chuyên dụng',
-                            'services': 'Gói dịch vụ đăng ký',
-                            'documents': 'Giấy tờ & Pháp lý',
-                            'gps': 'Định vị viễn thông GPS',
-                            'review': 'Hệ thống điều phối',
+                            'vehicles': 'Phương tiện cứu hộ',
+                            'services': 'Dịch vụ đăng ký',
+                            'documents': 'Giấy tờ & xác minh',
+                            'gps': 'GPS & vị trí',
+                            'review': 'Quyền hoạt động',
                           }[item.section] ??
                           item.title,
                       style: const TextStyle(fontWeight: FontWeight.w700),
@@ -783,183 +779,197 @@ class PreparationOnline extends StatelessWidget {
               s['verification_status'] == 'approved' &&
               s['is_enabled'] == true,
         )
-        .map((s) => serviceLabels[s['service_code']] ?? 'Dịch vụ đã duyệt')
+        .map((s) => s['service_code'])
+        .toSet()
+        .map(
+          (code) =>
+              code == 'tire' ? 'Vá lốp' : serviceLabels[code] ?? 'Dịch vụ khác',
+        )
         .toSet()
         .toList();
     final synced = c.online && c.locationReady;
-    return PartnerSection(
+    return Container(
       key: const ValueKey('dashboard-work'),
-      title: 'Trạng thái làm việc',
-      icon: Icons.radar,
-      accent: synced && c.canOnline ? AppColors.success : AppColors.warning,
-      children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 6,
-          children: [
-            StatusBadge(
-              key: const ValueKey('work-online-status'),
-              label: c.online ? 'Online' : 'Offline',
-              tone: c.online ? BadgeTone.green : BadgeTone.orange,
-              icon: Icons.circle,
-            ),
-            StatusBadge(
-              label: synced
-                  ? 'GPS đã đồng bộ'
-                  : c.gpsReady
-                  ? 'GPS sẵn sàng'
-                  : 'GPS chưa sẵn sàng',
-              tone: c.gpsReady ? BadgeTone.green : BadgeTone.orange,
-              icon: Icons.my_location,
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            const Icon(
-              Icons.local_shipping_outlined,
-              size: 18,
-              color: AppColors.muted,
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                vehicle == null
-                    ? 'Chưa chọn xe đang dùng'
-                    : _vehicleLabel(vehicle).isEmpty
-                    ? 'Xe chưa có thông tin hiển thị'
-                    : _vehicleLabel(vehicle),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppType.body,
-              ),
-            ),
-            TextButton(
-              key: const ValueKey('dashboard-choose-vehicle'),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-              ),
-              onPressed: c.working || c.online
-                  ? null
-                  : active.isEmpty
-                  ? () => onEdit('vehicles')
-                  : () => _chooseVehicle(context),
-              child: Text(active.isEmpty ? 'Thêm xe' : 'Đổi xe'),
-            ),
-          ],
-        ),
-        if (services.isEmpty)
-          const Text(
-            'Chưa có dịch vụ đã duyệt cho xe này',
-            style: AppType.caption,
-          )
-        else
-          Wrap(
-            key: const ValueKey('work-services'),
-            spacing: 6,
-            runSpacing: 6,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.navy,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
             children: [
-              for (final service in services.take(2))
-                StatusBadge(label: service),
-              if (services.length > 2)
-                Tooltip(
-                  message: services.skip(2).join(' · '),
-                  child: StatusBadge(
-                    key: const ValueKey('work-services-more'),
-                    label: '+${services.length - 2}',
+              Icon(
+                Icons.circle,
+                size: 12,
+                color: c.online ? AppColors.success : Colors.white54,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  c.online ? 'ĐANG TRỰC TUYẾN' : 'ĐANG NGOẠI TUYẾN',
+                  style: RescueType.section.copyWith(
+                    color: Colors.white,
+                    fontSize: 20,
                   ),
                 ),
+              ),
+              Switch(
+                value: c.online,
+                activeThumbColor: Colors.white,
+                activeTrackColor: AppColors.success,
+                onChanged: c.working || (!c.online && !c.canOnline)
+                    ? null
+                    : (v) => c.setOnline(v),
+              ),
             ],
           ),
-        const SizedBox(height: 12),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: AppButton(
-                key: const ValueKey('toggle-online'),
-                label: c.online ? 'Tắt Online' : 'Bật Online',
-                kind: c.online
-                    ? ButtonStyleKind.secondary
-                    : ButtonStyleKind.primary,
-                icon: c.online
-                    ? Icons.pause_circle_outline
-                    : Icons.power_settings_new,
-                loading: c.working && c.onlineProgress != null,
-                onPressed: c.working || (!c.online && !c.canOnline)
-                    ? null
-                    : () => c.setOnline(!c.online),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.radar, color: Color(0xFFFFDBCA), size: 22),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  c.hasActiveJob
+                      ? 'Bạn đang có ca cứu hộ cần xử lý'
+                      : c.online
+                      ? 'Sẵn sàng tiếp nhận sự cố khẩn cấp'
+                      : 'Bật online để tiếp nhận cứu hộ',
+                  style: RescueType.body.copyWith(
+                    color: const Color(0xFFFFDBCA),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(width: 6),
-            Tooltip(
-              message: 'Kiểm tra GPS',
-              child: TextButton.icon(
-                key: const ValueKey('dashboard-gps'),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            synced
+                ? 'GPS đã đồng bộ cho phiên online. Các yêu cầu phù hợp sẽ được cập nhật từ hệ thống.'
+                : c.gpsReady
+                ? 'GPS thiết bị sẵn sàng. Vị trí chưa đồng bộ cho phiên online.'
+                : 'Kiểm tra GPS và quyền vị trí trước khi hoạt động.',
+            style: RescueType.caption.copyWith(color: const Color(0xFFD2E4FF)),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Icon(
+                Icons.local_shipping_outlined,
+                color: Colors.white70,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  vehicle == null
+                      ? 'Chưa chọn xe đang dùng'
+                      : _vehicleLabel(vehicle),
+                  style: RescueType.caption.copyWith(color: Colors.white),
+                ),
+              ),
+              TextButton(
+                key: const ValueKey('dashboard-choose-vehicle'),
                 style: TextButton.styleFrom(
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                 ),
-                icon: const Icon(Icons.gps_fixed, size: 18),
-                label: const Text('GPS'),
-                onPressed: c.working ? null : () => onEdit('gps'),
+                onPressed: c.working || c.online
+                    ? null
+                    : active.isEmpty
+                    ? () => onEdit('vehicles')
+                    : () => _chooseVehicle(context),
+                child: Text(active.isEmpty ? 'Thêm xe' : 'Đổi xe'),
               ),
-            ),
-          ],
-        ),
-        if (c.onlineProgress != null) ...[
-          const SizedBox(height: 6),
-          Text(c.onlineProgress!, style: AppType.caption),
-        ],
-        if (c.onlineRecoveryRequired) ...[
-          const SizedBox(height: 6),
-          const Text(
-            'Cần kiểm tra phiên online và GPS.',
-            style: AppType.caption,
-          ),
-        ],
-        if (!c.snapshot.approved) ...[
-          const SizedBox(height: 10),
-          if ([
-            'pending',
-            'submitted',
-          ].contains(c.snapshot.profile?['verification_status']))
-            const Text('Chờ duyệt hồ sơ', style: AppType.body),
-          ReviewBadge(c.snapshot.profile?['verification_status'] as String?),
-          if (![
-            'pending',
-            'submitted',
-          ].contains(c.snapshot.profile?['verification_status']))
-            Text(_reviewGuide(c), style: AppType.body),
-          const SizedBox(height: 6),
-          const Text(partnerApprovalMessage, style: AppType.caption),
-        ],
-        if (!c.canOnline)
-          ExpansionTile(
-            tilePadding: EdgeInsets.zero,
-            title: const Text('Điều kiện còn thiếu', style: AppType.body),
-            iconColor: AppColors.warning,
-            children: [
-              for (final item in c.checklist.where((i) => !i.complete))
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(
-                    Icons.error_outline,
-                    color: AppColors.warning,
-                  ),
-                  title: Text(item.title, style: AppType.body),
-                  subtitle: Text(item.detail, style: AppType.caption),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => onEdit(item.section),
-                ),
-              for (final blocker in c.onlineBlockers)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Text(blocker, style: AppType.caption),
-                ),
             ],
           ),
-      ],
+          if (services.isNotEmpty)
+            SingleChildScrollView(
+              key: const ValueKey('work-services'),
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  for (final service in services.take(2))
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: StatusBadge(label: service),
+                    ),
+                  if (services.length > 2)
+                    Tooltip(
+                      message: services.skip(2).join(' · '),
+                      child: StatusBadge(
+                        key: const ValueKey('work-services-more'),
+                        label: '+${services.length - 2} dịch vụ',
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 12),
+          AppButton(
+            key: const ValueKey('toggle-online'),
+            label: c.online ? 'Tạm dừng nhận đơn' : 'Bật Online',
+            kind: c.online
+                ? ButtonStyleKind.secondary
+                : ButtonStyleKind.primary,
+            icon: c.online
+                ? Icons.pause_circle_outline
+                : Icons.power_settings_new,
+            loading: c.working && c.onlineProgress != null,
+            onPressed: c.working || (!c.online && !c.canOnline)
+                ? null
+                : () => c.setOnline(!c.online),
+          ),
+          GpsStatusDetail(c: c),
+          TextButton.icon(
+            key: const ValueKey('dashboard-gps'),
+            style: TextButton.styleFrom(foregroundColor: Colors.white70),
+            icon: const Icon(Icons.gps_fixed, size: 18),
+            label: const Text('Kiểm tra GPS'),
+            onPressed: c.working ? null : () => onEdit('gps'),
+          ),
+          if (c.onlineProgress != null)
+            Text(
+              c.onlineProgress!,
+              style: RescueType.caption.copyWith(color: Colors.white),
+            ),
+          if (c.onlineRecoveryRequired)
+            const Text(
+              'Cần kiểm tra phiên online và GPS.',
+              style: TextStyle(color: Colors.white),
+            ),
+          if (!c.snapshot.approved) ...[
+            const SizedBox(height: 8),
+            Text(
+              _reviewGuide(c),
+              style: RescueType.caption.copyWith(color: Colors.white),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              partnerApprovalMessage,
+              style: RescueType.caption.copyWith(color: Colors.white70),
+            ),
+          ],
+          if (!c.canOnline) ...[
+            const SizedBox(height: 8),
+            for (final blocker in c.onlineBlockers)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  blocker,
+                  style: RescueType.caption.copyWith(
+                    color: const Color(0xFFFFDBCA),
+                  ),
+                ),
+              ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -978,6 +988,7 @@ class PreparationGps extends StatelessWidget {
             ? 'Vị trí thiết bị đã sẵn sàng.'
             : 'Bật GPS và cho phép vị trí chính xác để tìm yêu cầu gần bạn.',
       ),
+      GpsStatusDetail(c: c, coordinates: true),
       const SizedBox(height: 16),
       AppButton(
         kind: ButtonStyleKind.secondary,

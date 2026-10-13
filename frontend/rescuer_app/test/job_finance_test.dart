@@ -368,12 +368,15 @@ void main() {
       final openQuote = find.byKey(const ValueKey('open-quote'));
       expect(
         find.descendant(
-          of: find.byKey(const ValueKey('active-job-header')),
+          of: find.byKey(const ValueKey('active-job-actions')),
           matching: openQuote,
         ),
         findsOneWidget,
       );
       expect(find.text('Chưa có báo giá'), findsOneWidget);
+      await tester.ensureVisible(openQuote);
+      await tester.pumpAndSettle();
+      expect(openQuote.hitTestable(), findsOneWidget);
       await tester.tap(openQuote);
       await tester.pumpAndSettle();
       expect(s.calls, isEmpty);
@@ -414,7 +417,7 @@ void main() {
       expect(find.byKey(const ValueKey('open-quote')), findsNothing);
       expect(
         find.descendant(
-          of: find.byKey(const ValueKey('active-job-header')),
+          of: find.byKey(const ValueKey('active-job-actions')),
           matching: find.byKey(const ValueKey('complete-job')),
         ),
         findsOneWidget,
