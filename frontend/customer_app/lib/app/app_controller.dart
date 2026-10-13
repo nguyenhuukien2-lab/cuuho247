@@ -217,9 +217,13 @@ class AppController extends ChangeNotifier {
       _paymentCommand(requestId, selectCash: true);
   Future<bool> selectBankPayment(String requestId) =>
       _paymentCommand(requestId, selectCash: false, selectBank: true);
+  Future<bool> regenerateBankPayment(String requestId) =>
+      _paymentCommand(requestId, selectCash: false, regenerateBank: true);
 
   Future<bool> _paymentCommand(String id,
-      {required bool selectCash, bool selectBank = false}) {
+      {required bool selectCash,
+      bool selectBank = false,
+      bool regenerateBank = false}) {
     final source = payments.source;
     final owner = source?.userId;
     if (_disposed ||
@@ -239,6 +243,7 @@ class AppController extends ChangeNotifier {
       return Future<bool>.value(false);
     }
     final dto = payments.payment;
+    final bankDto = payments.bankPayment;
     if ((selectBank && state.cash != null) ||
         (selectCash && state.bank != null)) {
       return Future<bool>.value(false);
@@ -274,8 +279,31 @@ class AppController extends ChangeNotifier {
           expectedVersion: dto.version,
           operationId: _paymentOperationId());
     }
+    if (regenerateBank && state.regeneration == null) {
+      if (source is! BankPaymentSource ||
+          dto == null ||
+          bankDto == null ||
+          dto.requestId != id ||
+          dto.method != 'bank_transfer' ||
+          dto.status != 'awaiting_payment' ||
+          !bankDto.matches(dto) ||
+          bankDto.intentStatus != 'expired' ||
+          !bankDto.available ||
+          payments.loading ||
+          payments.stale ||
+          payments.error != null ||
+          payments.bankError != null) return Future<bool>.value(false);
+      state.regeneration = BankPaymentRegeneration(
+          requestId: id,
+          paymentId: dto.paymentId,
+          expectedVersion: dto.version,
+          expectedIntentId: bankDto.intentId,
+          expectedIntentVersion: bankDto.intentVersion,
+          operationId: _paymentOperationId());
+    }
     if (!selectCash &&
         !selectBank &&
+        !regenerateBank &&
         (dto != null || payments.loading || payments.error != null)) {
       return Future<bool>.value(false);
     }
@@ -295,7 +323,10 @@ class AppController extends ChangeNotifier {
       var success = false;
       try {
         final commands = source as PaymentCommands;
-        if (selectBank) {
+        if (regenerateBank) {
+          await (source as BankPaymentSource)
+              .regenerateBank(state.regeneration!);
+        } else if (selectBank) {
           await (source as BankPaymentSource).selectBank(state.bank!);
         } else if (selectCash) {
           await commands.selectCash(state.cash!);
@@ -305,6 +336,7 @@ class AppController extends ChangeNotifier {
         if (!current()) return;
         state.cash = null;
         state.bank = null;
+        state.regeneration = null;
         state.selectionAcknowledged = selectCash || selectBank;
         state.notice = selectCash
             ? 'Đã chọn tiền mặt. Chờ đối tác xác nhận thu tiền.'
@@ -314,6 +346,7 @@ class AppController extends ChangeNotifier {
         if (!current()) return;
         state.cash = null;
         state.bank = null;
+        state.regeneration = null;
         state.error = 'PAYMENT_NOT_ACCESSIBLE';
         if (payments.requestId == id) payments.clear();
       } on PaymentCommandFailure catch (failure) {
@@ -322,6 +355,7 @@ class AppController extends ChangeNotifier {
         if (!failure.outcomeUnknown) {
           state.cash = null;
           state.bank = null;
+          state.regeneration = null;
         }
       } catch (_) {
         if (!current()) return;
@@ -705,6 +739,7 @@ class _PaymentAction {
   Future<bool>? task;
   CashPaymentSelection? cash;
   BankPaymentSelection? bank;
+  BankPaymentRegeneration? regeneration;
   String? error, notice;
   bool selectionAcknowledged = false;
 }

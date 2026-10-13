@@ -1,4 +1,4 @@
-// GD6C verification (includes earlier stages): fresh PostgreSQL WASM RAM only, no URL or network client.
+// Bank verification + expired-intent regeneration: fresh PostgreSQL WASM RAM only, no URL or network client.
 import assert from 'node:assert/strict';
 import {readFile,readdir} from 'node:fs/promises';
 import {resolve} from 'node:path';
@@ -144,6 +144,14 @@ try{
  await suite('backend/supabase/tests/payment_realtime_regression.sql');
  await rejection(await read(gd6c),/BANK_VERIFICATION_ALREADY_EXISTS/);
  console.log('PASS GD6C, unchanged cash/bank RPC contracts, post-GD6C QR/cash/realtime');
+ const regeneration='backend/supabase/migrations/202610130002_customer_bank_intent_regeneration.sql';
+ await db.exec(await read(regeneration));
+ await suite('backend/supabase/tests/payment_bank_regeneration_regression.sql');
+ await suite('backend/supabase/tests/payment_bank_verification_regression.sql');
+ await suite('backend/supabase/tests/payment_bank_qr_regression.sql');
+ await suite('backend/supabase/tests/payment_realtime_regression.sql');
+ await rejection(await read(regeneration),/BANK_REGENERATION_ALREADY_EXISTS/);
+ console.log('PASS customer expired bank-intent regeneration and post-regeneration verification/QR/cash/realtime');
  console.log('NOT RUN: live Supabase/Auth/PostgREST, true multi-connection concurrency, provider/signature integration. No deployment or commit.');
 }catch(e){console.error('FAIL',e.message,'SQLSTATE',e.code,'CONSTRAINT',e.constraint,'CONTEXT',e.where);process.exitCode=1;}
 finally{await db.close();}

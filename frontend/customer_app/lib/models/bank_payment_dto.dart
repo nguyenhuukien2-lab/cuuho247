@@ -4,6 +4,7 @@ import 'payment_dto.dart';
 class BankPaymentDto {
   BankPaymentDto.fromJson(Map<String, dynamic> row)
       : paymentId = _text(row, 'payment_id'),
+        intentId = _text(row, 'bank_intent_id'),
         requestId = _text(row, 'request_id'),
         paymentCode = _text(row, 'payment_code'),
         status = _text(row, 'payment_status'),
@@ -24,6 +25,8 @@ class BankPaymentDto {
         available = row['available'] == true,
         qrPayload = row['qr_payload'] as String? {
     if (method != 'bank_transfer' ||
+        !RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
+            .hasMatch(intentId) ||
         currency != 'VND' ||
         !RegExp(r'^\d{6}$').hasMatch(bankBin) ||
         !RegExp(r'^\d{6,19}$').hasMatch(accountNumber) ||
@@ -35,7 +38,8 @@ class BankPaymentDto {
       throw const FormatException('Invalid bank payment DTO');
     }
   }
-  final String paymentId, requestId, paymentCode, status, method, intentStatus;
+  final String paymentId, intentId, requestId, paymentCode, status, method;
+  final String intentStatus;
   final String reference, bankName, bankBin, accountNumber, accountName;
   final String transferContent, currency;
   final BigInt amountExpected, version, intentVersion;

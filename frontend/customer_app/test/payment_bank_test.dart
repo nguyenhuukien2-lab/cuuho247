@@ -18,9 +18,14 @@ import 'payment_realtime_test.dart' as rt;
 const qrFixture =
     '00020101021238560010A0000007270126000697043601121234567890120208QRIBFTTA530370454061000005802VN62250821BK000000000000000000163048CBA';
 Map<String, dynamic> bankDto(
-        {String intentStatus = 'ready', String status = 'awaiting_payment'}) =>
+        {String intentStatus = 'ready',
+        String status = 'awaiting_payment',
+        String intentId = '91000000-0000-4000-8000-000000000101',
+        String version = '2',
+        String intentVersion = '2'}) =>
     {
       'payment_id': 'payment-$requestA',
+      'bank_intent_id': intentId,
       'payment_code': 'TT-000001',
       'request_id': requestA,
       'payment_status': status,
@@ -39,8 +44,8 @@ Map<String, dynamic> bankDto(
       'server_time': '2026-10-11T01:00:00Z',
       'available': true,
       'qr_payload': intentStatus == 'ready' ? qrFixture : null,
-      'version': '2',
-      'bank_intent_version': '2',
+      'version': version,
+      'bank_intent_version': intentVersion,
     };
 
 class BankSource extends CashSource implements BankPaymentSource {
@@ -48,8 +53,10 @@ class BankSource extends CashSource implements BankPaymentSource {
   Object? bankFailure;
   Map<String, dynamic>? bankRow;
   final bankSelections = <BankPaymentSelection>[];
+  final bankRegenerations = <BankPaymentRegeneration>[];
   final order = <String>[];
   Future<void> Function()? selectingBank;
+  Future<void> Function()? regeneratingBank;
   Future<Map<String, dynamic>?> Function()? bankLoader;
   int bankReads = 0;
   @override
@@ -72,6 +79,12 @@ class BankSource extends CashSource implements BankPaymentSource {
   Future<void> selectBank(BankPaymentSelection selection) async {
     bankSelections.add(selection);
     if (selectingBank != null) await selectingBank!();
+  }
+
+  @override
+  Future<void> regenerateBank(BankPaymentRegeneration regeneration) async {
+    bankRegenerations.add(regeneration);
+    if (regeneratingBank != null) await regeneratingBank!();
   }
 
   void awaiting(
@@ -179,6 +192,55 @@ void main() {
     expect(identical(original, source.bankSelections.last), true);
     expect(serial, 1);
   });
+  test('expired regeneration double tap uses exact guards then refetches',
+      () async {
+    source.awaiting(intentStatus: 'expired');
+    await open();
+    final reads = source.reads, bankReads = source.bankReads;
+    final gate = Completer<void>();
+    source.regeneratingBank = () => gate.future;
+    final a = controller.regenerateBankPayment(requestA),
+        b = controller.regenerateBankPayment(requestA);
+    expect(identical(a, b), true);
+    expect(source.bankRegenerations.length, 1);
+    expect(source.bankRegenerations.single.parameters, {
+      'p_request_id': requestA,
+      'p_payment_id': 'payment-$requestA',
+      'p_expected_version': '2',
+      'p_expected_intent_id': '91000000-0000-4000-8000-000000000101',
+      'p_expected_intent_version': '2',
+      'p_operation_id': 'operation-1'
+    });
+    source.row = rt.dto(
+        request: requestA, status: 'awaiting_payment', version: '3')
+      ..['method'] = 'bank_transfer';
+    source.bankRow =
+        bankDto(intentId: '91000000-0000-4000-8000-000000000102', version: '3');
+    gate.complete();
+    expect(await a, true);
+    expect(source.reads, greaterThan(reads));
+    expect(source.bankReads, greaterThan(bankReads));
+    expect(controller.payments.payment!.status, 'awaiting_payment');
+    expect(controller.payments.bankPayment!.intentId,
+        '91000000-0000-4000-8000-000000000102');
+  });
+  test('expired regeneration timeout retries the same operation id', () async {
+    source.awaiting(intentStatus: 'expired');
+    await open();
+    source.regeneratingBank = () async => throw TimeoutException('ambiguous');
+    expect(await controller.regenerateBankPayment(requestA), false);
+    final original = source.bankRegenerations.single;
+    source.regeneratingBank = () async {
+      source.row = rt.dto(
+          request: requestA, status: 'awaiting_payment', version: '3')
+        ..['method'] = 'bank_transfer';
+      source.bankRow = bankDto(
+          intentId: '91000000-0000-4000-8000-000000000103', version: '3');
+    };
+    expect(await controller.regenerateBankPayment(requestA), true);
+    expect(identical(original, source.bankRegenerations.last), true);
+    expect(serial, 1);
+  });
   test('uncertain cash blocks bank', () async {
     await open();
     source.selecting = () async {
@@ -233,6 +295,40 @@ void main() {
     expect(paths.single, '/rest/v1/rpc/customer_select_bank_transfer');
     expect(await transport.bankCapability(requestA), true);
     expect((await transport.loadBank(requestA))!['qr_payload'], qrFixture);
+  });
+  test('regeneration HTTP uses exact RPC path and server-owned bank fields',
+      () async {
+    late String path;
+    late Map<String, dynamic> body;
+    final client = await rt.clientFor((request) async {
+      path = request.url.path;
+      body = Map<String, dynamic>.from(jsonDecode(request.body));
+      return rt
+          .response({'payment': rt.dto(request: requestA), 'changed': true});
+    });
+    final transport = SupabasePaymentSource(client);
+    final regeneration = BankPaymentRegeneration(
+        requestId: requestA,
+        paymentId: 'payment-$requestA',
+        expectedVersion: BigInt.parse('9007199254740993'),
+        expectedIntentId: '91000000-0000-4000-8000-000000000101',
+        expectedIntentVersion: BigInt.from(2),
+        operationId: '91000000-0000-4000-8000-000000000199');
+    await transport.regenerateBank(regeneration);
+    expect(path, '/rest/v1/rpc/customer_regenerate_bank_transfer');
+    expect(body, regeneration.parameters);
+    for (final forbidden in [
+      'amount',
+      'p_amount',
+      'reference',
+      'p_reference',
+      'beneficiary',
+      'bank_bin',
+      'account_number',
+      'expires_at'
+    ]) {
+      expect(body.containsKey(forbidden), false);
+    }
   });
   test('bank realtime reads public getter before bank getter', () async {
     source.awaiting();
@@ -408,8 +504,62 @@ void main() {
           }),
           findsOneWidget);
       expect(controller.payments.payment!.status, 'awaiting_payment');
+      expect(find.text('Tạo mã mới'),
+          status == 'expired' ? findsOneWidget : findsNothing);
     });
   }
+  testWidgets('expired Tạo mã mới coalesces and keeps payment awaiting',
+      (tester) async {
+    source.awaiting(intentStatus: 'expired');
+    await render(tester);
+    expect(find.byType(QrImageView), findsNothing);
+    final gate = Completer<void>();
+    source.regeneratingBank = () => gate.future;
+    final button = find.byKey(const ValueKey('regenerate-bank'));
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await tester.tap(button);
+    await tester.pump();
+    expect(source.bankRegenerations.length, 1);
+    expect(tester.widget<PaymentActionButton>(button).onPressed, isNull);
+    source.row = rt.dto(
+        request: requestA, status: 'awaiting_payment', version: '3')
+      ..['method'] = 'bank_transfer';
+    source.bankRow =
+        bankDto(intentId: '91000000-0000-4000-8000-000000000104', version: '3');
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(find.byType(QrImageView), findsOneWidget);
+    expect(find.text('Tạo mã mới'), findsNothing);
+    expect(controller.payments.payment!.status, 'awaiting_payment');
+  });
+  testWidgets('reconciliation-required keeps expired safe read-only UI',
+      (tester) async {
+    source.awaiting(intentStatus: 'expired');
+    source.regeneratingBank = () async => throw const PaymentCommandFailure(
+        'BANK_TRANSFER_RECONCILIATION_REQUIRED');
+    await render(tester);
+    final button = find.byKey(const ValueKey('regenerate-bank'));
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('cần đối soát'), findsOneWidget);
+    expect(find.textContaining('Không chuyển tiền thêm'), findsOneWidget);
+    expect(find.byType(QrImageView), findsNothing);
+    expect(controller.payments.payment!.status, 'awaiting_payment');
+  });
+  testWidgets('offline stale disables expired regeneration', (tester) async {
+    source.awaiting(intentStatus: 'expired');
+    await render(tester);
+    source.failure = Exception('offline');
+    source.emit(PaymentSignalKind.disconnected);
+    await tester.pumpAndSettle();
+    final button = find.byKey(const ValueKey('regenerate-bank'));
+    await tester.ensureVisible(button);
+    expect(tester.widget<PaymentActionButton>(button).onPressed, isNull);
+    expect(source.bankRegenerations, isEmpty);
+    controller.setForeground(false);
+  });
   testWidgets('timer expiry refetches backend and does not mutate payment',
       (tester) async {
     source.awaiting();

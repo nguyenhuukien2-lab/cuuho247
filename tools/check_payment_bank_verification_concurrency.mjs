@@ -82,7 +82,7 @@ if (!raw) {
       grant usage on schema public,auth,storage to anon,authenticated,service_role;
       grant select,insert,update,delete on storage.objects to authenticated;`);
     const dir = 'backend/supabase/migrations';
-    for (const file of (await readdir(dir)).filter(f => f.endsWith('.sql') && f <= '202610110003_payment_bank_verification.sql').sort()) {
+    for (const file of (await readdir(dir)).filter(f => f.endsWith('.sql') && f <= '202610130002_customer_bank_intent_regeneration.sql').sort()) {
       try {
         await sql(await read(`${dir}/${file}`));
       } catch {
@@ -94,6 +94,25 @@ if (!raw) {
     await sql("set payment.test_mode='local_disposable';\n" + fixture + `
       create table private.gd6c_race_fixtures as select b.i,b.n,f.payment_id,f.request_id
       from bank_inputs b join bank_fixtures f using(i);
+      create table private.gd6c_regen_race_fixtures as
+      select b.i,b.n,f.payment_id,f.request_id,i.id intent_id,i.version intent_version,
+        p.version payment_version,gen_random_uuid() operation_id
+      from bank_inputs b join bank_fixtures f using(i)
+      join public.payments p on p.id=f.payment_id
+      join private.payment_bank_intents i on i.payment_id=p.id where b.i in (5,6);
+      alter table private.payment_bank_intents disable trigger bank_intent_guard;
+      update private.payment_bank_intents i set expires_at=clock_timestamp()-interval '1 second'
+        from private.gd6c_regen_race_fixtures f where f.intent_id=i.id;
+      alter table private.payment_bank_intents enable trigger bank_intent_guard;
+      create function private.gd6c_try_regenerate(p_i integer) returns text language plpgsql as $$
+      declare f private.gd6c_regen_race_fixtures;
+      begin
+        select * into f from private.gd6c_regen_race_fixtures where i=p_i;
+        perform public.customer_regenerate_bank_transfer(f.request_id,f.payment_id,
+          f.payment_version,f.intent_id,f.intent_version,f.operation_id);
+        return 'ok';
+      exception when others then return sqlerrm;
+      end $$;
       commit;`);
 
     // First session holds the provider advisory lock AFTER writing its uncommitted
@@ -142,6 +161,47 @@ if (!raw) {
     await pending;
     assert.equal(await sql(getter), 'paid');
     console.log('PASS concurrent getter sees only committed authoritative payment');
+
+    // Webhook first: regeneration waits on the shared provider/account advisory
+    // lock and then fails closed after seeing the committed inbound observation.
+    const webhookFirst = sql(`set application_name='gd6c_regen_webhook_first'; begin;
+      select private.process_verified_bank_transaction(n) from private.gd6c_regen_race_fixtures where i=5;
+      select pg_sleep(3); commit;`);
+    await awaitActivity('gd6c_regen_webhook_first', "wait_event='PgSleep'");
+    const regenSecond = sql(`set application_name='gd6c_regen_second';
+      set request.jwt.claim.sub='91000000-0000-4000-8000-000000000001';
+      select private.gd6c_try_regenerate(5);`);
+    await awaitActivity('gd6c_regen_second', "wait_event_type='Lock'");
+    const webhookFirstResults = await Promise.allSettled([webhookFirst, regenSecond]);
+    for (const result of webhookFirstResults) if (result.status === 'rejected') throw result.reason;
+    assert.equal(webhookFirstResults[1].value, 'BANK_TRANSFER_RECONCILIATION_REQUIRED');
+    assert.equal(await sql(`select p.version=2 and p.status='awaiting_payment' and i.status='ready'
+      and (select count(*) from private.payment_bank_intents x where x.payment_id=p.id
+        and x.status in ('created','ready','matched','verified'))=1
+      from private.gd6c_regen_race_fixtures f join public.payments p on p.id=f.payment_id
+      join private.payment_bank_intents i on i.id=f.intent_id where f.i=5`), 't');
+    console.log('PASS concurrent webhook first -> regeneration requires reconciliation');
+
+    // Regeneration first: the old webhook waits, then is terminally rejected;
+    // it cannot be redirected to or settle the newly active intent.
+    const regenFirst = sql(`set application_name='gd6c_regen_first'; begin;
+      set request.jwt.claim.sub='91000000-0000-4000-8000-000000000001';
+      select private.gd6c_try_regenerate(6); select pg_sleep(3); commit;`);
+    await awaitActivity('gd6c_regen_first', "wait_event='PgSleep'");
+    const webhookSecond = sql(`set application_name='gd6c_regen_webhook_second';
+      select private.process_verified_bank_transaction(n)->>'result'
+      from private.gd6c_regen_race_fixtures where i=6;`);
+    await awaitActivity('gd6c_regen_webhook_second', "wait_event_type='Lock'");
+    const regenFirstResults = await Promise.allSettled([regenFirst, webhookSecond]);
+    for (const result of regenFirstResults) if (result.status === 'rejected') throw result.reason;
+    assert.equal(regenFirstResults[1].value, 'intent_ineligible');
+    assert.equal(await sql(`select p.version=3 and p.status='awaiting_payment'
+      and old_i.status='expired'
+      and (select count(*) from private.payment_bank_intents x where x.payment_id=p.id and x.status='ready')=1
+      and not exists(select 1 from private.bank_transactions t where t.matched_payment_id=p.id and t.status='verified')
+      from private.gd6c_regen_race_fixtures f join public.payments p on p.id=f.payment_id
+      join private.payment_bank_intents old_i on old_i.id=f.intent_id where f.i=6`), 't');
+    console.log('PASS concurrent regeneration first -> late old webhook cannot settle new intent');
   } finally {
     // Only the freshly created, random name above can be removed. Never uses a
     // supplied database name, wildcard, or FORCE against unrelated sessions.

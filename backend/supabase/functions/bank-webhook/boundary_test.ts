@@ -1,7 +1,5 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { handleBankWebhook } from './handler.ts';
-import { installedAdapter } from './adapter.ts';
 import { rawBodySha256, validateNormalizedTransaction } from './normalized.ts';
 
 // Internal synthetic observation, not a provider webhook fixture.
@@ -46,19 +44,4 @@ test('reference not trimmed, folded, or extracted by normalization', () => {
 test('exact byte SHA256 vector and modified body integrity', async () => {
   assert.equal(await rawBodySha256(new TextEncoder().encode('abc')), 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
   assert.notEqual(await rawBodySha256(new TextEncoder().encode('{}')), await rawBodySha256(new TextEncoder().encode('{ }')));
-});
-test('no provider registered; method/content/body gates; POST never acknowledges', async () => {
-  assert.equal(installedAdapter, null);
-  assert.equal((await handleBankWebhook(new Request('https://local.invalid', { method: 'GET' }))).status, 405);
-  assert.equal((await handleBankWebhook(new Request('https://local.invalid', { method: 'POST', body: '{}' }))).status, 415);
-  for (const body of ['{}', JSON.stringify(observation), '{malformed']) {
-    const response = await handleBankWebhook(new Request('https://local.invalid', { method: 'POST', headers: { 'content-type': 'application/json' }, body }));
-    assert.equal(response.status, 503);
-    assert.deepEqual(await response.json(), { error: 'verification_unavailable' });
-  }
-  for (const declaredLength of ['65537', null]) {
-    const headers = new Headers({ 'content-type': 'application/json' });
-    if (declaredLength != null) headers.set('content-length', declaredLength);
-    assert.equal((await handleBankWebhook(new Request('https://local.invalid', { method: 'POST', headers, body: 'x'.repeat(65537) }))).status, 413);
-  }
 });

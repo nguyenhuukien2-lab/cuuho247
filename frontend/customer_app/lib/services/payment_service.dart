@@ -50,10 +50,33 @@ class BankPaymentSelection {
       };
 }
 
+/// Exact expired-intent replacement payload. Retain this object across an
+/// ambiguous timeout so retries reuse the same operation id and version guards.
+class BankPaymentRegeneration {
+  const BankPaymentRegeneration(
+      {required this.requestId,
+      required this.paymentId,
+      required this.expectedVersion,
+      required this.expectedIntentId,
+      required this.expectedIntentVersion,
+      required this.operationId});
+  final String requestId, paymentId, expectedIntentId, operationId;
+  final BigInt expectedVersion, expectedIntentVersion;
+  Map<String, dynamic> get parameters => {
+        'p_request_id': requestId,
+        'p_payment_id': paymentId,
+        'p_expected_version': expectedVersion.toString(),
+        'p_expected_intent_id': expectedIntentId,
+        'p_expected_intent_version': expectedIntentVersion.toString(),
+        'p_operation_id': operationId,
+      };
+}
+
 abstract interface class BankPaymentSource {
   Future<bool> bankCapability(String requestId);
   Future<Map<String, dynamic>?> loadBank(String requestId);
   Future<void> selectBank(BankPaymentSelection selection);
+  Future<void> regenerateBank(BankPaymentRegeneration regeneration);
 }
 
 class PaymentCommandFailure implements Exception {
@@ -114,6 +137,10 @@ class SupabasePaymentSource
       _command('customer_select_bank_transfer', selection.parameters);
 
   @override
+  Future<void> regenerateBank(BankPaymentRegeneration regeneration) =>
+      _command('customer_regenerate_bank_transfer', regeneration.parameters);
+
+  @override
   Future<bool> bankCapability(String requestId) async {
     final row = await _read('customer_get_bank_capability', requestId);
     return row?['available'] == true;
@@ -132,7 +159,7 @@ class SupabasePaymentSource
       if (userId != owner) throw const PaymentAccessDenied();
       // Even a valid replay may contain an older payment version. Discard it.
       if (result is! Map ||
-          (rpc.startsWith('customer_select_') &&
+          (rpc != 'customer_prepare_payment' &&
               (result['payment'] is! Map || result['changed'] is! bool))) {
         throw const PaymentCommandFailure('PAYMENT_COMMAND_UNCERTAIN',
             outcomeUnknown: true);
@@ -157,7 +184,11 @@ class SupabasePaymentSource
         'INVALID_EXPECTED_VERSION',
         'IDEMPOTENCY_KEY_REQUIRED',
         'BANK_UNAVAILABLE',
-        'BANK_INTENT_UNAVAILABLE'
+        'BANK_INTENT_UNAVAILABLE',
+        'INVALID_EXPECTED_INTENT_VERSION',
+        'BANK_INTENT_VERSION_CONFLICT',
+        'BANK_INTENT_NOT_EXPIRED',
+        'BANK_TRANSFER_RECONCILIATION_REQUIRED'
       };
       if (error.message == 'PAYMENT_NOT_ACCESSIBLE' ||
           error.message == 'AUTHENTICATION_REQUIRED') {

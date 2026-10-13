@@ -1,8 +1,8 @@
 import type { NormalizedBankTransaction } from './normalized.ts';
 
-/** SERVER-ONLY integration boundary. There is deliberately no registered adapter.
- * Implement only against an actual provider's documented contract and official
- * fixtures. VietQR generation is not a transaction verification provider.
+/** SERVER-ONLY integration boundary. Implement only against the provider's
+ * documented contract and official fixtures. VietQR generation is not a
+ * transaction verification provider.
  */
 export interface BankProviderAdapter {
   readonly provider: string;
@@ -26,9 +26,28 @@ export interface BankProviderAdapter {
   }): Promise<NormalizedBankTransaction>;
 }
 
-/** Future direct DB worker integration. Private schema must not be exposed in
- * PostgREST to make this work. The shipped migration gives no API role EXECUTE.
- * A reviewed least-privilege DB role/grant is a deployment prerequisite.
+export class WebhookAuthenticationError extends Error {
+  readonly code: string;
+
+  constructor(code: string) {
+    super(code);
+    this.name = 'WebhookAuthenticationError';
+    this.code = code;
+  }
+}
+
+export class WebhookPayloadError extends Error {
+  readonly code: string;
+
+  constructor(code: string) {
+    super(code);
+    this.name = 'WebhookPayloadError';
+    this.code = code;
+  }
+}
+
+/** Direct server-only DB integration. Private schema remains unavailable in
+ * PostgREST and the shipped migration gives no API role EXECUTE.
  */
 export interface BankVerificationStore {
   processVerifiedTransaction(transaction: NormalizedBankTransaction): Promise<{
@@ -37,6 +56,3 @@ export interface BankVerificationStore {
   }>;
   recordAuthenticationFailure(provider: string, scope: string, bodySha256: string): Promise<void>;
 }
-
-// Intentionally no provider implementation, credentials, fake HMAC or DB client.
-export const installedAdapter: BankProviderAdapter | null = null;

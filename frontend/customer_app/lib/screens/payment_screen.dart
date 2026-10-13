@@ -305,8 +305,18 @@ class _PaymentScreenState extends State<PaymentScreen>
           bank: watcher.bankPayment,
           requestCode: requestCode,
           loading: watcher.loading,
+          regenerating: controller.paymentSubmitting(widget.requestId),
           stale: watcher.stale || watcher.error != null,
           error: watcher.bankError,
+          onRegenerate: watcher.loading ||
+                  watcher.stale ||
+                  watcher.error != null ||
+                  watcher.bankError != null ||
+                  controller.paymentSubmitting(widget.requestId)
+              ? null
+              : () async {
+                  await controller.regenerateBankPayment(widget.requestId);
+                },
           onRefresh: _refresh));
     } else if (payment.method == null && payment.status == 'pending') {
       final service = RescueService.values
@@ -383,6 +393,13 @@ String paymentErrorMessage(String code) => switch (code) {
       'BANK_UNAVAILABLE' => 'Chuyển khoản ngân hàng hiện chưa khả dụng.',
       'BANK_INTENT_UNAVAILABLE' =>
         'Thông tin chuyển khoản không còn khả dụng. Vui lòng tải lại.',
+      'BANK_INTENT_NOT_EXPIRED' =>
+        'Mã chuyển khoản vẫn còn hiệu lực. Chưa thể tạo mã mới.',
+      'BANK_INTENT_VERSION_CONFLICT' ||
+      'INVALID_EXPECTED_INTENT_VERSION' =>
+        'Mã chuyển khoản đã thay đổi. Vui lòng cập nhật trước khi thử lại.',
+      'BANK_TRANSFER_RECONCILIATION_REQUIRED' =>
+        'Hệ thống đã ghi nhận giao dịch cho mã cũ và cần đối soát. Không chuyển tiền thêm; vui lòng chờ xác minh.',
       'PAYMENT_NOT_ELIGIBLE' => 'Yêu cầu này chưa đủ điều kiện tạo thanh toán.',
       'ZERO_AMOUNT_REQUIRES_POLICY' =>
         'Thanh toán có số tiền bằng 0 chưa được hỗ trợ.',

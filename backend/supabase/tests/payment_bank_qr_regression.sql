@@ -133,7 +133,9 @@ select pg_temp.bank_error('shared receipt namespace',
 select pg_temp.bank_assert('getter exact safe fields',
  (select array_agg(k order by k)=array(select unnest(array['payment_id','payment_code','request_id','payment_status','payment_method',
  'amount_expected','currency','bank_intent_status','bank_reference','bank_code','bank_bin','bank_name','account_number','account_name',
- 'transfer_content','expires_at','server_time','available','qr_payload','version','bank_intent_version']) order by 1)
+ 'transfer_content','expires_at','server_time','available','qr_payload','version','bank_intent_version'] ||
+ case when to_regprocedure('public.customer_regenerate_bank_transfer(uuid,uuid,bigint,uuid,bigint,uuid)') is null
+   then array[]::text[] else array['bank_intent_id'] end) order by 1)
  from bank_outputs,jsonb_object_keys(value) k where label='getter'));
 reset role;
 select pg_temp.bank_assert('one active intent one snapshot one bank event',

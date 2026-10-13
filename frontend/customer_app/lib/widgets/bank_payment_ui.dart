@@ -15,15 +15,18 @@ class BankPaymentSection extends StatefulWidget {
       required this.payment,
       required this.bank,
       required this.loading,
+      required this.regenerating,
       required this.stale,
       required this.onRefresh,
+      required this.onRegenerate,
       this.error,
       this.requestCode});
   final PaymentDto payment;
   final BankPaymentDto? bank;
-  final bool loading, stale;
+  final bool loading, regenerating, stale;
   final String? error, requestCode;
   final Future<void> Function() onRefresh;
+  final Future<void> Function()? onRegenerate;
   @override
   State<BankPaymentSection> createState() => _BankPaymentSectionState();
 }
@@ -119,6 +122,9 @@ class _BankPaymentSectionState extends State<BankPaymentSection> {
         widget.error == null &&
         !widget.loading &&
         _remaining > Duration.zero;
+    final expired = valid &&
+        b.intentStatus == 'expired' &&
+        widget.payment.status == 'awaiting_payment';
     final status = switch (widget.payment.status) {
       'cancelled' => 'Thanh toán đã hủy',
       'refunded' => 'Thanh toán đã hoàn tiền',
@@ -213,17 +219,30 @@ class _BankPaymentSectionState extends State<BankPaymentSection> {
             color: PaymentStyle.amberSoft,
             child: Text(
                 b?.intentStatus == 'expired'
-                    ? 'Không chuyển tiền theo mã đã hết hạn. Vui lòng làm mới trạng thái.'
+                    ? 'Không chuyển tiền theo mã đã hết hạn. Hãy tạo mã mới trước khi thanh toán.'
                     : 'Chuyển đúng số tiền và giữ nguyên nội dung. Mã QR không phải xác nhận đã nhận tiền.',
                 style: PaymentStyle.body)),
       ],
       const SizedBox(height: 16),
+      if (expired) ...[
+        PaymentActionButton(
+            key: const ValueKey('regenerate-bank'),
+            label: 'Tạo mã mới',
+            loading: widget.regenerating,
+            onPressed: widget.regenerating ||
+                    widget.loading ||
+                    widget.stale ||
+                    widget.error != null ||
+                    !b.available
+                ? null
+                : widget.onRegenerate),
+        const SizedBox(height: 12),
+      ],
       PaymentActionButton(
-          label: valid && b.intentStatus == 'expired'
-              ? 'Làm mới'
-              : 'Kiểm tra thanh toán',
+          label: 'Kiểm tra thanh toán',
           loading: widget.loading,
-          onPressed: widget.loading ? null : widget.onRefresh),
+          onPressed:
+              widget.loading || widget.regenerating ? null : widget.onRefresh),
     ]);
   }
 }

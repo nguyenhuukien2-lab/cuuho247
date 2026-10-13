@@ -230,6 +230,7 @@ class PaymentWatcher extends ChangeNotifier {
         }
         if (next == null ||
             bankPayment == null ||
+            next.intentId != bankPayment!.intentId ||
             next.intentVersion >= bankPayment!.intentVersion) {
           bankPayment = next;
         }
