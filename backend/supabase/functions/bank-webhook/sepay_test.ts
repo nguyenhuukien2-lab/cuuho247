@@ -205,6 +205,15 @@ test('live scope never maps even when the test account secret is present', async
   assert.equal(store.paidCount, 0);
 });
 
+test('live scope with a missing beneficiary account fails closed after valid HMAC', async () => {
+  const { handler, store } = fixture({ providerScope: liveScope, configuredTestAccount: testAccount });
+  const response = await handler(await requestFor(payload({ accountNumber: undefined })));
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: 'invalid_payload' });
+  assert.equal(store.processed.length, 0);
+  assert.equal(store.paidCount, 0);
+});
+
 test('sepay_test scope fails closed when SEPAY_TEST_ACCOUNT_NUMBER is missing', async () => {
   const { handler, store } = fixture({ providerScope: 'sepay_test' });
   const response = await handler(await requestFor(payload({ accountNumber: testAccount })));
@@ -292,13 +301,16 @@ for (const [name, overrides, expectedResult] of [
   });
 }
 
-test('duplicate webhook/replay is idempotent and cannot pay twice', async () => {
+test('valid Live-shaped fixture settles exactly once across duplicate webhook replay', async () => {
   const { handler, store } = fixture();
   const first = await handler(await requestFor(payload()));
   const replay = await handler(await requestFor(payload()));
   assert.equal(first.status, 200);
   assert.equal(replay.status, 200);
   assert.equal(store.processed.length, 2);
+  assert.deepEqual(store.outcomes, ['paid', 'duplicate_event']);
+  assert(store.processed.every(transaction => transaction.provider_scope === liveScope));
+  assert(store.processed.every(transaction => transaction.beneficiary_account_number === expected.account));
   assert.equal(store.paidCount, 1);
 });
 

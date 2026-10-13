@@ -136,4 +136,8 @@ Tài liệu chính thức: [SePay webhook authentication](https://developer.sepa
 [SePay webhook payload](https://developer.sepay.vn/vi/sepay-webhooks/tich-hop-webhook),
 [Supabase direct Postgres from Edge Functions](https://supabase.com/docs/guides/functions/connect-to-postgres).
 
+Cutover từ Test Mode sang Live Mode phải theo
+[SePay Live cutover runbook](sepay_live_cutover_runbook.md), bao gồm freeze,
+version-guarded config switch, smoke test thật và rollback về Test Mode.
+
 Không deploy hoặc commit trong thay đổi này.
