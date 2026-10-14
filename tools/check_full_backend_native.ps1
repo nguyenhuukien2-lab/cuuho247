@@ -113,10 +113,16 @@ $stageTests = @{
     '202610130001_admin_payment_readonly_hotfix.sql' = @(
         @{ Path = 'backend/supabase/tests/admin_payment_read_api_regression.sql'; Args = @('-c', "set payment.test_mode='local_disposable';") }
     )
+    '202610130002_customer_bank_intent_regeneration.sql' = @(
+        @{ Path = 'backend/supabase/tests/payment_bank_regeneration_regression.sql'; Args = @('-c', "set payment.test_mode='local_disposable';") }
+    )
+    '202610130003_admin_payment_operations_v2.sql' = @(
+        @{ Path = 'backend/supabase/tests/admin_payment_operations_v2_regression.sql'; Args = @('-c', "set payment.test_mode='local_disposable';") }
+    )
 }
 
 $migrationPaths = @()
-foreach ($directory in @('backend/supabase/migrations', 'admin_web/backend/supabase/migrations')) {
+foreach ($directory in @('backend/supabase/migrations')) {
     $migrationPaths += Get-ChildItem -LiteralPath (Join-Path $repoRoot $directory) -Filter '*.sql' -File |
         ForEach-Object { $_.FullName.Substring($repoRoot.Length + 1).Replace('\', '/') }
 }

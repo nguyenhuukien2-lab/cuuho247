@@ -1,5 +1,12 @@
 # Admin Backend - Cứu Hộ 24/7
 
+> Cập nhật migration chain 14/10/2026: hai migration Admin foundation và display
+> codes đã chuyển nguyên SQL sang `backend/supabase/migrations`, giữ nguyên version.
+> Đây là thư mục migration chuẩn cho Supabase CLI; tests/seed vẫn nằm tại đây.
+> Xem [clean migration chain](../../../../docs/clean_supabase_migration_chain.md)
+> để đối chiếu production history trước một rollout được phê duyệt. Nội dung bên
+> dưới mô tả thiết kế và vị trí nguồn tại thời điểm triển khai ban đầu.
+
 ## 1. Vị trí và phạm vi
 
 BE Admin nằm tại `admin_web/backend/supabase`. Đây là migration/RLS/view/RPC

@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import type { BankTransactionPage, PaymentDetail, PaymentList, PaymentOverview } from '../src/lib/paymentTypes'
+import type { BankTransactionPage, PaymentDetail, PaymentList, PaymentOperationsData, PaymentOverview } from '../src/lib/paymentTypes'
 
 export const paymentId = '44444444-4444-4444-8444-444444444444'
 export const timestamp = '2026-10-12T03:00:00Z'
@@ -26,6 +26,19 @@ export const bankPage: BankTransactionPage = {
   rows: [{ id: 'txn-1', provider: 'test-provider', transaction_id: 'TEST-TXN-001', payment_id: paymentId, payment_code: payment.payment_code, request_code: payment.request_code, amount: '300000', reference: 'TEST-REFERENCE', occurred_at: timestamp, match_result: 'matched_exact', verification_status: 'verified' }],
   total: 1, next_cursor: null, summary: { total_count: 1, matched_count: 1, unmatched_count: 0, duplicate_count: 0, rejected_count: 0 },
 }
+export const operations: PaymentOperationsData = {
+  report: { bank_total: '300000', cash_total: '900000', refund_total: '0', paid_count: 2, unpaid_count: 3, rejected_transactions: 1, late_payments: 1, refund_pending: 0 },
+  reconciliation: { rows: [{
+    id: 'txn-late-1', provider: 'sepay', provider_scope: 'live', transaction_id: 'SEPAY-LATE-001', amount: '120000', currency: 'VND',
+    reference: 'BK-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', occurred_at: timestamp, received_at: timestamp, transaction_version: '2',
+    rejection_code: 'intent_expired', receipt_id: 'receipt-1', receipt_status: 'processed', receipt_result: 'intent_expired',
+    authentication_verified: true, signature_verified: true, payment_id: paymentId, payment_code: payment.payment_code,
+    payment_version: '4', request_id: payment.request_id, request_code: payment.request_code, payment_status: 'awaiting_payment',
+    intent_id: 'intent-1', intent_expires_at: timestamp, late_payment: true, case_id: null, reconciliation_status: 'pending',
+    case_reason_code: null, case_version: null, resolved_by: null, resolved_at: null,
+  }], total: null, next_cursor: null },
+  refunds: [],
+}
 
 const overviewRpc = {
   summary: { total_payment_count: 6, paid_count: 2, total_paid_amount: '1200000', cash_paid_amount: '900000', bank_paid_amount: '300000', awaiting_count: 3, verifying_count: 2, issue_count: 1 },
@@ -50,6 +63,20 @@ const bankRpc = {
   rows: bankPage.rows.map((row) => ({ transaction_id: row.id, provider: row.provider, provider_transaction_id: row.transaction_id, provider_event_id: 'event-1', payment_id: row.payment_id, payment_code: row.payment_code, request_id: payment.request_id, request_code: row.request_code, amount: row.amount, currency: 'VND', reference: row.reference, beneficiary: '•••• 9012', occurred_at: row.occurred_at, received_at: row.occurred_at, verification_status: row.verification_status, match_result: row.match_result, matched_at: row.occurred_at })),
   next_cursor: null, has_more: false, summary: bankPage.summary,
 }
+const reconciliationRpc = {
+  rows: operations.reconciliation.rows.map((row) => ({
+    transaction_id: row.id, provider: row.provider, provider_scope: row.provider_scope, provider_transaction_id: row.transaction_id,
+    amount: row.amount, currency: row.currency, reference: row.reference, occurred_at: row.occurred_at, received_at: row.received_at,
+    transaction_version: row.transaction_version, rejection_code: row.rejection_code,
+    receipt: { id: row.receipt_id, status: row.receipt_status, result_code: row.receipt_result, authentication_verified: true, signature_verified: true },
+    candidate_payment_id: row.payment_id, payment_code: row.payment_code, payment_version: row.payment_version,
+    request_id: row.request_id, request_code: row.request_code, payment_status: row.payment_status, intent_id: row.intent_id,
+    intent_expires_at: row.intent_expires_at, late_payment: true, case_id: null, reconciliation_status: 'pending',
+    case_reason_code: null, case_version: null, resolved_by: null, resolved_at: null,
+  })), next_cursor: null, has_more: false,
+}
+const operationsReportRpc = operations.report
+const refundsRpc = { rows: [] }
 
 export async function paymentSession(page: Page, signedIn = true) {
   const id = '11111111-1111-4111-8111-111111111111'
@@ -72,6 +99,12 @@ export async function paymentSession(page: Page, signedIn = true) {
     if (path.endsWith('/admin_list_payments')) return paymentReply(listRpc)
     if (path.endsWith('/admin_get_payment_detail')) return paymentReply(detailRpc)
     if (path.endsWith('/admin_list_bank_transactions')) return paymentReply(bankRpc)
+    if (path.endsWith('/admin_list_payment_reconciliation')) return paymentReply(reconciliationRpc)
+    if (path.endsWith('/admin_list_payment_refunds')) return paymentReply(refundsRpc)
+    if (path.endsWith('/admin_get_payment_operations_report')) return paymentReply(operationsReportRpc)
+    if (path.endsWith('/admin_resolve_late_payment')) return paymentReply({ case_id: 'case-1', payment_id: paymentId, status: 'refund_required', version: '1' })
+    if (path.endsWith('/admin_request_payment_refund')) return paymentReply({ refund_id: 'refund-1', payment_id: paymentId, status: 'requested', version: '1' })
+    if (path.endsWith('/admin_transition_payment_refund')) return paymentReply({ refund_id: 'refund-1', payment_id: paymentId, status: 'approved', version: '2' })
     if (path.endsWith('/admin_profiles')) return reply({ id, admin_code: 'AD-000001', full_name: 'Tài chính kiểm thử' })
     if (path.endsWith('/logout')) return route.fulfill({ status: 204 })
     if (path.startsWith('/auth/v1/')) return reply(path.endsWith('/user') ? user : session)
@@ -85,7 +118,7 @@ export async function paymentSession(page: Page, signedIn = true) {
 export async function paymentFixtureApi(page: Page) {
   const state = {
     overview: structuredClone(overview), list: structuredClone(paymentList), detail: structuredClone(payment) as PaymentDetail | null,
-    bank: structuredClone(bankPage), error: null as string | null, delay: 0,
+    bank: structuredClone(bankPage), operations: structuredClone(operations), error: null as string | null, delay: 0,
     calls: [] as { kind: string; query: Record<string, unknown> }[],
   }
   await page.route('**/src/lib/paymentApi.ts*', (route) => route.fulfill({ contentType: 'application/javascript', body: `
@@ -99,13 +132,30 @@ export async function paymentFixtureApi(page: Page) {
     export const getPaymentList = (query, signal) => read('list', query, signal);
     export const getPaymentDetail = (id, signal) => read('detail', { id }, signal);
     export const getBankTransactions = (query, signal) => read('bank', query, signal);
+    export const getPaymentOperations = (query, signal) => read('operations', query, signal);
+    export const resolveLatePayment = (row, resolution, operationId) => read('resolve', { row, resolution, operationId });
+    export const requestLatePaymentRefund = (row, operationId) => read('requestRefund', { row, operationId });
+    export const requestPaidPaymentRefund = (payment, amount, reasonCode, operationId) => read('requestPaidRefund', { payment, amount, reasonCode, operationId });
+    export const transitionPaymentRefund = (refund, action, operationId, evidence) => read('transitionRefund', { refund, action, operationId, evidence });
   ` }))
   await page.route('**/__payment_test__/*', async (route) => {
-    const kind = new URL(route.request().url()).pathname.split('/').pop() as 'overview' | 'list' | 'detail' | 'bank'
+    const kind = new URL(route.request().url()).pathname.split('/').pop() as 'overview' | 'list' | 'detail' | 'bank' | 'operations' | 'resolve' | 'requestRefund' | 'requestPaidRefund' | 'transitionRefund'
     const query = route.request().postDataJSON() as Record<string, unknown>
     state.calls.push({ kind, query })
     if (state.delay) await new Promise((resolve) => setTimeout(resolve, state.delay))
-    const data = kind === 'list' && query.cursor ? { ...state.list, rows: [{ ...payment, id: 'second-payment', payment_code: 'TT-000124' }], next_cursor: null } : state[kind]
+    let data: unknown
+    if (kind === 'list' && query.cursor) data = { ...state.list, rows: [{ ...payment, id: 'second-payment', payment_code: 'TT-000124' }], next_cursor: null }
+    else if (kind === 'resolve') {
+      const row = query.row as PaymentOperationsData['reconciliation']['rows'][number]
+      state.operations.reconciliation.rows = state.operations.reconciliation.rows.map((item) => item.id === row.id ? { ...item, reconciliation_status: query.resolution as string, case_id: 'case-1', case_version: '1', resolved_at: timestamp } : item)
+      data = { id: 'case-1', payment_id: row.payment_id, status: query.resolution, version: '1' }
+    } else if (kind === 'requestRefund') {
+      const row = query.row as PaymentOperationsData['reconciliation']['rows'][number]
+      state.operations.refunds.push({ id: 'refund-1', payment_id: row.payment_id!, payment_code: row.payment_code, bank_transaction_id: row.id, source_kind: 'late_bank_transaction', amount: row.amount, currency: row.currency, reason_code: 'late_payment_return', status: 'requested', requested_by: 'finance-one', approved_by: null, processed_by: null, requested_at: timestamp, approved_at: null, processing_at: null, refunded_at: null, failed_at: null, evidence_reference: null, failure_code: null, updated_at: timestamp, version: '1' })
+      data = { id: 'refund-1', payment_id: row.payment_id, status: 'requested', version: '1' }
+    } else if (kind === 'requestPaidRefund') data = { id: 'refund-paid-1', payment_id: paymentId, status: 'requested', version: '1' }
+    else if (kind === 'transitionRefund') data = { id: 'refund-1', payment_id: paymentId, status: query.action, version: '2' }
+    else data = state[kind]
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ data: state.error ? null : data, error: state.error }) })
   })
   return state

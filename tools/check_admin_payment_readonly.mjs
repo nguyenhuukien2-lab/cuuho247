@@ -21,6 +21,7 @@ const stageTests = new Map([
   ['202610110001_payment_bank_foundation.sql', 'payment_bank_foundation_regression.sql'],
   ['202610110002_payment_bank_qr.sql', 'payment_bank_qr_regression.sql'],
   ['202610110003_payment_bank_verification.sql', 'payment_bank_verification_regression.sql'],
+  ['202610130003_admin_payment_operations_v2.sql', 'admin_payment_operations_v2_regression.sql'],
 ]);
 
 async function suite(path) {
@@ -46,7 +47,7 @@ try {
     set payment.test_mode='local_disposable';`);
 
   const migrations = [];
-  for (const dir of ['backend/supabase/migrations', 'admin_web/backend/supabase/migrations']) {
+  for (const dir of ['backend/supabase/migrations']) {
     for (const name of await readdir(resolve(root, dir))) {
       if (name.endsWith('.sql')) migrations.push(`${dir}/${name}`);
     }

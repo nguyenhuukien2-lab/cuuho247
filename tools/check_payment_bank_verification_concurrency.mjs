@@ -81,12 +81,20 @@ if (!raw) {
       alter table storage.objects enable row level security;
       grant usage on schema public,auth,storage to anon,authenticated,service_role;
       grant select,insert,update,delete on storage.objects to authenticated;`);
-    const dir = 'backend/supabase/migrations';
-    for (const file of (await readdir(dir)).filter(f => f.endsWith('.sql') && f <= '202610130002_customer_bank_intent_regeneration.sql').sort()) {
+    const migrationPaths = [];
+    for (const dir of ['backend/supabase/migrations']) {
+      for (const file of await readdir(dir)) {
+        if (file.endsWith('.sql') && file <= '202610130003_admin_payment_operations_v2.sql') {
+          migrationPaths.push(`${dir}/${file}`);
+        }
+      }
+    }
+    migrationPaths.sort((a, b) => a.split('/').at(-1).localeCompare(b.split('/').at(-1)));
+    for (const path of migrationPaths) {
       try {
-        await sql(await read(`${dir}/${file}`));
+        await sql(await read(path));
       } catch {
-        throw new Error(`Native migration failed: ${file}`);
+        throw new Error(`Native migration failed: ${path}`);
       }
     }
     const fixture = (await read('backend/supabase/tests/payment_bank_verification_regression.sql'))
@@ -101,7 +109,8 @@ if (!raw) {
       join public.payments p on p.id=f.payment_id
       join private.payment_bank_intents i on i.payment_id=p.id where b.i in (5,6);
       alter table private.payment_bank_intents disable trigger bank_intent_guard;
-      update private.payment_bank_intents i set expires_at=clock_timestamp()-interval '1 second'
+      update private.payment_bank_intents i set created_at=clock_timestamp()-interval '2 hours',
+        updated_at=clock_timestamp(),expires_at=clock_timestamp()-interval '1 hour'
         from private.gd6c_regen_race_fixtures f where f.intent_id=i.id;
       alter table private.payment_bank_intents enable trigger bank_intent_guard;
       create function private.gd6c_try_regenerate(p_i integer) returns text language plpgsql as $$
@@ -113,6 +122,47 @@ if (!raw) {
         return 'ok';
       exception when others then return sqlerrm;
       end $$;
+
+      insert into auth.users(id,email) values
+        ('a1490000-0000-4000-8000-000000000001','native-ops-finance-one@example.invalid'),
+        ('a1490000-0000-4000-8000-000000000002','native-ops-finance-two@example.invalid');
+      insert into public.admin_profiles(id,full_name,role,status) values
+        ('a1490000-0000-4000-8000-000000000001','Native Ops Finance One','finance','active'),
+        ('a1490000-0000-4000-8000-000000000002','Native Ops Finance Two','finance','active');
+      alter table private.payment_bank_intents disable trigger bank_intent_guard;
+      update private.payment_bank_intents i set created_at=clock_timestamp()-interval '2 hours',
+        updated_at=clock_timestamp(),expires_at=clock_timestamp()-interval '1 hour'
+        from private.gd6c_race_fixtures f where f.i=7 and f.payment_id=i.payment_id;
+      alter table private.payment_bank_intents enable trigger bank_intent_guard;
+      do $$
+      declare v_result jsonb;
+      begin
+        select private.process_verified_bank_transaction(n) into v_result
+          from private.gd6c_race_fixtures where i=7;
+        if v_result->>'result' is distinct from 'intent_expired' then
+          raise exception 'ADMIN_OPS_RACE_FIXTURE_INVALID';
+        end if;
+      end $$;
+      create table private.admin_ops_race_fixture as
+      select t.id transaction_id,t.version transaction_version,p.id payment_id,
+        p.version payment_version,p.status payment_status,p.amount_received,p.paid_at,p.verified_at,
+        (select count(*) from public.payment_events e where e.payment_id=p.id) payment_event_count
+      from private.gd6c_race_fixtures f
+      join public.payments p on p.id=f.payment_id
+      join private.bank_transactions t on t.external_transaction_id='tx-7'
+      where f.i=7 and t.status='rejected' and t.rejection_code='intent_expired';
+      create function public.gd6c_try_admin_reconcile(
+        p_transaction_id uuid,p_transaction_version bigint,p_operation_id uuid
+      ) returns text language plpgsql security invoker set search_path='' as $$
+      begin
+        perform public.admin_resolve_late_payment(p_transaction_id,p_transaction_version,null,
+          'refund_required','late_payment_return',p_operation_id);
+        return 'ok';
+      exception when others then
+        return sqlstate||':'||sqlerrm;
+      end $$;
+      revoke all on function public.gd6c_try_admin_reconcile(uuid,bigint,uuid) from public,anon,service_role;
+      grant execute on function public.gd6c_try_admin_reconcile(uuid,bigint,uuid) to authenticated;
       commit;`);
 
     // First session holds the provider advisory lock AFTER writing its uncommitted
@@ -150,6 +200,47 @@ if (!raw) {
     console.log('PASS concurrent new delivery same transaction -> one settlement');
     await race(3, { provider_event_id: 'native-second-event', delivery_id: 'native-second-delivery', provider_transaction_id: 'native-second-transaction' }, 'already_paid');
     console.log('PASS competing transactions same payment -> one settlement');
+
+    const adminOpsFixture = await sql(`select transaction_id::text||'|'||transaction_version::text
+      from private.admin_ops_race_fixture`);
+    assert.match(adminOpsFixture, /^[0-9a-f-]{36}\|[1-9][0-9]*$/);
+    const [adminTransactionId, adminTransactionVersion] = adminOpsFixture.split('|');
+    const reconcileFirst = sql(`set application_name='admin_ops_reconcile_first';
+      set request.jwt.claim.sub='a1490000-0000-4000-8000-000000000001';
+      set role authenticated; begin;
+      select public.gd6c_try_admin_reconcile('${adminTransactionId}'::uuid,${adminTransactionVersion},
+        'a1480000-0000-4000-8000-000000000011'::uuid);
+      select pg_sleep(3); commit;`);
+    await awaitActivity('admin_ops_reconcile_first', "wait_event='PgSleep'");
+    const reconcileSecond = sql(`set application_name='admin_ops_reconcile_second';
+      set request.jwt.claim.sub='a1490000-0000-4000-8000-000000000002';
+      set role authenticated;
+      select public.gd6c_try_admin_reconcile('${adminTransactionId}'::uuid,${adminTransactionVersion},
+        'a1480000-0000-4000-8000-000000000012'::uuid);`);
+    await awaitActivity('admin_ops_reconcile_second', "wait_event_type='Lock'");
+    const reconcileResults = await Promise.allSettled([reconcileFirst, reconcileSecond]);
+    for (const result of reconcileResults) if (result.status === 'rejected') throw result.reason;
+    assert.equal(reconcileResults[0].value, 'ok');
+    assert.equal(reconcileResults[1].value, '40001:STALE_VERSION');
+    assert.equal(await sql(`select
+      (select count(*) from private.payment_reconciliation_cases c
+        where c.bank_transaction_id=f.transaction_id)=1
+      and (select count(*) from private.payment_operations_audit a
+        where a.bank_transaction_id=f.transaction_id and a.event_type='late_payment_refund_required')=1
+      and (select count(*) from private.payment_admin_operation_receipts r
+        where r.operation_kind='resolve_late_payment')=1
+      and (select count(*) from private.payment_refunds r
+        where r.bank_transaction_id=f.transaction_id)=0
+      and p.version=f.payment_version and p.status=f.payment_status
+      and p.amount_received is not distinct from f.amount_received
+      and p.paid_at is not distinct from f.paid_at
+      and p.verified_at is not distinct from f.verified_at
+      and (select count(*) from public.payment_events e where e.payment_id=p.id)=f.payment_event_count
+      and t.status='rejected' and t.rejection_code='intent_expired' and t.matched_payment_id is null
+      from private.admin_ops_race_fixture f
+      join public.payments p on p.id=f.payment_id
+      join private.bank_transactions t on t.id=f.transaction_id`), 't');
+    console.log('PASS concurrent Admin V2 reconciliation -> one immutable resolution, payment unchanged');
 
     const pending = sql(`set application_name='gd6c_first'; begin;
       select private.process_verified_bank_transaction(n) from private.gd6c_race_fixtures where i=4;

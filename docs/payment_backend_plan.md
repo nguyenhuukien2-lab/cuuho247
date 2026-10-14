@@ -23,8 +23,8 @@ Các đường dẫn bên dưới tính từ thư mục chứa báo cáo. Tên f
 | [Saved addresses](../backend/supabase/migrations/202610010004_customer_saved_addresses.sql) | CRUD owner-only, không phải settings hệ thống. |
 | [Customer reviews](../backend/supabase/migrations/202610010005_customer_request_reviews.sql) | Review chỉ yêu cầu request `completed`; không yêu cầu `paid`. |
 | [Rescuer foundation](../backend/supabase/migrations/202610020001_rescuer_backend_foundation.sql) | Assignment, quote revision, completion quote, RPC receipts, consistency triggers, profile/vehicle verification, private storage. Nguồn chính để thiết kế payment. |
-| [Admin foundation](../admin_web/backend/supabase/migrations/202610040001_admin_backend_foundation.sql) | Admin role, audited mutation, views; giá trị báo giá không phải tiền đã thu; chưa có payment/settings ledger. |
-| [Display codes](../admin_web/backend/supabase/migrations/202610050001_display_codes.sql) | KH/DT/CH/BG/AD, sequence bigint, mã bất biến và unique; mở rộng DTO, views và customer code RPC. |
+| [Admin foundation](../backend/supabase/migrations/202610040001_admin_backend_foundation.sql) | Admin role, audited mutation, views; giá trị báo giá không phải tiền đã thu; chưa có payment/settings ledger. |
+| [Display codes](../backend/supabase/migrations/202610050001_display_codes.sql) | KH/DT/CH/BG/AD, sequence bigint, mã bất biến và unique; mở rộng DTO, views và customer code RPC. |
 | [Manual location feed](../backend/supabase/migrations/202610050002_rescuer_manual_location_feed.sql) | Thay discovery/claim eligibility cho request địa chỉ nhập tay, không thay quote/payment/completion. |
 
 Hai thư mục migration cùng tham chiếu các bảng `public` của một shared backend; không thiết kế hai payment database độc lập. Cần một thứ tự migration chung khi triển khai. Thư mục `backend/supabase/functions` hiện chỉ có `.gitkeep`; chưa có Edge Function thanh toán. Chưa thấy provider, webhook, payment table/RPC, settlement ledger hay settings table trong các migration được review. Không đọc file chứa credential để tìm provider.

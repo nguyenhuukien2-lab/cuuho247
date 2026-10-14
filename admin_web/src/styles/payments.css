@@ -4,6 +4,7 @@
 .payment-stats { grid-template-columns: repeat(3,minmax(0,1fr)); }
 .payment-list-stats { grid-template-columns: repeat(4,minmax(0,1fr)); }
 .payment-bank-stats { grid-template-columns: repeat(5,minmax(0,1fr)); }
+.payment-ops-stats { grid-template-columns: repeat(4,minmax(0,1fr)); }
 .payment-list-stats .stat-value,.payment-bank-stats .stat-value { overflow-wrap: anywhere; font-size: clamp(20px,1.8vw,30px); }
 .payment-overview-charts { display: grid; grid-template-columns: minmax(0,2fr) minmax(260px,1fr); gap: 24px; }
 .payment-method-share { display: flex; justify-content: center; padding: 12px 0 28px; }
@@ -22,6 +23,7 @@
 .payment-amount-banner strong { font-family: 'Plus Jakarta Sans',sans-serif; color: var(--admin-primary); font-size: clamp(24px,3vw,36px); overflow-wrap: anywhere; }
 .payment-people { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; }
 .payment-confirmation { margin-top: 20px; }
+.payment-refund-request { display: grid; grid-template-columns: minmax(140px,1fr) minmax(180px,1.4fr) auto; gap: 12px; align-items: end; }
 .payment-stats .stat-value { white-space: normal; overflow-wrap: anywhere; font-size: clamp(22px,2vw,30px); }
 .payment-filters { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 14px; margin-bottom: 18px; }
 .payment-field { display: flex; flex-direction: column; gap: 7px; font-size: 11px; color: var(--admin-muted); min-width: 0; }
@@ -33,6 +35,9 @@
 .payment-page .section-heading { flex-wrap: wrap; }
 .payment-page .table-scroll table { min-width: 1300px; }
 .payment-page .table-scroll td { max-width: 230px; overflow-wrap: anywhere; }
+.payment-operation-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; min-width: 150px; }
+.payment-operation-actions input { width: 100%; min-height: 34px; padding: 7px; border: 1px solid var(--admin-line); border-radius: 6px; background: var(--admin-soft); color: var(--admin-ink); }
+.payment-page td small { display: block; margin-top: 5px; color: var(--admin-muted); }
 .payment-page .table-footer { flex-wrap: wrap; }
 .payment-detail-grid { display: grid; grid-template-columns: minmax(0,1.65fr) minmax(0,1fr); gap: 24px; }
 .payment-detail-grid > div { min-width: 0; }
@@ -48,8 +53,8 @@
 .payment-skeleton i:last-child { grid-column: 1/-1; min-height: 220px; }
 @keyframes payment-pulse { to { opacity: .45; } }
 @media(min-width:1700px) { .payment-stats { grid-template-columns: repeat(6,minmax(0,1fr)); } }
-@media(max-width:1200px) { .payment-list-stats,.payment-bank-stats { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media(max-width:1200px) { .payment-list-stats,.payment-bank-stats,.payment-ops-stats { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:1050px) { .payment-filters { grid-template-columns: repeat(2,minmax(0,1fr)); } .payment-detail-grid,.payment-overview-charts { grid-template-columns: minmax(0,1fr); gap: 0; } }
-@media(max-width:760px) { .payment-stats,.payment-skeleton { grid-template-columns: repeat(2,minmax(0,1fr)); } .payment-people { grid-template-columns: minmax(0,1fr); gap: 0; } .payment-amount-banner > div:last-child { margin-left: 0; } }
+@media(max-width:760px) { .payment-stats,.payment-skeleton { grid-template-columns: repeat(2,minmax(0,1fr)); } .payment-people,.payment-refund-request { grid-template-columns: minmax(0,1fr); gap: 0; } .payment-refund-request { gap: 12px; } .payment-amount-banner > div:last-child { margin-left: 0; } }
 @media(max-width:420px) { .payment-filters { grid-template-columns: minmax(0,1fr); } }
 @media(prefers-reduced-motion:reduce) { .payment-skeleton i { animation: none; } }

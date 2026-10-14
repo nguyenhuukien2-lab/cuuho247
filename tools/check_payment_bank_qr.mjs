@@ -55,8 +55,11 @@ try{
  grant select,insert,update,delete on storage.objects to authenticated;
  set payment.test_mode='local_disposable';`);
  const paths=[];
- for(const dir of sharedOnly?['backend/supabase/migrations']:['backend/supabase/migrations','admin_web/backend/supabase/migrations']){
-  for(const name of await readdir(resolve(root,dir))) if(name.endsWith('.sql')&&name<'202610110001_payment_bank_foundation.sql') paths.push(`${dir}/${name}`);
+ for(const dir of ['backend/supabase/migrations']){
+  for(const name of await readdir(resolve(root,dir))) {
+   if(sharedOnly && ['202610040001_admin_backend_foundation.sql','202610050001_display_codes.sql'].includes(name)) continue;
+   if(name.endsWith('.sql')&&name<'202610110001_payment_bank_foundation.sql') paths.push(`${dir}/${name}`);
+  }
  }
  paths.sort((a,b)=>a.split('/').at(-1).localeCompare(b.split('/').at(-1)));
  console.log('CONFIG',sharedOnly?'shared-only':'shared+admin/display-codes');

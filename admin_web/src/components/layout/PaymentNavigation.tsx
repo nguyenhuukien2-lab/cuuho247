@@ -6,6 +6,7 @@ const items = [
   { to: '/payments', label: 'Tổng quan' },
   { to: '/payments/list', label: 'Danh sách thanh toán' },
   { to: '/payments/bank-transactions', label: 'Giao dịch ngân hàng' },
+  { to: '/payments/operations', label: 'Vận hành thanh toán' },
 ]
 
 export function PaymentNavigation({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {

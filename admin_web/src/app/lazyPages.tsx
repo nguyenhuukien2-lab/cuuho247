@@ -19,3 +19,4 @@ export const PaymentOverviewPage = lazy(() => import('../pages/PaymentOverviewPa
 export const PaymentListPage = lazy(() => import('../pages/PaymentListPage').then((m) => ({ default: m.PaymentListPage })))
 export const PaymentDetailPage = lazy(() => import('../pages/PaymentDetailPage').then((m) => ({ default: m.PaymentDetailPage })))
 export const BankTransactionsPage = lazy(() => import('../pages/BankTransactionsPage').then((m) => ({ default: m.BankTransactionsPage })))
+export const PaymentOperationsPage = lazy(() => import('../pages/PaymentOperationsPage').then((m) => ({ default: m.PaymentOperationsPage })))

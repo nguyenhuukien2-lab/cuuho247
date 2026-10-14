@@ -1,6 +1,6 @@
-import { useCallback } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getPaymentDetail } from '../lib/paymentApi'
+import { getPaymentDetail, requestPaidPaymentRefund } from '../lib/paymentApi'
 import type { PaymentDetail, PaymentPerson } from '../lib/paymentTypes'
 import { dateValue, serviceValue, statusValue, textValue } from '../lib/adminFormat'
 import { useAdminData } from '../hooks/useAdminData'
@@ -73,10 +73,35 @@ export function PaymentDetailPage() {
   const loader = useCallback((signal?: AbortSignal) => getPaymentDetail(paymentId, signal), [paymentId])
   const resource = useAdminData(loader)
   const payment = resource.error ? null : resource.data
+  const [refundAmount, setRefundAmount] = useState('')
+  const [refundReason, setRefundReason] = useState('customer_request')
+  const [refundBusy, setRefundBusy] = useState(false)
+  const [refundError, setRefundError] = useState('')
+  const [refundCreated, setRefundCreated] = useState(false)
+  const refundOperation = useRef('')
+  const requestRefund = async () => {
+    if (!payment || payment.status !== 'paid' || !payment.version || !/^[1-9][0-9]{0,18}$/.test(refundAmount)) return
+    refundOperation.current ||= crypto.randomUUID()
+    setRefundBusy(true); setRefundError('')
+    const result = await requestPaidPaymentRefund(payment, refundAmount, refundReason, refundOperation.current)
+    setRefundBusy(false)
+    if (result.error) { setRefundError('Không thể tạo yêu cầu hoàn tiền. Hãy tải lại payment và kiểm tra số tiền khả dụng.'); return }
+    refundOperation.current = ''
+    setRefundCreated(true)
+  }
   return <div className="payment-page">
     <PageHeader eyebrow="TÀI CHÍNH / THANH TOÁN / CHI TIẾT" title={payment?.payment_code ? `Chi tiết thanh toán · ${payment.payment_code}` : 'Chi tiết thanh toán'} description="Thông tin thanh toán và lịch sử ghi nhận của yêu cầu cứu hộ." actions={<><Link className="button button-white" to="/payments/list">← Danh sách</Link><ReloadButton resource={resource}/></>}/>
     <PaymentState resource={resource}>
       {!resource.error && !payment ? <SectionCard><EmptyState title="Không tìm thấy thanh toán" description="Thanh toán không tồn tại hoặc không thuộc phạm vi được cấp quyền."/></SectionCard> : <PaymentInformation payment={payment} paymentId={paymentId}/>}
+      {payment?.status === 'paid' && <SectionCard title="Yêu cầu hoàn tiền" subtitle="Tạo record requested; payment gốc và trạng thái paid không bị thay đổi">
+        <div className="payment-refund-request">
+          <label className="payment-field"><span>Số tiền hoàn (VND)</span><input aria-label="Số tiền hoàn" inputMode="numeric" value={refundAmount} onChange={(event) => { setRefundAmount(event.target.value); setRefundCreated(false) }}/></label>
+          <label className="payment-field"><span>Lý do</span><select aria-label="Lý do hoàn tiền" value={refundReason} onChange={(event) => setRefundReason(event.target.value)}><option value="customer_request">Khách hàng yêu cầu</option><option value="duplicate_payment">Thanh toán trùng</option><option value="service_dispute">Tranh chấp dịch vụ</option><option value="other_approved">Lý do khác đã phê duyệt</option></select></label>
+          <button className="button button-blue" disabled={refundBusy || !/^[1-9][0-9]{0,18}$/.test(refundAmount)} onClick={() => void requestRefund()}>Tạo yêu cầu hoàn tiền</button>
+        </div>
+        {refundError && <p className="payment-filter-error" role="alert">{refundError}</p>}
+        {refundCreated && <p className="muted-note" role="status">Đã tạo yêu cầu. <Link className="text-link" to="/payments/operations">Mở vận hành thanh toán để duyệt và xử lý.</Link></p>}
+      </SectionCard>}
     </PaymentState>
   </div>
 }

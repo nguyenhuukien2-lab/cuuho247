@@ -1,7 +1,7 @@
 ﻿import { Suspense } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
 import { AdminRoute } from './AdminRoute'
-import { PaymentOverviewPage, PaymentListPage, PaymentDetailPage, BankTransactionsPage } from './lazyPages'
+import { PaymentOverviewPage, PaymentListPage, PaymentDetailPage, BankTransactionsPage, PaymentOperationsPage } from './lazyPages'
 import { DashboardPage, RescueRequestsPage, RescueRequestDetailPage, CustomersPage, CustomerDetailPage, RescuersPage, RescuerDetailPage, ServicesPage, QuotesPage, ReviewsPage, OperationsMapPage, NotificationsPage, SettingsPage, LoginPage, AuditLogsPage } from './lazyPages'
 const page = (element: React.ReactNode) => <Suspense fallback={<div className="page-loading">Đang tải trang...</div>}>{element}</Suspense>
 export const router = createBrowserRouter([
@@ -19,6 +19,7 @@ export const router = createBrowserRouter([
     { path: 'payments', element: page(<PaymentOverviewPage/>) },
     { path: 'payments/list', element: page(<PaymentListPage/>) },
     { path: 'payments/bank-transactions', element: page(<BankTransactionsPage/>) },
+    { path: 'payments/operations', element: page(<PaymentOperationsPage/>) },
     { path: 'payments/:paymentId', element: page(<PaymentDetailPage/>) },
     { path: 'reviews', element: page(<ReviewsPage/>) },
     { path: 'map', element: page(<OperationsMapPage/>) },

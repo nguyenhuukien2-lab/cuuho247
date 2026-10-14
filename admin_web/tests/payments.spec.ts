@@ -7,15 +7,17 @@ const screens = [
   { path: '/payments/list', title: 'Danh sách thanh toán', kind: 'list' },
   { path: '/payments/' + paymentId, title: 'Chi tiết thanh toán', kind: 'detail' },
   { path: '/payments/bank-transactions', title: 'Giao dịch ngân hàng', kind: 'bank' },
+  { path: '/payments/operations', title: 'Vận hành thanh toán', kind: 'operations' },
 ]
 
-test('production routes call only the four read-only payment RPCs and render their data', async ({ page }) => {
+test('production routes call only allowlisted payment RPCs and render their data', async ({ page }) => {
   const state = await paymentSession(page)
   const rpcByKind: Record<string, string> = {
     overview: '/rest/v1/rpc/admin_get_payment_overview',
     list: '/rest/v1/rpc/admin_list_payments',
     detail: '/rest/v1/rpc/admin_get_payment_detail',
     bank: '/rest/v1/rpc/admin_list_bank_transactions',
+    operations: '/rest/v1/rpc/admin_list_payment_reconciliation',
   }
   for (const screen of screens) {
     await page.goto(screen.path)
@@ -24,13 +26,15 @@ test('production routes call only the four read-only payment RPCs and render the
     await expect(page.getByRole('button', { name: /mark paid|xác nhận.*tiền|đánh dấu|xóa thanh toán|sửa.*tiền/i })).toHaveCount(0)
     await expect(page.locator('tbody tr, .payment-detail-grid, .payment-chart').first()).toBeVisible()
     await expect(page.locator('.side-nav a.active')).toBeVisible()
-    await expect(page.locator('#payment-submenu a')).toHaveCount(3)
+    await expect(page.locator('#payment-submenu a')).toHaveCount(4)
     await expect(page.locator('main nav')).toHaveCount(0)
   }
   const backendCalls = state.calls.filter((call) => call.path.startsWith('/rest/'))
   const allowed = ['/rest/v1/rpc/is_admin', '/rest/v1/rpc/has_admin_role', '/rest/v1/admin_profiles',
     '/rest/v1/rpc/admin_get_payment_overview', '/rest/v1/rpc/admin_list_payments',
-    '/rest/v1/rpc/admin_get_payment_detail', '/rest/v1/rpc/admin_list_bank_transactions']
+    '/rest/v1/rpc/admin_get_payment_detail', '/rest/v1/rpc/admin_list_bank_transactions',
+    '/rest/v1/rpc/admin_list_payment_reconciliation', '/rest/v1/rpc/admin_list_payment_refunds',
+    '/rest/v1/rpc/admin_get_payment_operations_report']
   expect(backendCalls.length).toBeGreaterThan(0)
   expect(backendCalls.every((call) => allowed.includes(call.path))).toBe(true)
   expect(backendCalls.filter((call) => call.path.endsWith('/has_admin_role')).every((call) => JSON.stringify(call.body) === JSON.stringify({ required_roles: ['super_admin', 'finance'] }))).toBe(true)
@@ -78,6 +82,7 @@ for (const screen of screens) {
     state.list = { rows: [], total: 0, next_cursor: null }
     state.detail = null
     state.bank = { rows: [], total: 0, next_cursor: null }
+    state.operations = { report: { bank_total: '0', cash_total: '0', refund_total: '0', paid_count: 0, unpaid_count: 0, rejected_transactions: 0, late_payments: 0, refund_pending: 0 }, reconciliation: { rows: [], total: null, next_cursor: null }, refunds: [] }
     await page.goto(screen.path)
     await expect(page.getByRole('status', { name: 'Đang tải thanh toán' })).toBeVisible()
     await expect(page.locator('.empty-state').first()).toBeVisible()
@@ -201,6 +206,22 @@ test('detail uses routed ID, safe fields, cash confirmation and timeline; no adm
   await expect(page.getByText('Đối tác xác nhận tiền mặt', { exact: true })).toHaveCount(0)
 })
 
+test('paid payment creates only a versioned refund request', async ({ page }) => {
+  await paymentSession(page)
+  const state = await paymentFixtureApi(page)
+  await page.goto('/payments/' + paymentId)
+  await page.getByLabel('Số tiền hoàn').fill('100000')
+  await page.getByLabel('Lý do hoàn tiền').selectOption('duplicate_payment')
+  await page.getByRole('button', { name: 'Tạo yêu cầu hoàn tiền' }).click()
+  await expect.poll(() => state.calls.find((call) => call.kind === 'requestPaidRefund')).toMatchObject({ query: {
+    amount: '100000', reasonCode: 'duplicate_payment', payment: { id: paymentId, version: '4', status: 'paid' },
+  } })
+  const operationId = state.calls.find((call) => call.kind === 'requestPaidRefund')?.query.operationId
+  expect(typeof operationId).toBe('string')
+  await expect(page.getByRole('status')).toContainText('Đã tạo yêu cầu')
+  await expect(page.locator('.payment-amount-banner .status-badge')).toHaveText('Đã thanh toán')
+})
+
 test('bank detail preserves backend status including BLOCKED and does not infer paid', async ({ page }) => {
   await paymentSession(page)
   const state = await paymentFixtureApi(page)
@@ -248,6 +269,28 @@ test('bank transactions renders only allowlisted fields and filter requests', as
   await expect(page).toHaveURL(new RegExp('/payments/' + paymentId + '$'))
 })
 
+test('payment operations uses controlled reconciliation and refund actions', async ({ page }) => {
+  await paymentSession(page)
+  const state = await paymentFixtureApi(page)
+  await page.goto('/payments/operations')
+  await expect(page.getByRole('heading', { name: 'Vận hành thanh toán' })).toBeVisible()
+  await expect(page.locator('tbody').first()).toContainText('intent_expired')
+  await expect(page.locator('tbody').first()).toContainText('Đã xác thực')
+  await expect(page.locator('tbody').first()).toContainText('TT-000123')
+  await expect(page.locator('main')).not.toContainText('service_role')
+  await expect(page.getByRole('button', { name: /mark paid|đánh dấu.*paid|xác nhận.*đã trả/i })).toHaveCount(0)
+  await page.getByLabel('Reference, giao dịch, payment').fill('BK-AAAA')
+  await page.getByLabel('Trạng thái đối soát').selectOption('pending')
+  await page.getByRole('button', { name: 'Áp dụng', exact: true }).click()
+  await expect.poll(() => state.calls.at(-1)).toMatchObject({ kind: 'operations', query: { search: 'BK-AAAA', status: 'pending' } })
+  await page.getByRole('button', { name: 'Chuyển sang hoàn tiền' }).click()
+  await expect.poll(() => state.calls.some((call) => call.kind === 'resolve' && call.query.resolution === 'refund_required' && typeof call.query.operationId === 'string')).toBe(true)
+  await expect(page.getByRole('button', { name: 'Tạo yêu cầu hoàn' })).toBeVisible()
+  await page.getByRole('button', { name: 'Tạo yêu cầu hoàn' }).click()
+  await expect.poll(() => state.calls.some((call) => call.kind === 'requestRefund' && typeof call.query.operationId === 'string')).toBe(true)
+  await expect(page.getByRole('button', { name: 'Duyệt' })).toBeVisible()
+})
+
 test('refresh error or permission loss hides previously loaded financial data', async ({ page }) => {
   await paymentSession(page)
   const state = await paymentFixtureApi(page)
@@ -265,7 +308,7 @@ test('refresh error or permission loss hides previously loaded financial data', 
 })
 
 for (const width of [1920, 1440, 1366, 1024, 390]) {
-  test(`four payment screens responsive at ${width}px`, async ({ page }, testInfo) => {
+  test(`five payment screens responsive at ${width}px`, async ({ page }, testInfo) => {
     test.setTimeout(60_000)
     await page.setViewportSize({ width, height: width === 390 ? 844 : 1080 })
     await paymentSession(page)
@@ -321,7 +364,7 @@ test('payment sidebar supports keyboard, actions, history and direct detail URLs
   await expect(page).toHaveURL(new RegExp('/payments/' + paymentId + '$'))
   await expect(submenu.locator('a.active')).toHaveText('Danh sách thanh toán')
   await expect(submenu.locator('a.active')).toHaveAttribute('aria-current', 'location')
-  await expect(submenu.locator('a')).toHaveCount(3)
+  await expect(submenu.locator('a')).toHaveCount(4)
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Chi tiết thanh toán · TT-000123' })).toBeVisible()
   await expect(toggle).toHaveAttribute('aria-expanded', 'true')
@@ -352,7 +395,7 @@ test('mobile payment submenu closes the drawer and keeps the current section', a
   for (const label of ['Giao dịch ngân hàng', 'Danh sách thanh toán', 'Tổng quan']) {
     await menu.click()
     await expect(page.getByRole('button', { name: 'Quản lý Thanh toán' })).toHaveAttribute('aria-expanded', 'true')
-    await expect(page.locator('#payment-submenu a')).toHaveCount(3)
+    await expect(page.locator('#payment-submenu a')).toHaveCount(4)
     await page.locator('#payment-submenu').getByRole('link', { name: label, exact: true }).click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await expect(menu).toBeFocused()

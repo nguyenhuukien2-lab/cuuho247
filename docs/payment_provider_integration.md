@@ -1,8 +1,9 @@
 # GD6C.1 — Tích hợp SePay webhook
 
-Cập nhật 13/10/2026. Adapter và ingress SePay đã được triển khai local; **chưa
-deploy và production auto-paid vẫn DISABLED** cho tới khi hoàn tất cấu hình và
-staging E2E.
+Cập nhật 13/10/2026. SePay Live đã go-live thành công theo runbook. HMAC, exact
+amount/reference/currency/state và exact beneficiary Live vẫn là bắt buộc. Admin
+Payment Operations V2 là thay đổi additive local, chưa deploy, và không thay đổi
+webhook/processor Live.
 
 ## Luồng bảo mật
 

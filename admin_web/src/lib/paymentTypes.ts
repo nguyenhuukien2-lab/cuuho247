@@ -45,3 +45,41 @@ export interface BankTransaction {
 export interface BankTransactionPage extends PaymentPage<BankTransaction> {
   summary?: { total_count: number | null; matched_count: number | null; unmatched_count: number | null; duplicate_count: number | null; rejected_count: number | null }
 }
+
+export interface PaymentReconciliationRow {
+  id: string; provider: string | null; provider_scope: string | null; transaction_id: string | null
+  amount: Money; currency: string | null; reference: string | null
+  occurred_at: string | null; received_at: string | null; transaction_version: string | null
+  rejection_code: string | null; receipt_id: string | null; receipt_status: string | null
+  receipt_result: string | null; authentication_verified: boolean; signature_verified: boolean
+  payment_id: string | null; payment_code: string | null; payment_version: string | null
+  request_id: string | null; request_code: string | null; payment_status: string | null
+  intent_id: string | null; intent_expires_at: string | null; late_payment: boolean
+  case_id: string | null; reconciliation_status: string; case_reason_code: string | null
+  case_version: string | null; resolved_by: string | null; resolved_at: string | null
+}
+
+export interface PaymentRefund {
+  id: string; payment_id: string; payment_code: string | null; bank_transaction_id: string | null
+  source_kind: string | null; amount: Money; currency: string | null; reason_code: string | null
+  status: string | null; requested_by: string | null; approved_by: string | null; processed_by: string | null
+  requested_at: string | null; approved_at: string | null; processing_at: string | null
+  refunded_at: string | null; failed_at: string | null; evidence_reference: string | null
+  failure_code: string | null; updated_at: string | null; version: string | null
+}
+
+export interface PaymentOperationsReport {
+  bank_total: Money; cash_total: Money; refund_total: Money
+  paid_count: number | null; unpaid_count: number | null; rejected_transactions: number | null
+  late_payments: number | null; refund_pending: number | null
+}
+
+export interface PaymentOperationsData {
+  reconciliation: PaymentPage<PaymentReconciliationRow>
+  refunds: PaymentRefund[]
+  report: PaymentOperationsReport
+}
+
+export interface PaymentOperationResult {
+  id: string; payment_id: string | null; status: string | null; version: string | null
+}

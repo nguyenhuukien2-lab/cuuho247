@@ -17,7 +17,7 @@ const execute = async (path) => {
   await db.exec(await read(path))
   console.log(`PASS ${path}`)
 }
-const migration = 'admin_web/backend/supabase/migrations/202610050001_display_codes.sql'
+const migration = 'backend/supabase/migrations/202610050001_display_codes.sql'
 const entities = [
   ['customer_profiles', 'customer_code', 'customer_code_seq', 'KH', 'user_id'],
   ['rescuer_profiles', 'rescuer_code', 'rescuer_code_seq', 'DT', 'user_id'],
@@ -45,10 +45,10 @@ try {
     grant usage on schema public,auth,storage to anon,authenticated;
     grant select,insert,update,delete on storage.objects to authenticated;
   `)
-  for (const name of (await readdir(resolve(root, 'backend/supabase/migrations'))).filter((n) => n.endsWith('.sql')).sort()) {
+  for (const name of (await readdir(resolve(root, 'backend/supabase/migrations')))
+    .filter((n) => n.endsWith('.sql') && n < '202610050001_display_codes.sql').sort()) {
     await execute(`backend/supabase/migrations/${name}`)
   }
-  await execute('admin_web/backend/supabase/migrations/202610040001_admin_backend_foundation.sql')
 
   // Run the existing rescuer lifecycle on the disposable DB; retain its fixtures
   // for backfill verification (the original test file remains untouched).
