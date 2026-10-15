@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/app_controller.dart';
+import 'services/public_system_config.dart';
 import 'app/app_shell.dart';
 import 'app/app_theme.dart';
 import 'app/navigation.dart';
@@ -54,7 +55,8 @@ class _RescueAppState extends State<RescueApp> {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
-            child: child ?? const SizedBox.shrink(),
+            child: PublicSystemConfigScope(
+                app: 'customer', child: child ?? const SizedBox.shrink()),
           ),
         ),
       ),

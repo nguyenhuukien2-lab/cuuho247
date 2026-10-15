@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
+import { fixture as systemConfigFixture } from './systemConfigFixtures'
 
 const id = '11111111-1111-4111-8111-111111111111'
 const createdAt = '2026-10-04T03:00:00Z'
@@ -42,6 +43,8 @@ async function mockSupabase(page: Page, signedIn = true) {
     if (url.pathname.includes('/rpc/')) {
       if (name === 'is_admin') return reply(state.admin)
       if (name === 'admin_get_dashboard_stats') return reply(state.stats)
+      if (name === 'admin_get_system_config') return reply(systemConfigFixture)
+      if (name === 'admin_list_system_config_audit') return reply({ rows: [] })
       const body = request.postDataJSON() as Record<string, unknown>
       state.calls.push({ name, body })
       if (name === 'admin_cancel_request') state.views.admin_rescue_requests_view?.forEach((row) => { if (row.request_id === body.request_id) row.status = 'cancelled' })

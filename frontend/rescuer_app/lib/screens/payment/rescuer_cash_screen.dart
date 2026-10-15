@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../services/public_system_config.dart';
+
 import '../../app/cash_payment_controller.dart';
 import '../../app/mobile_ui.dart';
 import '../../app/rescuer_controller.dart';
@@ -88,7 +90,12 @@ class _RescuerCashScreenState extends State<RescuerCashScreen>
   }
 
   Future<void> _confirm() async {
-    if (_dialogOpen || !c.canConfirm) return;
+    if (_dialogOpen ||
+        !c.canConfirm ||
+        !PublicSystemConfig.of(context)
+            .flag('payment.cash_confirmation_enabled')) {
+      return;
+    }
     _dialogOpen = true;
     final reviewed = c.payment!;
     final accepted = await showDialog<bool>(
@@ -284,7 +291,12 @@ class _RescuerCashScreenState extends State<RescuerCashScreen>
           label: 'Xác nhận đã nhận đủ tiền',
           icon: Icons.check_circle_outline,
           loading: w.loading,
-          onPressed: c.canConfirm ? _confirm : null,
+          onPressed:
+              c.canConfirm &&
+                  PublicSystemConfig.of(context)
+                      .flag('payment.cash_confirmation_enabled')
+              ? _confirm
+              : null,
         ),
         if (!c.canCollect())
           const Text(
@@ -384,6 +396,8 @@ class _RescuerCashConfirmDialogState extends State<RescuerCashConfirmDialog> {
     listenable: controller,
     builder: (context, _) {
       final valid =
+          PublicSystemConfig.of(context)
+              .flag('payment.cash_confirmation_enabled') &&
           controller.canConfirm &&
           controller.payment?.paymentId == reviewed.paymentId &&
           controller.payment?.version == reviewed.version;

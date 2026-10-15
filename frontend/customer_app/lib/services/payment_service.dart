@@ -173,6 +173,9 @@ class SupabasePaymentSource
         throw const PaymentAccessDenied();
       }
       const safeCodes = {
+        'SYSTEM_CASH_DISABLED',
+        'SYSTEM_BANK_DISABLED',
+        'SYSTEM_PAYMENT_LIMIT',
         'PAYMENT_NOT_ELIGIBLE',
         'QUOTE_SNAPSHOT_INCONSISTENT',
         'ZERO_AMOUNT_REQUIRES_POLICY',

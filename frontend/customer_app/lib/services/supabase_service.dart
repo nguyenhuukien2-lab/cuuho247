@@ -535,6 +535,18 @@ class SupabaseService {
   static AppFailure _databaseFailure(PostgrestException error) {
     final message = error.message.trim().toUpperCase();
     if (message == 'LOCATION_REQUIRED') return locationRequiredFailure;
+    if (message == 'SYSTEM_REQUESTS_DISABLED') {
+      return const AppFailure(
+          'Hệ thống tạm dừng tạo yêu cầu mới. Vui lòng thử lại sau.');
+    }
+    if (message == 'SYSTEM_CANCELLATION_DISABLED') {
+      return const AppFailure('Tạm dừng hủy yêu cầu. Vui lòng liên hệ hỗ trợ.');
+    }
+    if (message == 'SYSTEM_SESSION_DENIED') {
+      return const AppFailure(
+          'Tài khoản hoặc phiên truy cập đang bị hạn chế. Vui lòng đăng nhập lại hoặc liên hệ hỗ trợ.',
+          sessionExpired: true);
+    }
     if (message == 'ACTIVE_REQUEST_EXISTS' ||
         message == 'EXISTING_ACTIVE_REQUEST' ||
         message == 'CUSTOMER_HAS_ACTIVE_REQUEST' ||

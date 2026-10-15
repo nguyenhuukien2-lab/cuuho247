@@ -4,6 +4,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../services/public_system_config.dart';
+
 import '../../app/app_theme.dart';
 import '../../app/rescuer_controller.dart';
 import '../../models/backend_models.dart';
@@ -819,7 +821,18 @@ class PreparationOnline extends StatelessWidget {
                 value: c.online,
                 activeThumbColor: Colors.white,
                 activeTrackColor: AppColors.success,
-                onChanged: c.working || (!c.online && !c.canOnline)
+                onChanged:
+                    !PublicSystemConfig.of(context).flag(
+                          c.online
+                              ? 'rescuer.offline_enabled'
+                              : 'rescuer.online_enabled',
+                        ) ||
+                        (!c.online &&
+                            PublicSystemConfig.of(
+                              context,
+                            ).flag('rescuer.maintenance', fallback: false)) ||
+                        c.working ||
+                        (!c.online && !c.canOnline)
                     ? null
                     : (v) => c.setOnline(v),
               ),
@@ -921,7 +934,17 @@ class PreparationOnline extends StatelessWidget {
                 ? Icons.pause_circle_outline
                 : Icons.power_settings_new,
             loading: c.working && c.onlineProgress != null,
-            onPressed: c.working || (!c.online && !c.canOnline)
+            onPressed:
+                !PublicSystemConfig.of(context).flag(
+                      c.online
+                          ? 'rescuer.offline_enabled'
+                          : 'rescuer.online_enabled',
+                    ) ||
+                    (!c.online &&
+                        PublicSystemConfig.of(context)
+                            .flag('rescuer.maintenance', fallback: false)) ||
+                    c.working ||
+                    (!c.online && !c.canOnline)
                 ? null
                 : () => c.setOnline(!c.online),
           ),

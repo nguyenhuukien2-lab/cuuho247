@@ -46,7 +46,8 @@ abstract class RescuerService {
   }
 }
 
-class SupabaseRescuerService implements RescuerService, PaymentSource, CashPaymentCommands {
+class SupabaseRescuerService
+    implements RescuerService, PaymentSource, CashPaymentCommands {
   @override
   Future<HistoryPage> history({Json? cursor}) async {
     if (userId == null) throw const RescuerFailure('Vui lòng đăng nhập lại.');
@@ -79,19 +80,24 @@ class SupabaseRescuerService implements RescuerService, PaymentSource, CashPayme
 
   SupabaseRescuerService(this.client);
   final SupabaseClient client;
-  late final SupabasePaymentSource _paymentTransport = SupabasePaymentSource(client);
+  late final SupabasePaymentSource _paymentTransport = SupabasePaymentSource(
+    client,
+  );
   PaymentSource get payments => this;
 
   // Exact GD3 RPC contracts live in the shared payment transport. In particular,
   // cash commands keep their original operation ID across uncertain retries.
-  Future<Json?> loadJobPayment(String requestId) => _paymentTransport.load(requestId);
-  Future<void> confirmCashReceived(Json params) => _paymentTransport.confirmCash(params);
+  Future<Json?> loadJobPayment(String requestId) =>
+      _paymentTransport.load(requestId);
+  Future<void> confirmCashReceived(Json params) =>
+      _paymentTransport.confirmCash(params);
   @override
   Future<Json?> load(String requestId) => loadJobPayment(requestId);
   @override
   Future<void> confirmCash(Json params) => confirmCashReceived(params);
   @override
-  Stream<PaymentSignal> watch(String requestId) => _paymentTransport.watch(requestId);
+  Stream<PaymentSignal> watch(String requestId) =>
+      _paymentTransport.watch(requestId);
   final Map<String, String> _pendingOperations = {};
   final Map<String, Json> _pendingUploads = {};
   static const _mutations = {
@@ -363,6 +369,13 @@ String rescuerError(Object error) {
   if (error is PostgrestException) {
     final code = error.message;
     const messages = {
+      'SYSTEM_SESSION_DENIED': 'Tài khoản hoặc phiên truy cập đang bị hạn chế. Vui lòng đăng nhập lại hoặc liên hệ hỗ trợ.',
+      'SYSTEM_NEW_JOBS_DISABLED': 'Hệ thống tạm dừng nhận yêu cầu mới.',
+      'SYSTEM_ONLINE_DISABLED': 'Hệ thống tạm dừng chuyển online.',
+      'SYSTEM_OFFLINE_DISABLED':
+          'Hệ thống tạm dừng chuyển offline. Vui lòng liên hệ hỗ trợ.',
+      'SYSTEM_QUOTES_DISABLED': 'Hệ thống tạm dừng gửi báo giá mới.',
+      'SYSTEM_QUOTE_LIMIT': 'Số tiền báo giá vượt giới hạn hiện tại.',
       'PROFILE_NOT_READY':
           'Hồ sơ cần được duyệt trước khi sử dụng tính năng này.',
       'PROFILE_SUSPENDED': 'Hồ sơ đang tạm ngưng. Vui lòng liên hệ hỗ trợ.',

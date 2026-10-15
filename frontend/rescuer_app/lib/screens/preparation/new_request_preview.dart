@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../services/public_system_config.dart';
+
 import '../../app/app_theme.dart';
 import '../../app/mobile_ui.dart';
 import '../../app/rescuer_controller.dart';
@@ -303,6 +305,19 @@ class _NewRequestPreviewState extends State<NewRequestPreview> {
       _attempted = true;
     });
     final serial = c.claimSuccessSerial;
+    if (!mounted ||
+        PublicSystemConfig.of(context)
+            .flag('security.kill_new_jobs', fallback: false) ||
+        PublicSystemConfig.of(context)
+            .flag('rescuer.maintenance', fallback: false)) {
+      if (mounted) {
+        setState(() => _claiming = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Hệ thống tạm dừng nhận yêu cầu mới.')),
+        );
+      }
+      return;
+    }
     await c.claimRequest(request);
     if (!mounted) return;
     if (c.userId != _openingUser || c.claimSuccessSerial > serial) {

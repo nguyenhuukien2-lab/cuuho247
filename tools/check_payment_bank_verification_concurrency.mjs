@@ -84,7 +84,7 @@ if (!raw) {
     const migrationPaths = [];
     for (const dir of ['backend/supabase/migrations']) {
       for (const file of await readdir(dir)) {
-        if (file.endsWith('.sql') && file <= '202610130003_admin_payment_operations_v2.sql') {
+        if (file.endsWith('.sql')) {
           migrationPaths.push(`${dir}/${file}`);
         }
       }
@@ -97,6 +97,8 @@ if (!raw) {
         throw new Error(`Native migration failed: ${path}`);
       }
     }
+    await sql("set payment.test_mode='local_disposable';" + await read('backend/supabase/tests/system_configuration_security_v1_regression.sql'));
+    console.log('PASS native system configuration/security SQL regression');
     const fixture = (await read('backend/supabase/tests/payment_bank_verification_regression.sql'))
       .split("select pg_temp.bank_error('untrusted evidence rejected',")[0];
     await sql("set payment.test_mode='local_disposable';\n" + fixture + `
@@ -293,6 +295,62 @@ if (!raw) {
       from private.gd6c_regen_race_fixtures f join public.payments p on p.id=f.payment_id
       join private.payment_bank_intents old_i on old_i.id=f.intent_id where f.i=6`), 't');
     console.log('PASS concurrent regeneration first -> late old webhook cannot settle new intent');
+
+    await sql(`insert into auth.users(id,email) values
+      ('a1600000-0000-4000-8000-000000000001','system-race-super@example.invalid'),
+      ('a1600000-0000-4000-8000-000000000002','system-race-operator@example.invalid');
+      insert into public.admin_profiles(id,full_name,role,status) values
+      ('a1600000-0000-4000-8000-000000000001','System race super','super_admin','active'),
+      ('a1600000-0000-4000-8000-000000000002','System race operator','operator','active');`);
+    const tryPatch = `create function pg_temp.try_system_patch(p_patch jsonb,p_version bigint) returns text language plpgsql as $$
+      begin perform public.admin_apply_system_config(p_patch,p_version,'native concurrent regression',true); return 'OK';
+      exception when others then return SQLSTATE||':'||SQLERRM; end $$;`;
+    const firstConfig = sql(`set application_name='system_config_first'; begin;
+      set local request.jwt.claim.sub='a1600000-0000-4000-8000-000000000001'; set local role authenticated;
+      select public.admin_apply_system_config('{"customer.banner":"first writer"}',1,'native concurrent regression',true)->>'version';
+      select pg_sleep(3); commit;`);
+    await awaitActivity('system_config_first', "wait_event='PgSleep'");
+    const secondConfig = sql(`${tryPatch} set application_name='system_config_second';
+      set request.jwt.claim.sub='a1600000-0000-4000-8000-000000000001'; set role authenticated;
+      select pg_temp.try_system_patch('{"customer.banner":"second writer"}',1);`);
+    await awaitActivity('system_config_second', "wait_event_type='Lock'");
+    const configRace = await Promise.all([firstConfig, secondConfig]);
+    assert.equal(configRace[1], '40001:SYSTEM_CONFIG_VERSION_CONFLICT');
+    assert.equal(await sql(`select version=2 and values->>'customer.banner'='first writer'
+      and (select count(*) from private.system_config_audit)=1 from private.system_config`), 't');
+    console.log('PASS concurrent system config -> one update, one version conflict, one audit');
+
+    // A waiting operator must use the committed, locked permission matrix, not an old STABLE snapshot.
+    const revokePermission = sql(`set application_name='system_config_revoke'; begin;
+      set local request.jwt.claim.sub='a1600000-0000-4000-8000-000000000001'; set local role authenticated;
+      select public.admin_apply_system_config('{"security.role_permissions":{"customer":["super_admin"],"rescuer":["super_admin","operator"],"payment":["super_admin","finance"],"security":["super_admin"]}}',2,'native revoke permission',true)->>'version';
+      select pg_sleep(3); commit;`);
+    await awaitActivity('system_config_revoke', "wait_event='PgSleep'");
+    const waitingOperator = sql(`${tryPatch} set application_name='system_config_operator';
+      set request.jwt.claim.sub='a1600000-0000-4000-8000-000000000002'; set role authenticated;
+      select pg_temp.try_system_patch('{"customer.banner":"unauthorized"}',3);`);
+    await awaitActivity('system_config_operator', "wait_event_type='Lock'");
+    const permissionRace = await Promise.all([revokePermission, waitingOperator]);
+    assert.equal(permissionRace[1], '42501:SYSTEM_CONFIG_FORBIDDEN');
+    assert.equal(await sql(`select version=3 and values->>'customer.banner'='first writer'
+      and (select count(*) from private.system_config_audit)=2 from private.system_config`), 't');
+    console.log('PASS concurrent permission revocation -> waiting operator denied, no unauthorized audit');
+    const firstAccount = sql(`set application_name='system_account_first'; begin;
+      set local request.jwt.claim.sub='a1600000-0000-4000-8000-000000000001'; set local role authenticated;
+      select public.admin_apply_system_account_control('a1600000-0000-4000-8000-000000000002','suspended',null,false,0,'native account race',true)->>'version';
+      select pg_sleep(3); commit;`);
+    await awaitActivity('system_account_first', "wait_event='PgSleep'");
+    const secondAccount = sql(`create function pg_temp.try_system_account() returns text language plpgsql as $$
+      begin perform public.admin_apply_system_account_control('a1600000-0000-4000-8000-000000000002','active',null,false,0,'native account race',true); return 'OK';
+      exception when others then return SQLSTATE||':'||SQLERRM; end $$;
+      set application_name='system_account_second'; set request.jwt.claim.sub='a1600000-0000-4000-8000-000000000001'; set role authenticated;
+      select pg_temp.try_system_account();`);
+    await awaitActivity('system_account_second', "wait_event_type='Lock'");
+    const accountRace = await Promise.all([firstAccount, secondAccount]);
+    assert.equal(accountRace[1], '40001:SYSTEM_CONFIG_VERSION_CONFLICT');
+    assert.equal(await sql(`select status='suspended' and version=1 from private.system_account_controls
+      where user_id='a1600000-0000-4000-8000-000000000002'`), 't');
+    console.log('PASS concurrent initial account control -> one insert, one version conflict');
   } finally {
     // Only the freshly created, random name above can be removed. Never uses a
     // supplied database name, wildcard, or FORCE against unrelated sessions.

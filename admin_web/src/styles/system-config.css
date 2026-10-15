@@ -1,0 +1,109 @@
+.settings-page { max-width:1280px; margin:0 auto; --settings-border:#e5e9f1; }
+.settings-page .page-header { margin-bottom:18px; }
+.settings-page .page-header p { margin-top:5px; }
+.settings-tabs { display:flex; gap:6px; overflow-x:auto; padding:4px; border:1px solid var(--settings-border); border-radius:12px; background:#fff; scrollbar-width:thin; }
+.settings-tabs [role=tab] { flex:1 0 auto; min-height:44px; padding:10px 16px; border:0; border-radius:8px; background:transparent; color:#596579; font-size:13px; font-weight:600; white-space:nowrap; }
+.settings-tabs [aria-selected=true] { background:#edf2ff; color:#1d4ed8; box-shadow:inset 0 -2px #1d4ed8; }
+.settings-tabs [role=tab]:hover { background:#f1f5fa; }
+.settings-version { margin:12px 0 20px; font-size:12px; color:#64748b; }
+.settings-page [role=tabpanel][hidden] { display:none; }
+.system-config-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; align-items:start; }
+.settings-page .section-card { margin-bottom:0; padding:20px; border:1px solid var(--settings-border); border-radius:14px; }
+.settings-page .section-heading { margin-bottom:10px; padding-bottom:12px; border-bottom:1px solid #eef1f6; }
+.settings-page .section-heading h2 { font-size:16px; }
+.settings-page .section-heading p { font-size:12px; line-height:1.6; margin-top:6px; }
+.settings-tab-note { color:#64748b; font-size:13px; margin-bottom:16px; }
+.settings-empty { padding:30px 0; color:#64748b; }
+.setting-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(110px,36%); gap:14px; align-items:center; padding:14px 0; border-bottom:1px solid #edf0f5; }
+.setting-row:last-child { border-bottom:0; padding-bottom:0; }
+.setting-row.is-dirty { background:#f3f7ff; box-shadow:inset 3px 0 #779aeb; margin:0 -10px; padding-left:10px; padding-right:10px; border-radius:6px; }
+.setting-row-title { display:flex; align-items:center; flex-wrap:wrap; gap:5px 8px; }
+.setting-row-title label { font-weight:600; color:#26344a; font-size:13px; line-height:1.5; }
+.setting-row-copy { min-width:0; }
+.setting-row-copy p { font-size:12px; line-height:1.6; color:#64748b; margin-top:4px; }
+.setting-current { display:block; font-size:11px; color:#64748b; margin-top:5px; overflow-wrap:anywhere; white-space:pre-wrap; max-height:64px; overflow:auto; }
+.setting-dirty-label { display:inline-block; font-size:11px; color:#1d4ed8; font-weight:600; margin-top:4px; }
+.system-danger { display:inline-flex; width:fit-content; background:#fff4e5; color:#9a4a0c; font-size:10px; font-weight:600; padding:2px 7px; border-radius:5px; white-space:nowrap; }
+.setting-row-control { min-width:0; }
+.setting-row-control :is(input:not([type=checkbox]),textarea,select), .settings-save-reason input, .settings-account :is(input:not([type=checkbox]),textarea,select) { display:block; width:100%; min-height:38px; padding:8px 10px; background:#fff; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; color:#26344a; }
+.setting-row-control textarea { resize:vertical; font:11px/1.6 ui-monospace,monospace; min-height:120px; }
+.setting-row:has(textarea) { grid-template-columns:1fr; }
+@media(min-width:1101px) {
+  #settings-panel-security .settings-group:nth-child(2) { grid-column:2; grid-row:1 / span 2; }
+}
+.setting-row-control :is(input,textarea)[aria-invalid=true] { border-color:#c2410c; }
+.setting-validation { display:block; color:#b45309; margin-top:6px; font-size:11px; }
+.settings-switch { display:flex; justify-content:flex-end; align-items:center; gap:8px; font-size:12px; color:#526078; }
+.settings-switch input { appearance:none; width:38px; height:22px; border:1px solid #94a3b8; background:#cbd5e1; border-radius:20px; position:relative; flex:none; cursor:pointer; }
+.settings-switch input::before { content:''; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:#fff; box-shadow:0 1px 3px #0002; }
+.settings-switch input:checked { background:#1d4ed8; border-color:#1d4ed8; }
+.settings-switch input:checked::before { left:18px; }
+.settings-page :disabled { opacity:.55; cursor:not-allowed; }
+.settings-readonly { display:block; text-align:right; color:#64748b; font-size:12px; }
+.settings-text-button { border:0; background:transparent; color:#1d4ed8; font-size:12px; font-weight:600; padding:6px 0; white-space:nowrap; }
+.settings-overview dl > div { display:flex; justify-content:space-between; align-items:baseline; gap:20px; padding:10px 0; font-size:13px; }
+.settings-overview dt { color:#64748b; }
+.settings-overview dd { margin:0; font-weight:600; text-align:right; }
+.settings-save-bar { position:fixed; bottom:0; left:264px; right:0; z-index:25; background:#fff; border-top:1px solid #dce3ef; box-shadow:0 -5px 24px #26344a0c; padding:16px 28px max(16px,env(safe-area-inset-bottom)); }
+.settings-save-inner { display:flex; gap:20px; align-items:center; max-width:1280px; margin:0 auto; }
+.settings-save-count { flex-shrink:0; }
+.settings-save-count strong { font-size:13px; color:#1e3a8a; }
+.settings-save-count small { display:block; margin-top:4px; font-size:11px; color:#64748b; }
+.settings-save-reason { flex:1; min-width:0; }
+.settings-save-reason small { display:block; margin-top:5px; font-size:11px; color:#64748b; }
+.settings-save-actions { display:flex; gap:8px; flex-shrink:0; }
+.settings-error { background:#fff4ed; color:#9a3412; border:1px solid #fed7aa; border-radius:10px; padding:12px 16px; margin-bottom:16px; font-size:13px; }
+.settings-notice { position:fixed; top:88px; right:24px; z-index:30; max-width:calc(100vw - 48px); display:flex; align-items:center; gap:16px; background:#ecfdf5; color:#166534; border:1px solid #bbf7d0; border-radius:10px; padding:12px 16px; box-shadow:0 4px 20px #16653418; font-size:13px; }
+.settings-notice button { margin-left:auto; font-size:20px; border:0; background:transparent; }
+.settings-account { margin-top:18px; }
+.settings-account .section-card { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px 20px; }
+.settings-account .section-card > :is(.section-heading,p,.system-config-field,.settings-account-lookup,.settings-account-controls) { grid-column:1/-1; }
+.settings-account-lookup { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px 12px; align-items:end; }
+.settings-account-lookup label { grid-column:1/-1; font-size:13px; font-weight:600; }
+.settings-account-controls { display:grid; gap:10px; }
+.settings-account-controls > label { font-size:13px; font-weight:600; }
+.settings-account-controls input[type=checkbox] { margin-right:8px; accent-color:#1d4ed8; }
+.settings-account .system-config-field { display:grid; gap:8px; padding:16px; border:1px solid #e5e7eb; border-radius:10px; }
+.settings-account textarea { resize:vertical; min-height:65px; }
+.settings-account button { justify-self:start; }
+.system-dialog { background:white; color:#0f172a; padding:24px; border:1px solid #e5e7eb; border-radius:14px; width:min(700px,calc(100% - 32px)); max-height:85dvh; margin:auto; overflow:auto; box-shadow:0 12px 40px #0003; }
+.system-dialog h2 { font-size:18px; margin-bottom:12px; }
+.system-dialog p { font-size:13px; line-height:1.7; }
+.system-dialog ul { margin:16px 0; padding-left:20px; list-style:disc; }
+.system-dialog li { overflow-wrap:anywhere; font-size:13px; padding:4px 0; }
+.system-dialog button { margin:12px 12px 0 0; }
+.system-dialog::backdrop, .settings-history-drawer::backdrop { background:#0f172a66; }
+.settings-history-drawer { position:fixed; inset:0 0 0 auto; margin:0; width:min(620px,100%); height:100dvh; max-height:100dvh; max-width:100%; border:0; border-left:1px solid #e5e7eb; background:#fff; color:#26344a; padding:24px; overflow:auto; box-shadow:-8px 0 32px #0002; }
+.settings-history-drawer > header { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; margin-bottom:24px; }
+.settings-history-drawer h2 { font-size:19px; font-weight:700; }
+.settings-history-drawer header p { color:#64748b; margin-top:8px; font-size:12px; }
+.settings-history-drawer > .button { margin-bottom:16px; }
+.system-audit-list article { padding:20px 0; border-bottom:1px solid #e5e7eb; font-size:12px; overflow-wrap:anywhere; }
+.settings-audit-heading { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+.settings-audit-heading time, .system-audit-list article > p { color:#64748b; }
+.system-audit-list article > p { margin-top:6px; }
+.system-audit-list .settings-audit-reason { background:#f4f6fa; padding:10px; color:#26344a; border-radius:6px; }
+.settings-audit-change { margin-top:14px; }
+.settings-audit-change dl { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:6px; }
+.settings-audit-change dl > div { min-width:0; padding:10px; border:1px solid #e5e7eb; border-radius:6px; }
+.settings-audit-change dt { color:#64748b; font-size:11px; margin-bottom:4px; }
+.settings-audit-change dd { margin:0; white-space:pre-wrap; }
+@media(min-width:1600px) { .settings-save-bar { left:288px; } }
+@media(max-width:1250px) { .settings-save-bar { left:236px; padding-left:22px; padding-right:22px; } .settings-save-inner { gap:12px; } }
+@media(max-width:1100px) { .system-config-grid { grid-template-columns:1fr; } .settings-overview { grid-template-columns:repeat(2,minmax(0,1fr)); } .settings-save-inner { flex-wrap:wrap; } .settings-save-count { flex-basis:100%; } .settings-save-count small { display:inline; margin-left:10px; } }
+@media(max-width:760px) { .settings-save-bar { left:0; padding:12px 16px max(12px,env(safe-area-inset-bottom)); } .settings-page .page-header { gap:12px; } .settings-page .header-actions { margin-top:0; } .settings-overview { grid-template-columns:1fr; } }
+@media(max-width:520px) {
+  .settings-page .section-card { padding:16px; }
+  .settings-tabs [role=tab] { padding:10px 14px; }
+  .setting-row { grid-template-columns:1fr; gap:10px; }
+  .settings-switch { justify-content:flex-start; }
+  .settings-readonly { text-align:left; }
+  .settings-save-inner { gap:10px; }
+  .settings-save-count small { display:none; }
+  .settings-save-reason { flex-basis:100%; }
+  .settings-save-actions { width:100%; }
+  .settings-save-actions button { flex:1; }
+  .settings-account-lookup { grid-template-columns:1fr; }
+  .settings-history-drawer { padding:20px 16px; }
+  .settings-audit-change dl { grid-template-columns:1fr; }
+}

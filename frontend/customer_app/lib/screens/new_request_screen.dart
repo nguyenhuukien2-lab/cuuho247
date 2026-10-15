@@ -5,6 +5,7 @@ import '../app/app_theme.dart';
 import '../app/user_session.dart';
 import '../services/supabase_service.dart';
 import '../services/location_service.dart';
+import '../services/public_system_config.dart';
 import '../services/request_photo_service.dart';
 import '../services/customer_vehicle_service.dart';
 import '../widgets/saved_vehicle_picker.dart';
@@ -66,6 +67,16 @@ class _NewRequestScreenState extends State<NewRequestScreen>
   bool pickingPhoto = false;
   String? photoError;
   bool get formLocked => submitting || createdRequest != null;
+  int maxPhotos = 3;
+  bool requestsEnabled = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final config = PublicSystemConfig.of(context);
+    maxPhotos = config.maxPhotos;
+    requestsEnabled = config.requestsEnabled;
+  }
 
   Future<void> recoverPhotos() async {
     try {
@@ -73,7 +84,7 @@ class _NewRequestScreenState extends State<NewRequestScreen>
       if (!mounted || recovered.isEmpty || photos.isNotEmpty || formLocked)
         return;
       setState(() {
-        photos.addAll(recovered.take(3));
+        photos.addAll(recovered.take(maxPhotos));
         photoError =
             'Đã khôi phục ảnh sau khi mở camera. Hãy kiểm tra ảnh và nhập lại thông tin trước khi gửi.';
       });
@@ -83,7 +94,7 @@ class _NewRequestScreenState extends State<NewRequestScreen>
   }
 
   Future<void> pickPhoto(bool camera) async {
-    if (pickingPhoto || formLocked || photos.length >= 3) return;
+    if (pickingPhoto || formLocked || photos.length >= maxPhotos) return;
     setState(() {
       pickingPhoto = true;
       photoError = null;
@@ -301,6 +312,13 @@ class _NewRequestScreenState extends State<NewRequestScreen>
   }
 
   Future<void> submit() async {
+    if (createdRequest == null &&
+        (!requestsEnabled || photos.length > maxPhotos)) {
+      setState(() => submitError = !requestsEnabled
+          ? 'Hệ thống tạm dừng tạo yêu cầu mới. Vui lòng thử lại sau.'
+          : 'Tối đa $maxPhotos ảnh theo cấu hình hiện tại. Hãy bỏ bớt ảnh trước khi gửi.');
+      return;
+    }
     if (submitting || pickingPhoto) return;
     if (!widget.controller.isLoggedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -772,7 +790,7 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                                         setState(() => photos.removeAt(slot)),
                                 onAdd: formLocked ||
                                         pickingPhoto ||
-                                        photos.length >= 3
+                                        photos.length >= maxPhotos
                                     ? null
                                     : () => pickPhoto(false),
                               ),
@@ -787,7 +805,8 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                                 title: 'Mô tả sự cố & Hiện trường',
                                 subtitle:
                                     'Tùy chọn · Tối đa 3 ảnh, 5 MB mỗi ảnh',
-                                trailing: Text('${photos.length}/3 ảnh',
+                                trailing: Text(
+                                    '${photos.length}/$maxPhotos ảnh',
                                     style: const TextStyle(
                                         fontSize: 11,
                                         color: BookingFormStyle.muted)),
@@ -808,7 +827,7 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                                     ),
                                   ),
                                   const SizedBox(height: 12),
-                                  Text('${photos.length}/3 hình ảnh',
+                                  Text('${photos.length}/$maxPhotos hình ảnh',
                                       style: const TextStyle(
                                           fontSize: 12,
                                           color: BookingFormStyle.muted)),
@@ -823,7 +842,7 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                                             ),
                                     onAdd: formLocked ||
                                             pickingPhoto ||
-                                            photos.length >= 3
+                                            photos.length >= maxPhotos
                                         ? null
                                         : () => pickPhoto(false),
                                   ),
@@ -834,7 +853,7 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                                         child: OutlinedButton.icon(
                                           onPressed: formLocked ||
                                                   pickingPhoto ||
-                                                  photos.length >= 3
+                                                  photos.length >= maxPhotos
                                               ? null
                                               : () => pickPhoto(true),
                                           icon: const Icon(
@@ -848,7 +867,7 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                                         child: OutlinedButton.icon(
                                           onPressed: formLocked ||
                                                   pickingPhoto ||
-                                                  photos.length >= 3
+                                                  photos.length >= maxPhotos
                                               ? null
                                               : () => pickPhoto(false),
                                           icon: const Icon(
@@ -1018,6 +1037,7 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                                 : 'Gửi lại ảnh còn thiếu',
                         loading: submitting,
                         onPressed: pickingPhoto ||
+                                (!requestsEnabled && createdRequest == null) ||
                                 submitting ||
                                 (_step == 4 &&
                                     !locationConfirmed &&
@@ -1027,6 +1047,11 @@ class _NewRequestScreenState extends State<NewRequestScreen>
                                 ? _nextStep
                                 : submit,
                       ),
+                      if (!requestsEnabled && createdRequest == null)
+                        const Padding(
+                            padding: EdgeInsets.only(top: 8),
+                            child: Text(
+                                'Hệ thống tạm dừng tạo yêu cầu mới. Vui lòng thử lại sau.')),
                       if (_step == 4)
                         const Padding(
                           padding: EdgeInsets.only(top: 8),

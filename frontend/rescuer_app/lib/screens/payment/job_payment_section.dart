@@ -4,6 +4,7 @@ import '../../app/mobile_ui.dart';
 import '../../app/rescuer_controller.dart';
 import '../../models/backend_models.dart';
 import '../../models/payment_dto.dart';
+import '../../services/public_system_config.dart';
 import 'rescuer_cash_screen.dart';
 import 'rescuer_payment_widgets.dart';
 
@@ -31,6 +32,11 @@ class JobPaymentSection extends StatelessWidget {
           ? c.payments.payment
           : null;
       final loading = history ? state.loading : scoped && c.payments.loading;
+      if (payment?.method == 'bank_transfer' &&
+          !PublicSystemConfig.of(context)
+              .flag('rescuer.bank_payment_visible')) {
+        return const SizedBox.shrink();
+      }
       final error = history
           ? state.error
           : scoped

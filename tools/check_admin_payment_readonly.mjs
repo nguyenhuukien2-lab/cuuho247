@@ -22,6 +22,7 @@ const stageTests = new Map([
   ['202610110002_payment_bank_qr.sql', 'payment_bank_qr_regression.sql'],
   ['202610110003_payment_bank_verification.sql', 'payment_bank_verification_regression.sql'],
   ['202610130003_admin_payment_operations_v2.sql', 'admin_payment_operations_v2_regression.sql'],
+  ['202610140001_system_configuration_security_v1.sql', 'system_configuration_security_v1_regression.sql'],
 ]);
 
 async function suite(path) {
@@ -115,6 +116,13 @@ try {
   assert.equal(guardAcl.rows[0].anon, false);
   assert.equal(guardAcl.rows[0].authenticated, false);
   await suite(adminTest);
+  // Re-run payment behavior against the final configured schema, with default controls.
+  // Earlier cash suites assert their historical publication/policy counts and run above at their stages.
+  // Final-schema cash behavior is covered by system_configuration_security_v1_regression.sql.
+  for (const test of ['payment_bank_qr_regression.sql', 'payment_bank_verification_regression.sql',
+    'payment_bank_regeneration_regression.sql', 'admin_payment_operations_v2_regression.sql']) {
+    await suite(`backend/supabase/tests/${test}`);
+  }
   await db.exec(`begin read only;
     select set_config('request.jwt.claim.sub','a1300000-0000-4000-8000-000000000001',true);
     set local role authenticated;`);
@@ -122,6 +130,11 @@ try {
     const out = await db.exec(sql);
     assert(out[0].rows?.length === 1, `RPC ${signatures[i]} did not execute`);
     console.log('PASS read-only admin execution', signatures[i]);
+  }
+  for (const rpc of ['admin_get_system_config()', 'admin_list_system_config_audit(null,30)', "get_public_system_config('customer')"]) {
+    const result = await db.exec(`select public.${rpc}`);
+    assert.equal(result[0].rows.length, 1);
+    console.log('PASS read-only system execution', rpc);
   }
   await db.exec('rollback');
   console.log('PASS clean migration chain, Admin Payment and related payment regressions');

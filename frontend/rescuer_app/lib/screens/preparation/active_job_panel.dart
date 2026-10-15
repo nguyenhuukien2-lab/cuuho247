@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../services/public_system_config.dart';
+
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/app_theme.dart';
@@ -287,7 +290,12 @@ class _ActiveJobPanelState extends State<ActiveJobPanel> {
                     label: c.sendingQuote ? 'Đang gửi báo giá…' : 'Tạo báo giá',
                     icon: Icons.receipt_long_outlined,
                     loading: c.sendingQuote,
-                    onPressed: c.canSendQuote ? _showQuoteForm : null,
+                    onPressed:
+                        c.canSendQuote &&
+                            PublicSystemConfig.of(context)
+                                .flag('rescuer.quotes_enabled')
+                        ? _showQuoteForm
+                        : null,
                   )
                 else
                   AppButton(

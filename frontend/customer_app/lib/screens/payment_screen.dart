@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../services/public_system_config.dart';
 import '../app/app_controller.dart';
 import '../services/payment_service.dart';
 import '../services/request_details_service.dart';
@@ -308,7 +309,8 @@ class _PaymentScreenState extends State<PaymentScreen>
           regenerating: controller.paymentSubmitting(widget.requestId),
           stale: watcher.stale || watcher.error != null,
           error: watcher.bankError,
-          onRegenerate: watcher.loading ||
+          onRegenerate: !PublicSystemConfig.of(context).bankEnabled ||
+                  watcher.loading ||
                   watcher.stale ||
                   watcher.error != null ||
                   watcher.bankError != null ||
@@ -330,7 +332,9 @@ class _PaymentScreenState extends State<PaymentScreen>
         const Text('Phương thức thanh toán', style: PaymentStyle.title),
         PaymentMethodCard(
             cash: true,
-            onTap: watcher.loading ||
+            onTap: !PublicSystemConfig.of(context)
+                        .flag('payment.cash_enabled') ||
+                    watcher.loading ||
                     watcher.stale ||
                     controller.paymentSubmitting(widget.requestId) ||
                     controller.paymentMethodRetryBlocked(widget.requestId,
@@ -340,8 +344,10 @@ class _PaymentScreenState extends State<PaymentScreen>
                 : _selectCash),
         PaymentMethodCard(
             cash: false,
-            bankAvailable: watcher.bankAvailable,
-            onTap: !watcher.bankAvailable ||
+            bankAvailable: watcher.bankAvailable &&
+                PublicSystemConfig.of(context).bankEnabled,
+            onTap: !PublicSystemConfig.of(context).bankEnabled ||
+                    !watcher.bankAvailable ||
                     watcher.loading ||
                     watcher.stale ||
                     controller.paymentSubmitting(widget.requestId) ||
@@ -401,6 +407,10 @@ String paymentErrorMessage(String code) => switch (code) {
       'BANK_TRANSFER_RECONCILIATION_REQUIRED' =>
         'Hệ thống đã ghi nhận giao dịch cho mã cũ và cần đối soát. Không chuyển tiền thêm; vui lòng chờ xác minh.',
       'PAYMENT_NOT_ELIGIBLE' => 'Yêu cầu này chưa đủ điều kiện tạo thanh toán.',
+      'SYSTEM_CASH_DISABLED' => 'Hệ thống tạm dừng chọn thanh toán tiền mặt.',
+      'SYSTEM_BANK_DISABLED' => 'Hệ thống tạm dừng tạo mã chuyển khoản mới.',
+      'SYSTEM_PAYMENT_LIMIT' =>
+        'Số tiền nằm ngoài giới hạn thanh toán hiện tại. Vui lòng liên hệ hỗ trợ.',
       'ZERO_AMOUNT_REQUIRES_POLICY' =>
         'Thanh toán có số tiền bằng 0 chưa được hỗ trợ.',
       'QUOTE_SNAPSHOT_INCONSISTENT' =>
