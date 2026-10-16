@@ -16,6 +16,9 @@ class BankPaymentDto {
         accountNumber = _text(row, 'account_number'),
         accountName = _text(row, 'account_name'),
         transferContent = _text(row, 'transfer_content'),
+        transferDescription = row['transfer_description'] == null
+            ? _text(row, 'transfer_content')
+            : _text(row, 'transfer_description'),
         currency = _text(row, 'currency'),
         amountExpected = _integer(row, 'amount_expected'),
         version = _integer(row, 'version'),
@@ -31,6 +34,9 @@ class BankPaymentDto {
         !RegExp(r'^\d{6}$').hasMatch(bankBin) ||
         !RegExp(r'^\d{6,19}$').hasMatch(accountNumber) ||
         !RegExp(r'^BK\d{19}$').hasMatch(transferContent) ||
+        (transferDescription != transferContent &&
+            (bankBin != '970415' ||
+                transferDescription != 'SEVQR $transferContent')) ||
         (qrPayload != null &&
             (qrPayload!.length > 512 ||
                 !qrPayload!.startsWith('000201010212') ||
@@ -41,7 +47,9 @@ class BankPaymentDto {
   final String paymentId, intentId, requestId, paymentCode, status, method;
   final String intentStatus;
   final String reference, bankName, bankBin, accountNumber, accountName;
-  final String transferContent, currency;
+  // Canonical matching key stays unchanged; the server-snapshotted description
+  // is what the payer must send/copy. Older DTOs/snapshots remain compatible.
+  final String transferContent, transferDescription, currency;
   final BigInt amountExpected, version, intentVersion;
   final DateTime expiresAt, serverTime;
   final bool available;

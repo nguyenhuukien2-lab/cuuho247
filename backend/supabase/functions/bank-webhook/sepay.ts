@@ -157,13 +157,30 @@ function amount(value: unknown): string {
   return String(value);
 }
 
-function transferReference(row: Record<string, unknown>): string | null {
+function transferReference(row: Record<string, unknown>, providerScope: string): string | null {
   const code = optionalText(row, 'code', 128);
   const content = requiredText(row, 'content', 4096);
-  // SePay's `code` is its provider-extracted payment identifier. We never trim,
-  // fold, or substring either field. Exact matching remains in PostgreSQL.
+  // A nonempty provider code is authoritative: never repair it from narration.
   if (code != null) return code;
-  return content.length <= 128 ? content : null;
+  // Keep Test Mode's existing exact-content path; no narrative extraction or
+  // beneficiary mapping is introduced for Live transactions.
+  if (providerScope === sePayTestScope) return content.length <= 128 ? content : null;
+  // Called ONLY after HMAC, freshness and incoming-credit checks. Count every
+  // BK-like numeric occurrence (including malformed/lowercase/duplicate tokens)
+  // before accepting a single exact uppercase canonical reference. Never trim,
+  // case-fold or truncate the extracted identifier.
+  const candidates = [...content.matchAll(/BK[0-9]+/gi)];
+  if (candidates.length !== 1) return null;
+  const candidate = candidates[0];
+  if (!/^BK[0-9]{19}$/.test(candidate[0])) return null;
+  const start = candidate.index!;
+  const end = start + candidate[0].length;
+  const separator = /^[ \t\r\n.,:;()/\-]$/;
+  if ((start > 0 && !separator.test(content[start - 1]))
+    || (end < content.length && !separator.test(content[end]))) return null;
+  // PostgreSQL still checks configured provider/scope, exact reference, amount,
+  // beneficiary, intent/time window, ownership and durable replay protections.
+  return candidate[0];
 }
 
 function parsePayload(rawBody: Uint8Array): Record<string, unknown> {
@@ -231,7 +248,7 @@ export function createSePayAdapter(options: SePayAdapterOptions): BankProviderAd
           amount: amount(row.transferAmount),
           currency: 'VND',
           direction: 'credit',
-          transfer_reference: transferReference(row),
+          transfer_reference: transferReference(row, options.providerScope),
           occurred_at: transactionTime(requiredText(row, 'transactionDate', 19)),
           beneficiary_bank_bin: options.beneficiaryBankBin,
           beneficiary_account_number: accountNumber,

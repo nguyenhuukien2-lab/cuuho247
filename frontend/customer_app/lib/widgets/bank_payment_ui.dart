@@ -208,7 +208,7 @@ class _BankPaymentSectionState extends State<BankPaymentSection> {
           _field('Số tài khoản', b.accountNumber,
               copyKey: 'copy-bank-account', copyEnabled: usable),
           _field('Chủ tài khoản', b.accountName),
-          _field('Nội dung chuyển khoản', b.transferContent,
+          _field('Nội dung chuyển khoản', b.transferDescription,
               copyKey: 'copy-bank-content', copyEnabled: usable),
           _field('Thời hạn QR', paymentTime(b.expiresAt)),
         ],

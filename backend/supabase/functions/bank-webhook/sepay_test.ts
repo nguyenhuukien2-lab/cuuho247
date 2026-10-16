@@ -160,6 +160,89 @@ test('valid HMAC authenticates exact raw body and normalizes SePay transaction',
   assert.match(store.processed[0].raw_payload_sha256, /^[0-9a-f]{64}$/);
 });
 
+for (const code of ['', null]) {
+  test(`Live empty code ${String(code)} extracts one canonical BK from signed SEVQR memo`, async () => {
+    const { handler, store } = fixture();
+    const body = payload({ code, content: `SEVQR ${expected.reference}` });
+    assert.equal((await handler(await requestFor(body))).status, 200);
+    assert.equal(store.processed[0].transfer_reference, expected.reference);
+    assert.equal(store.processed[0].transfer_reference!.length, 21);
+    assert.equal(store.paidCount, 1);
+    assert.equal((await handler(await requestFor(body))).status, 200);
+    assert.deepEqual(store.outcomes, ['paid', 'duplicate_event']);
+    assert.equal(store.paidCount, 1);
+  });
+}
+
+for (const content of [
+  'SEVQR', `SEVQR ${expected.reference} BK0000000000000000002`,
+  `${expected.reference} ${expected.reference}`, `${expected.reference}bk123`,
+  `SEVQR ${expected.reference}0`, `SEVQR ${expected.reference.slice(0, -1)}`,
+  `SEVQR ${expected.reference.toLowerCase()}`, `X${expected.reference}`,
+  `${expected.reference}X`, `_${expected.reference}`, `${expected.reference}_`,
+  `é${expected.reference}`, `${expected.reference}é`, `SEVQR BK１２３４５６７８９０１２３４５６７８９`,
+]) {
+  test(`Live narrative extraction rejects ambiguous/noncanonical token: ${content}`, async () => {
+    const { handler, store } = fixture();
+    assert.equal((await handler(await requestFor(payload({ code: '', content })))).status, 200);
+    assert.equal(store.processed[0].transfer_reference, null);
+    assert.deepEqual(store.outcomes, ['reference_unmatched']);
+    assert.equal(store.paidCount, 0);
+  });
+}
+
+test('fallback never repairs nonempty wrong code and never extracts from description field', async () => {
+  for (const patch of [
+    { code: 'BK0000000000000000002', content: `SEVQR ${expected.reference}` },
+    { code: ' ', content: `SEVQR ${expected.reference}` },
+    { code: '', content: 'SEVQR', description: expected.reference },
+  ]) {
+    const { handler, store } = fixture();
+    assert.equal((await handler(await requestFor(payload(patch)))).status, 200);
+    assert.equal(store.paidCount, 0);
+    assert.deepEqual(store.outcomes, ['reference_unmatched']);
+  }
+});
+
+test('code matching remains exact when SEVQR is present', async () => {
+  const { handler, store } = fixture();
+  assert.equal((await handler(await requestFor(payload({ content: `SEVQR ${expected.reference}` })))).status, 200);
+  assert.equal(store.processed[0].transfer_reference, expected.reference);
+  assert.equal(store.paidCount, 1);
+});
+
+test('description fallback does not bypass HMAC, freshness, direction or Test Mode scope', async () => {
+  const value = payload({ code: '', content: `SEVQR ${expected.reference}` });
+  for (const badSignature of [null, 'sha256=' + '0'.repeat(64)]) {
+    const { handler, store } = fixture();
+    assert.equal((await handler(await requestFor(value, badSignature))).status, 401);
+    assert.equal(store.processed.length, 0);
+  }
+  const { handler, store } = fixture();
+  const stale = await requestFor(value);
+  stale.headers.set('x-sepay-timestamp', String(Number(timestamp) - 301));
+  assert.equal((await handler(stale)).status, 401);
+  assert.equal((await handler(await requestFor({ ...value, transferType: 'out' }))).status, 400);
+  assert.equal(store.processed.length, 0);
+  const testMode = fixture({ providerScope: 'sepay_test', configuredTestAccount: testAccount });
+  assert.equal((await testMode.handler(await requestFor({ ...value, accountNumber: testAccount }))).status, 200);
+  assert.equal(testMode.store.paidCount, 0);
+  assert.equal(testMode.store.processed[0].transfer_reference, value.content);
+});
+
+for (const [name, patch, result] of [
+  ['amount', { transferAmount: 149999 }, 'amount_mismatch'],
+  ['reference', { content: 'SEVQR BK0000000000000000002' }, 'reference_unmatched'],
+  ['beneficiary', { accountNumber: '9999999999' }, 'beneficiary_mismatch'],
+] as const) {
+  test(`fallback preserves exact ${name} matching`, async () => {
+    const { handler, store } = fixture();
+    assert.equal((await handler(await requestFor(payload({ code: '', content: `SEVQR ${expected.reference}`, ...patch })))).status, 200);
+    assert.equal(store.paidCount, 0);
+    assert.deepEqual(store.outcomes, [result]);
+  });
+}
+
 test('sepay_test scope with exact secret account maps to server-configured production beneficiary', async () => {
   const { handler, store } = fixture({ providerScope: 'sepay_test', configuredTestAccount: testAccount });
   const response = await handler(await requestFor(payload({ accountNumber: testAccount })));

@@ -1,6 +1,7 @@
 param(
     [string]$Container = 'supabase_db_flutter_app',
-    [string]$Database = 'flutter_app_security_audit'
+    [string]$Database = 'flutter_app_security_audit',
+    [string]$DatabaseUser = 'postgres'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -27,7 +28,7 @@ function Invoke-SqlFile {
     $containerPath = '/tmp/flutter_app_security_audit.sql'
     & docker cp $fullPath "${Container}:$containerPath"
     if ($LASTEXITCODE -ne 0) { throw "docker cp failed: $Path" }
-    $arguments = @('-U', 'postgres', '-d', $Database)
+    $arguments = @('-U', $DatabaseUser, '-d', $Database)
     $arguments += $PsqlArguments
     $arguments += @('-f', $containerPath)
     Invoke-DockerPsql -Arguments $arguments
@@ -37,10 +38,10 @@ function Invoke-SqlFile {
 if ($LASTEXITCODE -ne 0) { throw "Native PostgreSQL container is unavailable: $Container" }
 
 Write-Output "NATIVE CLEAN DATABASE: $Database"
-Invoke-DockerPsql -Arguments @('-U', 'postgres', '-d', 'postgres', '-c',
+Invoke-DockerPsql -Arguments @('-U', $DatabaseUser, '-d', 'postgres', '-c',
     "select pg_terminate_backend(pid) from pg_stat_activity where datname='$Database' and pid<>pg_backend_pid();")
-Invoke-DockerPsql -Arguments @('-U', 'postgres', '-d', 'postgres', '-c', "drop database if exists $Database;")
-Invoke-DockerPsql -Arguments @('-U', 'postgres', '-d', 'postgres', '-c', "create database $Database;")
+Invoke-DockerPsql -Arguments @('-U', $DatabaseUser, '-d', 'postgres', '-c', "drop database if exists $Database;")
+Invoke-DockerPsql -Arguments @('-U', $DatabaseUser, '-d', 'postgres', '-c', "create database $Database;")
 
 $bootstrap = @'
 create schema auth;
@@ -74,7 +75,7 @@ alter table storage.objects enable row level security;
 grant usage on schema public,auth,storage to anon,authenticated,service_role;
 grant select,insert,update,delete on storage.objects to authenticated;
 '@
-Invoke-DockerPsql -Arguments @('-U', 'postgres', '-d', $Database, '-c', $bootstrap)
+Invoke-DockerPsql -Arguments @('-U', $DatabaseUser, '-d', $Database, '-c', $bootstrap)
 
 $stageTests = @{
     '202610020001_rescuer_backend_foundation.sql' = @(
@@ -188,5 +189,5 @@ select 'NATIVE_CATALOG_SECURITY_PASS' result,
     where n.nspname in ('public','private') and p.prosecdef and
       p.proconfig @> array['search_path=public']) fixed_public_search_path_functions;
 '@
-Invoke-DockerPsql -Arguments @('-U', 'postgres', '-d', $Database, '-c', $catalogAudit)
+Invoke-DockerPsql -Arguments @('-U', $DatabaseUser, '-d', $Database, '-c', $catalogAudit)
 Write-Output 'PASS NATIVE CLEAN CHAIN AND CATALOG SECURITY AUDIT'

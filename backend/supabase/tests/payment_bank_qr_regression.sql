@@ -135,8 +135,13 @@ select pg_temp.bank_assert('getter exact safe fields',
  'amount_expected','currency','bank_intent_status','bank_reference','bank_code','bank_bin','bank_name','account_number','account_name',
  'transfer_content','expires_at','server_time','available','qr_payload','version','bank_intent_version'] ||
  case when to_regprocedure('public.customer_regenerate_bank_transfer(uuid,uuid,bigint,uuid,bigint,uuid)') is null
-   then array[]::text[] else array['bank_intent_id'] end) order by 1)
+   then array[]::text[] else array['bank_intent_id'] end ||
+ case when (select value ? 'transfer_description' from bank_outputs where label='getter')
+   then array['transfer_description'] else array[]::text[] end) order by 1)
  from bank_outputs,jsonb_object_keys(value) k where label='getter'));
+select pg_temp.bank_assert('legacy bank description remains canonical when supplied',
+ (select not (value ? 'transfer_description') or value->>'transfer_description'=value->>'transfer_content'
+  from bank_outputs where label='getter'));
 reset role;
 select pg_temp.bank_assert('one active intent one snapshot one bank event',
  (select count(*)=1 from private.payment_bank_intents) and (select count(*)=1 from private.payment_bank_qr_snapshots)

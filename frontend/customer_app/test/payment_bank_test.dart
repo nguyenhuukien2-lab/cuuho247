@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:cuu_ho_247/app/app_controller.dart';
+import 'package:cuu_ho_247/models/bank_payment_dto.dart';
 import 'package:cuu_ho_247/screens/payment_screen.dart';
 import 'package:cuu_ho_247/services/payment_service.dart';
 import 'package:cuu_ho_247/widgets/payment_ui.dart';
@@ -17,6 +18,8 @@ import 'payment_realtime_test.dart' as rt;
 // Synthetic server fixture only, never an app beneficiary/fallback.
 const qrFixture =
     '00020101021238560010A0000007270126000697043601121234567890120208QRIBFTTA530370454061000005802VN62250821BK000000000000000000163048CBA';
+const sepayQrFixture =
+    '00020101021238560010A0000007270126000697041501121234567890120208QRIBFTTA530370454061000005802VN62310827SEVQR BK00000000000000000016304FB90';
 Map<String, dynamic> bankDto(
         {String intentStatus = 'ready',
         String status = 'awaiting_payment',
@@ -96,6 +99,27 @@ class BankSource extends CashSource implements BankPaymentSource {
 }
 
 void main() {
+  test('server description preserves canonical BK and legacy DTO compatibility', () {
+    final legacy = BankPaymentDto.fromJson(bankDto());
+    expect(legacy.transferContent.length, 21);
+    expect(legacy.transferDescription, legacy.transferContent);
+    final row = bankDto()
+      ..['bank_bin'] = '970415'
+      ..['transfer_description'] = 'SEVQR BK0000000000000000001'
+      ..['qr_payload'] = sepayQrFixture;
+    final live = BankPaymentDto.fromJson(row);
+    expect(live.transferContent, legacy.transferContent);
+    expect(live.transferDescription.length, 27);
+    expect(live.qrPayload, sepayQrFixture);
+    for (final invalid in [
+      'SEVQR BK0000000000000000002', 'SEVQR',
+      'SEVQR BK00000000000000000010', ' SEVQR BK0000000000000000001',
+    ]) {
+      expect(() => BankPaymentDto.fromJson({...row, 'transfer_description': invalid}), throwsFormatException);
+    }
+    expect(() => BankPaymentDto.fromJson({...row, 'bank_bin': '970436'}), throwsFormatException);
+    expect(() => BankPaymentDto.fromJson({...row, 'transfer_content': row['transfer_description']}), throwsFormatException);
+  });
   late BankSource source;
   late AppController controller;
   var serial = 0;
@@ -432,6 +456,29 @@ void main() {
     expect(find.byType(PaymentCashPaidSection), findsNothing);
     expect(find.text('Tôi đã chuyển khoản'), findsNothing);
     expect(find.text('Tôi đã thanh toán'), findsNothing);
+  });
+  testWidgets('VietinBank shows and copies full server SEVQR memo with unchanged QR/reference', (tester) async {
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.setData') copied = (call.arguments as Map)['text'];
+      return null;
+    });
+    addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
+    source.awaiting();
+    source.bankRow = bankDto()
+      ..['bank_bin'] = '970415'
+      ..['transfer_description'] = 'SEVQR BK0000000000000000001'
+      ..['qr_payload'] = sepayQrFixture;
+    await render(tester);
+    expect(controller.payments.bankPayment!.transferContent, 'BK0000000000000000001');
+    expect(controller.payments.bankPayment!.qrPayload, sepayQrFixture);
+    final button = find.byKey(const ValueKey('copy-bank-content'));
+    await tester.ensureVisible(button);
+    expect(find.text('SEVQR BK0000000000000000001'), findsOneWidget);
+    await tester.tap(button);
+    await tester.pump();
+    expect(copied, 'SEVQR BK0000000000000000001');
+    expect(controller.payments.bankPayment!.status, 'awaiting_payment');
   });
   for (final entry in {
     'copy-bank-account': '123456789012',
