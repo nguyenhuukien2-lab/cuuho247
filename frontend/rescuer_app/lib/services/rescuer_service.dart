@@ -8,6 +8,8 @@ import 'package:uuid/uuid.dart';
 
 import '../models/backend_models.dart';
 import 'payment_service.dart';
+import 'partner_auth_validation.dart';
+import 'partner_email_auth.dart';
 
 class PartnerSignUpResult {
   const PartnerSignUpResult(
@@ -47,7 +49,11 @@ abstract class RescuerService {
 }
 
 class SupabaseRescuerService
-    implements RescuerService, PaymentSource, CashPaymentCommands {
+    implements
+        RescuerService,
+        PaymentSource,
+        CashPaymentCommands,
+        PartnerEmailAuth {
   @override
   Future<HistoryPage> history({Json? cursor}) async {
     if (userId == null) throw const RescuerFailure('Vui lòng đăng nhập lại.');
@@ -78,8 +84,10 @@ class SupabaseRescuerService
     );
   }
 
-  SupabaseRescuerService(this.client);
+  SupabaseRescuerService(this.client, {DateTime Function()? now})
+    : _now = now ?? DateTime.now;
   final SupabaseClient client;
+  final DateTime Function() _now;
   late final SupabasePaymentSource _paymentTransport = SupabasePaymentSource(
     client,
   );
@@ -116,7 +124,36 @@ class SupabaseRescuerService
     'rescuer_create_quote',
   };
   @override
-  String? get userId => client.auth.currentUser?.id;
+  String? get userId => emailVerified ? client.auth.currentUser?.id : null;
+  @override
+  String? get accountEmail => client.auth.currentUser?.email;
+  @override
+  bool get emailVerified => client.auth.currentUser?.emailConfirmedAt != null;
+  @override
+  Future<void> verifyEmailOtp(String email, String code) async {
+    final result = await client.auth.verifyOTP(
+      type: OtpType.email,
+      email: email.trim(),
+      token: code,
+    );
+    if (result.session == null || result.user == null) {
+      throw const AuthException('Email confirmation did not create a session');
+    }
+  }
+
+  @override
+  Future<bool> refreshEmailVerification() async {
+    if (client.auth.currentSession == null) return false;
+    final result = await client.auth.getUser();
+    return result.user?.id == client.auth.currentUser?.id &&
+        result.user?.emailConfirmedAt != null;
+  }
+
+  @override
+  Future<void> resendEmailConfirmation(String email) async {
+    await client.auth.resend(type: OtpType.signup, email: email.trim());
+  }
+
   @override
   Stream<String?> get authChanges =>
       client.auth.onAuthStateChange.map((event) => event.session?.user.id);
@@ -135,23 +172,51 @@ class SupabaseRescuerService
     required String name,
     required String phone,
   }) async {
-    final result = await client.auth.signUp(
+    final response = await client.auth.signUp(
       email: email.trim(),
       password: password,
       data: {
         'partner_registration': true,
         'full_name': name.trim(),
-        'contact_phone': phone.trim(),
+        'account_type': 'rescuer_partner',
+        'registered_at': partnerRegistrationTime(_now()),
       },
     );
-    if (result.user == null) {
+    final user = response.user;
+    final expectedEmail = email.trim().toLowerCase();
+    if (user == null ||
+        user.id.trim().isEmpty ||
+        user.isAnonymous ||
+        user.email?.trim().toLowerCase() != expectedEmail) {
       throw const RescuerFailure(
         'Chưa xác nhận được đăng ký. Kiểm tra kết nối rồi thử lại.',
       );
     }
+    // Auth can return HTTP 200 with an obfuscated user for an existing email.
+    // A non-null user or missing session alone does not prove signup succeeded.
+    final identities = user.identities;
+    if (identities == null || identities.isEmpty) {
+      throw const RescuerFailure(partnerEmailAlreadyUsed);
+    }
+    final hasEmailIdentity = identities.any((identity) {
+      final identityEmail = identity.identityData?['email'];
+      return identity.provider == 'email' &&
+          identity.id.trim().isNotEmpty &&
+          identity.userId == user.id &&
+          identityEmail is String &&
+          identityEmail.trim().toLowerCase() == expectedEmail;
+    });
+    if (!hasEmailIdentity) {
+      throw const RescuerFailure(
+        'Chưa xác nhận được danh tính email đăng ký. Vui lòng thử lại sau.',
+      );
+    }
+    if (user.emailConfirmedAt != null && response.session == null) {
+      throw const RescuerFailure(partnerEmailAlreadyUsed);
+    }
     return PartnerSignUpResult(
-      result.user?.id,
-      needsEmailConfirmation: result.session == null,
+      user.id,
+      needsEmailConfirmation: user.emailConfirmedAt == null,
     );
   }
 
@@ -159,14 +224,16 @@ class SupabaseRescuerService
   @override
   Json? get registrationProfile {
     final data = client.auth.currentUser?.userMetadata;
-    if (data?['partner_registration'] != true ||
-        data?['full_name'] is! String ||
-        data?['contact_phone'] is! String) {
+    if ((data?['partner_registration'] != true &&
+            data?['account_type'] != 'rescuer_partner') ||
+        data?['full_name'] is! String) {
       return null;
     }
     return {
       'full_name': data!['full_name'],
-      'contact_phone': data['contact_phone'],
+      // Legacy metadata may restore a phone; new signup metadata omits it.
+      if (data['contact_phone'] is String)
+        'contact_phone': data['contact_phone'],
     };
   }
 
@@ -223,6 +290,7 @@ class SupabaseRescuerService
           .select('code,name,is_active')
           .eq('is_active', true)
           .order('sort_order'),
+      client.rpc('rescuer_get_readiness'),
     ]);
     List<Json> rows(dynamic value) =>
         (value as List).map((r) => Json.from(r as Map)).toList();
@@ -234,6 +302,7 @@ class SupabaseRescuerService
       online: results[4] as Json?,
       location: results[5] as Json?,
       services: rows(results[6]),
+      readiness: Json.from(results[7] as Map),
     );
   }
 
@@ -380,6 +449,8 @@ String rescuerError(Object error) {
           'Hồ sơ cần được duyệt trước khi sử dụng tính năng này.',
       'PROFILE_SUSPENDED': 'Hồ sơ đang tạm ngưng. Vui lòng liên hệ hỗ trợ.',
       'VEHICLE_NOT_READY': 'Xe chưa được duyệt hoặc chưa hoạt động.',
+      'RESCUER_REVIEW_NOT_READY':
+          'Hồ sơ, giấy tờ, xe hoặc dịch vụ chưa đủ điều kiện. Vui lòng tải lại trạng thái kiểm duyệt.',
       'CAPABILITY_UNAVAILABLE': 'Dịch vụ của xe chưa được duyệt.',
       'LOCATION_NOT_FRESH':
           'Vị trí chưa đủ mới hoặc chưa đủ chính xác. Hãy cập nhật GPS.',

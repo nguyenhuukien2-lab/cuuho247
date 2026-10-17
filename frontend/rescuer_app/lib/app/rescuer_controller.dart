@@ -12,6 +12,8 @@ import '../services/partner_auth_validation.dart';
 import '../services/payment_service.dart';
 import 'payment_watcher.dart';
 import 'history_payment_controller.dart';
+import 'partner_email_confirmation.dart';
+import '../services/partner_email_auth.dart';
 
 enum FeedStatus { unavailable, loading, empty, ready, error }
 
@@ -34,6 +36,7 @@ class RescuerController extends ChangeNotifier {
        _now = now ?? DateTime.now {
     payments.addListener(_notify);
     historyPayments.addListener(_notify);
+    emailConfirmation?.addListener(_notify);
   }
   final PaymentWatcher payments;
   late final HistoryPaymentController historyPayments =
@@ -46,6 +49,20 @@ class RescuerController extends ChangeNotifier {
   final LocationService location;
   final DocumentPicker documents;
   final DateTime Function() _now;
+  late final PartnerEmailConfirmation? emailConfirmation =
+      service is PartnerEmailAuth
+      ? PartnerEmailConfirmation(
+          service as PartnerEmailAuth,
+          now: _now,
+          onVerified: () async {
+            await _syncAuth(force: true);
+            if (_disposed) return;
+            tab = 4;
+            accountSection = 'profile';
+            _notify();
+          },
+        )
+      : null;
   StreamSubscription<LocationSample>? _positions;
   Future<void>? _positionCancellation;
   Future<void>? _locationWrite;
@@ -201,12 +218,12 @@ class RescuerController extends ChangeNotifier {
       ),
       ReadinessItem(
         'Giấy tờ/xác minh',
-        snapshot.documentsReady
-            ? 'Giấy tờ đã tải lên, còn hiệu lực.'
-            : snapshot.approved
-            ? 'Hồ sơ đã được xác minh.'
-            : 'Tải căn cước, bằng lái và đăng ký xe.',
-        snapshot.documentsReady || snapshot.approved,
+        snapshot.documentsApproved
+            ? 'Giấy tờ đã được duyệt, còn hiệu lực.'
+            : snapshot.documentsReady
+            ? 'Giấy tờ đã tải lên, đang chờ kiểm duyệt.'
+            : 'Bổ sung căn cước, bằng lái và đăng ký xe còn hiệu lực.',
+        snapshot.documentsApproved,
         'documents',
       ),
       ReadinessItem(
@@ -233,6 +250,10 @@ class RescuerController extends ChangeNotifier {
         .where((v) => v['id'] == selectedVehicle)
         .firstOrNull;
     return [
+      if (snapshot.readiness == null)
+        'Chưa tải được kết quả kiểm tra quyền hoạt động từ máy chủ.',
+      if (snapshot.readiness != null && !snapshot.documentsApproved)
+        'Giấy tờ chưa được duyệt đầy đủ hoặc đã hết hạn.',
       if (snapshot.profile == null) 'Chưa tạo hồ sơ cá nhân.',
       if (snapshot.profile != null && !snapshot.approved)
         'Hồ sơ cá nhân chưa được duyệt.',
@@ -301,7 +322,10 @@ class RescuerController extends ChangeNotifier {
     _auth = service.authChanges.listen(
       (_) {
         // Auth forms await their own sync, including profile creation.
-        if (!authenticating) unawaited(_syncAuth());
+        if (!authenticating &&
+            emailConfirmation?.stage != EmailConfirmationStage.verifying) {
+          unawaited(_syncAuth());
+        }
       },
       onError: (Object e) {
         _epoch++;
@@ -943,6 +967,10 @@ class RescuerController extends ChangeNotifier {
       }
     } catch (e) {
       error = rescuerError(e);
+      if (e is AuthException && e.code == 'email_not_confirmed') {
+        emailConfirmation?.waitFor(email);
+        error = 'Vui lòng xác nhận email trước khi đăng nhập.';
+      }
     } finally {
       authenticating = false;
       if (!_disposed) {
@@ -990,6 +1018,7 @@ class RescuerController extends ChangeNotifier {
       );
       if (_disposed) return null;
       if (result.needsEmailConfirmation) {
+        emailConfirmation?.waitFor(email, codeSent: true);
         return PartnerRegistration.confirmationRequired;
       }
       if (result.userId == null || service.userId != result.userId) {
@@ -1002,9 +1031,18 @@ class RescuerController extends ChangeNotifier {
       return PartnerRegistration.profileReady;
     } catch (e) {
       if (!_disposed) {
-        error = e is AuthException
-            ? 'Chưa thể tạo tài khoản. Kiểm tra email, mật khẩu hoặc thử lại sau.'
-            : rescuerError(e);
+        if (e is AuthException &&
+            (e.code == 'user_already_exists' ||
+                e.code == 'email_exists' ||
+                e.message.toLowerCase().contains('user already registered'))) {
+          error = partnerEmailAlreadyUsed;
+        } else if (e is AuthRetryableFetchException) {
+          error = 'Không thể kết nối để đăng ký. Kiểm tra mạng rồi thử lại.';
+        } else {
+          error = e is AuthException
+              ? 'Chưa thể tạo tài khoản. Kiểm tra email, mật khẩu hoặc thử lại sau.'
+              : rescuerError(e);
+        }
       }
       return null;
     } finally {
@@ -1632,6 +1670,8 @@ class RescuerController extends ChangeNotifier {
     historyPayments.removeListener(_notify);
     historyPayments.dispose();
     payments.dispose();
+    emailConfirmation?.removeListener(_notify);
+    emailConfirmation?.dispose();
     super.dispose();
   }
 }

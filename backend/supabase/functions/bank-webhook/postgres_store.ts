@@ -37,6 +37,7 @@ export function createPostgresVerificationStore(
         throw new Error('database_unavailable');
       },
       async recordAuthenticationFailure() { /* No database transport configured. */ },
+      async recordWebhookAttempt() { /* No database transport configured. */ },
     };
   }
 
@@ -100,6 +101,26 @@ export function createPostgresVerificationStore(
         setStage('auth_audit_call');
         await transactionSql`
           select private.record_bank_auth_failure(${provider}::text, ${scope}::text, ${bodySha256}::text)
+        `;
+      });
+    },
+
+    async recordWebhookAttempt(attempt) {
+      await observeTransaction<postgres.TransactionSql, void>(
+        work => sql.begin(work), async (transactionSql, setStage) => {
+        setStage('statement_timeout');
+        await transactionSql`set local statement_timeout = '10s'`;
+        setStage('webhook_audit_call');
+        await transactionSql`
+          select private.record_bank_webhook_attempt(
+            ${attempt.provider}::text,
+            ${attempt.providerScope}::text,
+            ${attempt.httpStatus}::integer,
+            ${attempt.resultCode}::text,
+            ${attempt.stage}::text,
+            ${attempt.bodySha256 ?? null}::text,
+            ${attempt.durationMs}::integer
+          )
         `;
       });
     },

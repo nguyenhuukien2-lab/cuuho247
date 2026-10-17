@@ -34,6 +34,20 @@ function Invoke-SqlFile {
     Invoke-DockerPsql -Arguments $arguments
 }
 
+function Invoke-ReconciliationRegression {
+    $bankPath = Join-Path $repoRoot 'backend/supabase/tests/payment_bank_verification_regression.sql'
+    $fixturePath = Join-Path $repoRoot 'backend/supabase/tests/payment_reconciliation_v1_fixtures.sql'
+    $testPath = Join-Path $repoRoot 'backend/supabase/tests/payment_reconciliation_v1_regression.sql'
+    $marker = "select pg_temp.bank_error('untrusted evidence rejected',"
+    $bankSql = [System.IO.File]::ReadAllText($bankPath)
+    $markerIndex = $bankSql.IndexOf($marker, [System.StringComparison]::Ordinal)
+    if ($markerIndex -lt 0) { throw 'Payment bank fixture boundary not found.' }
+    $sql = "set payment.test_mode='local_disposable';`n" + $bankSql.Substring(0, $markerIndex) +
+        [System.IO.File]::ReadAllText($fixturePath) + [System.IO.File]::ReadAllText($testPath)
+    $sql | & docker exec -i $Container psql -X -q -v ON_ERROR_STOP=1 -U $DatabaseUser -d $Database -f -
+    if ($LASTEXITCODE -ne 0) { throw "Reconciliation regression failed with exit code $LASTEXITCODE" }
+}
+
 & docker inspect -f '{{.State.Health.Status}}' $Container | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "Native PostgreSQL container is unavailable: $Container" }
 
@@ -120,6 +134,18 @@ $stageTests = @{
     '202610130003_admin_payment_operations_v2.sql' = @(
         @{ Path = 'backend/supabase/tests/admin_payment_operations_v2_regression.sql'; Args = @('-c', "set payment.test_mode='local_disposable';") }
     )
+    '202610140001_system_configuration_security_v1.sql' = @(
+        @{ Path = 'backend/supabase/tests/system_configuration_security_v1_regression.sql'; Args = @('-c', "set payment.test_mode='local_disposable';") }
+    )
+    '202610150001_system_security_rpc_hardening.sql' = @(
+        @{ Path = 'backend/supabase/tests/system_security_rpc_hardening_regression.sql'; Args = @('-c', "set payment.test_mode='local_disposable';") }
+    )
+    '202610160001_notifications_monitoring_v1.sql' = @(
+        @{ Path = 'backend/supabase/tests/notifications_monitoring_v1_regression.sql'; Args = @('-c', "set payment.test_mode='local_disposable';") }
+    )
+    '202610170001_payment_reconciliation_v1.sql' = @(
+        @{ Composite = 'payment_reconciliation_v1' }
+    )
 }
 
 $migrationPaths = @()
@@ -134,8 +160,13 @@ foreach ($migration in $migrationPaths) {
     Write-Output "PASS MIGRATION $name"
     if ($stageTests.ContainsKey($name)) {
         foreach ($test in $stageTests[$name]) {
-            Invoke-SqlFile -Path $test.Path -PsqlArguments $test.Args
-            Write-Output "PASS REGRESSION $($test.Path)"
+            if ($test.Composite -eq 'payment_reconciliation_v1') {
+                Invoke-ReconciliationRegression
+                Write-Output 'PASS REGRESSION backend/supabase/tests/payment_reconciliation_v1_regression.sql'
+            } else {
+                Invoke-SqlFile -Path $test.Path -PsqlArguments $test.Args
+                Write-Output "PASS REGRESSION $($test.Path)"
+            }
         }
     }
 }

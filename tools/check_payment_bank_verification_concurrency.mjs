@@ -296,6 +296,113 @@ if (!raw) {
       join private.payment_bank_intents old_i on old_i.id=f.intent_id where f.i=6`), 't');
     console.log('PASS concurrent regeneration first -> late old webhook cannot settle new intent');
 
+    // Reconciliation uses untouched fixture rows so the existing webhook races
+    // above retain their original provider/configuration assumptions.
+    await sql(`insert into auth.users(id,email) values
+      ('a1710000-0000-4000-8000-000000000001','reconcile-race-super@example.invalid'),
+      ('a1710000-0000-4000-8000-000000000002','reconcile-race-operator-one@example.invalid'),
+      ('a1710000-0000-4000-8000-000000000003','reconcile-race-operator-two@example.invalid');
+      insert into public.admin_profiles(id,full_name,role,status) values
+      ('a1710000-0000-4000-8000-000000000001','Reconcile race super','super_admin','active'),
+      ('a1710000-0000-4000-8000-000000000002','Reconcile race operator one','operator','active'),
+      ('a1710000-0000-4000-8000-000000000003','Reconcile race operator two','operator','active');
+      set request.jwt.claim.sub='a1710000-0000-4000-8000-000000000001'; set role authenticated;
+      select public.admin_set_payment_reconcile_permission('a1710000-0000-4000-8000-000000000002',true,0,'native reconciliation race grant');
+      select public.admin_set_payment_reconcile_permission('a1710000-0000-4000-8000-000000000003',true,0,'native reconciliation race grant');
+      reset role; set request.jwt.claim.sub='';
+      update private.payment_bank_config set verification_enabled=true,verification_provider='sepay',verification_scope='sepay_live';
+      alter table private.payment_bank_intents disable trigger bank_intent_guard;
+      update private.payment_bank_intents i set created_at=clock_timestamp()-interval '5 minutes',updated_at=clock_timestamp()
+        from private.gd6c_race_fixtures f where f.i in (9,10,11) and f.payment_id=i.payment_id;
+      alter table private.payment_bank_intents enable trigger bank_intent_guard;
+      update private.gd6c_race_fixtures set n=n||jsonb_build_object(
+        'provider','sepay','provider_scope','sepay_live','authentication_method','signature','signature_verified',true,
+        'transfer_reference','SEVQR '||(n->>'transfer_reference'),
+        'occurred_at',to_char((clock_timestamp()-interval '1 minute') at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"'))
+        where i in (9,10,11);
+      select private.process_verified_bank_transaction(n) from private.gd6c_race_fixtures where i in (9,10,11);
+      select private.process_verified_bank_transaction(n||'{"provider_transaction_id":"tx-10-reconcile-second","provider_event_id":"event-10-reconcile-second","delivery_id":"delivery-10-reconcile-second"}')
+        from private.gd6c_race_fixtures where i=10;
+      create table private.reconciliation_race_fixtures as
+      select f.i,t.id transaction_id,t.version transaction_version,p.id payment_id,p.version payment_version,
+        i.id intent_id,i.version intent_version,t.external_transaction_id
+      from private.gd6c_race_fixtures f join public.payments p on p.id=f.payment_id
+      join private.payment_bank_intents i on i.payment_id=p.id
+      join private.bank_transactions t on t.external_transaction_id='tx-'||f.i
+        or (f.i=10 and t.external_transaction_id='tx-10-reconcile-second')
+      where f.i in (9,10,11);
+      create function public.gd6c_try_payment_reconcile(
+        p_i integer,p_external_transaction_id text,p_operation_id uuid
+      ) returns text language plpgsql security definer set search_path='' as $$
+      declare f private.reconciliation_race_fixtures;
+      begin
+        select * into f from private.reconciliation_race_fixtures
+          where i=p_i and (p_external_transaction_id is null or external_transaction_id=p_external_transaction_id);
+        perform public.admin_reconcile_bank_transaction(f.transaction_id,f.payment_id,f.transaction_version,
+          f.payment_version,f.intent_version,'native verified reconciliation evidence',p_operation_id);
+        return 'ok';
+      exception when others then return sqlstate||':'||sqlerrm;
+      end $$;
+      revoke all on function public.gd6c_try_payment_reconcile(integer,text,uuid) from public,anon,service_role;
+      grant execute on function public.gd6c_try_payment_reconcile(integer,text,uuid) to authenticated;`);
+
+    async function reconciliationCall(application, actor, fixtureI, externalTransactionId, operation, hold = false) {
+      return sql(`set application_name='${application}'; set request.jwt.claim.sub='${actor}'; set role authenticated;
+        ${hold ? 'begin;' : ''}
+        select public.gd6c_try_payment_reconcile(${fixtureI},${externalTransactionId == null ? 'null' : `'${externalTransactionId}'`},'${operation}'::uuid);
+        ${hold ? 'select pg_sleep(3); commit;' : ''}`);
+    }
+
+    const sameTransactionFirst = reconciliationCall('reconcile_same_first','a1710000-0000-4000-8000-000000000002',
+      9,null,'a1711000-0000-4000-8000-000000000001',true);
+    await awaitActivity('reconcile_same_first', "wait_event='PgSleep'");
+    const sameTransactionSecond = reconciliationCall('reconcile_same_second','a1710000-0000-4000-8000-000000000003',
+      9,null,'a1711000-0000-4000-8000-000000000002');
+    await awaitActivity('reconcile_same_second', "wait_event_type='Lock'");
+    const sameTransactionRace = await Promise.all([sameTransactionFirst, sameTransactionSecond]);
+    assert.equal(sameTransactionRace[0], 'ok');
+    assert.equal(sameTransactionRace[1], '40001:STALE_VERSION');
+    assert.equal(await sql(`select p.status||'|'||count(s.id)::text||'|'||
+      (select count(*) from public.payment_events e where e.payment_id=p.id and e.event_type='bank_payment_verified')::text
+      from private.reconciliation_race_fixtures f join public.payments p on p.id=f.payment_id
+      left join private.payment_reconciliation_settlements s on s.payment_id=p.id where f.i=9 group by p.id`), 'paid|1|1');
+    console.log('PASS concurrent reconciliation same transaction -> one immutable settlement');
+
+    const competingFirst = reconciliationCall('reconcile_payment_first','a1710000-0000-4000-8000-000000000002',
+      10,'tx-10','a1711000-0000-4000-8000-000000000003',true);
+    await awaitActivity('reconcile_payment_first', "wait_event='PgSleep'");
+    const competingSecond = reconciliationCall('reconcile_payment_second','a1710000-0000-4000-8000-000000000003',
+      10,'tx-10-reconcile-second','a1711000-0000-4000-8000-000000000004');
+    await awaitActivity('reconcile_payment_second', "wait_event_type='Lock'");
+    const competingRace = await Promise.all([competingFirst, competingSecond]);
+    assert.equal(competingRace[0], 'ok');
+    assert.equal(competingRace[1], '40001:STALE_VERSION');
+    assert.equal(await sql(`select p.status='paid'
+      and (select count(*) from private.payment_reconciliation_settlements s where s.payment_id=p.id)=1
+      and (select count(*) from private.bank_transactions t where t.matched_payment_id=p.id and t.status='verified')=1
+      and (select count(*) from private.bank_transactions t where t.external_transaction_id in ('tx-10','tx-10-reconcile-second') and t.status='rejected')=1
+      from private.gd6c_race_fixtures f join public.payments p on p.id=f.payment_id where f.i=10`), 't');
+    console.log('PASS concurrent reconciliation competing transactions -> one payment settlement');
+
+    const revokeReconcile = sql(`set application_name='reconcile_permission_revoke'; begin;
+      set local request.jwt.claim.sub='a1710000-0000-4000-8000-000000000001'; set local role authenticated;
+      select public.admin_set_payment_reconcile_permission('a1710000-0000-4000-8000-000000000002',false,1,'native concurrent permission revocation');
+      select pg_sleep(3); commit;`);
+    await awaitActivity('reconcile_permission_revoke', "wait_event='PgSleep'");
+    const revokedOperator = reconciliationCall('reconcile_permission_waiter','a1710000-0000-4000-8000-000000000002',
+      11,null,'a1711000-0000-4000-8000-000000000005');
+    await awaitActivity('reconcile_permission_waiter', "wait_event_type='Lock'");
+    const revocationRace = await Promise.all([revokeReconcile, revokedOperator]);
+    assert.equal(revocationRace[1], '42501:PAYMENT_RECONCILE_FORBIDDEN');
+    assert.equal(await sql(`select not g.enabled and g.version=2
+      and (select count(*) from private.payment_reconcile_permission_audit a where a.admin_id=g.admin_id)=2
+      and p.status='awaiting_payment' and t.status='rejected'
+      and not exists(select 1 from private.payment_reconciliation_settlements s where s.payment_id=p.id)
+      from private.payment_reconcile_permissions g cross join private.reconciliation_race_fixtures f
+      join public.payments p on p.id=f.payment_id join private.bank_transactions t on t.id=f.transaction_id
+      where g.admin_id='a1710000-0000-4000-8000-000000000002' and f.i=11`), 't');
+    console.log('PASS concurrent reconciliation permission revocation -> waiting operator denied');
+
     await sql(`insert into auth.users(id,email) values
       ('a1600000-0000-4000-8000-000000000001','system-race-super@example.invalid'),
       ('a1600000-0000-4000-8000-000000000002','system-race-operator@example.invalid');

@@ -1,0 +1,1 @@
+{{ if or (eq (printf "%v" .Data.account_type) "rescuer_partner") (eq (printf "%#v" .Data.partner_registration) "true") }}Cứu Hộ 24/7 | Xác nhận email đăng ký đối tác{{ else }}Cứu Hộ 24/7 | Xác nhận địa chỉ email{{ end }}

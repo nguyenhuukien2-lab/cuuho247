@@ -2,7 +2,7 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { AdminRoute } from './AdminRoute'
 import { PaymentOverviewPage, PaymentListPage, PaymentDetailPage, BankTransactionsPage, PaymentOperationsPage } from './lazyPages'
-import { DashboardPage, RescueRequestsPage, RescueRequestDetailPage, CustomersPage, CustomerDetailPage, RescuersPage, RescuerDetailPage, ServicesPage, QuotesPage, ReviewsPage, OperationsMapPage, NotificationsPage, SettingsPage, LoginPage, AuditLogsPage } from './lazyPages'
+import { DashboardPage, RescueRequestsPage, RescueRequestDetailPage, CustomersPage, CustomerDetailPage, RescuersPage, RescuerDetailPage, ServicesPage, QuotesPage, ReviewsPage, OperationsMapPage, NotificationsPage, SettingsPage, LoginPage, AuditLogsPage, SystemMonitoringPage } from './lazyPages'
 const page = (element: React.ReactNode) => <Suspense fallback={<div className="page-loading">Đang tải trang...</div>}>{element}</Suspense>
 export const router = createBrowserRouter([
   { path: '/login', element: page(<LoginPage/>) },
@@ -24,6 +24,7 @@ export const router = createBrowserRouter([
     { path: 'reviews', element: page(<ReviewsPage/>) },
     { path: 'map', element: page(<OperationsMapPage/>) },
     { path: 'notifications', element: page(<NotificationsPage/>) },
+    { path: 'monitoring', element: page(<SystemMonitoringPage/>) },
     { path: 'audit-logs', element: page(<AuditLogsPage/>) },
     { path: 'settings', element: page(<SettingsPage/>) },
   ] },

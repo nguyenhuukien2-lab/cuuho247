@@ -5,6 +5,7 @@ import 'app_theme.dart';
 import '../services/public_system_config.dart';
 import 'mobile_app_frame.dart';
 import 'rescuer_controller.dart';
+import '../screens/auth/partner_email_confirmation_screen.dart';
 
 class ConnectedRescuerApp extends StatefulWidget {
   const ConnectedRescuerApp({
@@ -14,6 +15,7 @@ class ConnectedRescuerApp extends StatefulWidget {
   });
   final RescuerController? controller;
   final String? configurationError;
+
   @override
   State<ConnectedRescuerApp> createState() => _ConnectedRescuerAppState();
 }
@@ -60,6 +62,19 @@ class _ConnectedRescuerAppState extends State<ConnectedRescuerApp>
               ),
             ),
           )
-        : PreparationScreen(controller: widget.controller!),
+        : ListenableBuilder(
+            listenable: widget.controller!,
+            builder: (context, _) {
+              final confirmation = widget.controller!.emailConfirmation;
+              return confirmation != null && confirmation.active
+                  ? PartnerEmailConfirmationScreen(confirmation: confirmation)
+                  : PreparationScreen(
+                      controller: widget.controller!,
+                      startInProfile:
+                          confirmation?.auth.emailVerified == true &&
+                          widget.controller!.snapshot.profile == null,
+                    );
+            },
+          ),
   );
 }

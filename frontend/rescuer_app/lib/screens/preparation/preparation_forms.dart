@@ -139,6 +139,15 @@ class _PreparationLoginState extends State<PreparationLogin> {
                               },
                       ),
                       const SizedBox(height: 12),
+                      if (widget.c.emailConfirmation != null)
+                        TextButton(
+                          onPressed: widget.c.working
+                              ? null
+                              : () => widget.c.emailConfirmation!.waitFor(
+                                  email.text,
+                                ),
+                          child: const Text('Xác nhận email bằng mã OTP'),
+                        ),
                       TextButton(
                         key: const ValueKey('open-partner-registration'),
                         onPressed: widget.c.working

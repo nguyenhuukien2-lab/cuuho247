@@ -493,18 +493,20 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  test('Supabase signup uses client auth and contact metadata only, no profile insert or approval', () async {
+  test('Supabase signup preserves safe display metadata without redirect or approval', () async {
     final calls = <http.Request>[];
     final transport = MockClient((r) async {
       calls.add(r);
       expect(r.url.path, '/auth/v1/signup');
+      expect(r.url.queryParameters.containsKey('redirect_to'), isFalse);
       final body = jsonDecode(r.body) as Map;
       expect(body['email'], 'partner@example.invalid');
       expect(body['password'], 'Password9');
       expect(body['data'], {
         'partner_registration': true,
         'full_name': 'Partner',
-        'contact_phone': '0901234567',
+        'account_type': 'rescuer_partner',
+        'registered_at': '21:19 - 16/10/2026',
       });
       expect(body.containsKey('role'), isFalse);
       return http.Response(
@@ -513,6 +515,14 @@ void main() {
           'aud': 'authenticated',
           'role': 'authenticated',
           'email': 'partner@example.invalid',
+          'identities': [
+            {
+              'id': '11111111-1111-4111-8111-111111111111',
+              'user_id': '11111111-1111-4111-8111-111111111111',
+              'provider': 'email',
+              'identity_data': {'email': 'partner@example.invalid'},
+            },
+          ],
           'app_metadata': {},
           'user_metadata': body['data'],
           'created_at': '2026-10-05T00:00:00Z',
@@ -532,7 +542,10 @@ void main() {
       await client.dispose();
       transport.close();
     });
-    final s = SupabaseRescuerService(client);
+    final s = SupabaseRescuerService(
+      client,
+      now: () => DateTime.utc(2026, 10, 16, 14, 19),
+    );
     final result = await s.signUp(
       email: ' partner@example.invalid ',
       password: 'Password9',
@@ -562,6 +575,15 @@ void main() {
             'aud': 'authenticated',
             'role': 'authenticated',
             'email': 'partner@example.invalid',
+            'email_confirmed_at': '2026-10-16T14:20:00Z',
+            'identities': [
+              {
+                'id': '11111111-1111-4111-8111-111111111111',
+                'user_id': '11111111-1111-4111-8111-111111111111',
+                'provider': 'email',
+                'identity_data': {'email': 'partner@example.invalid'},
+              },
+            ],
             'app_metadata': {},
             'user_metadata': {
               ...(body['data'] as Map),
@@ -598,10 +620,7 @@ void main() {
     );
     expect(result.needsEmailConfirmation, isFalse);
     expect(s.userId, result.userId);
-    expect(s.registrationProfile, {
-      'full_name': 'Partner',
-      'contact_phone': '0901234567',
-    });
+    expect(s.registrationProfile, {'full_name': 'Partner'});
   });
 
   testWidgets(

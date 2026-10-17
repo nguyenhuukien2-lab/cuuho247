@@ -41,6 +41,7 @@ const gpsRequest = AvailableRequest(
 RescuerSnapshot operatingProfile() {
   final base = approved();
   return RescuerSnapshot(
+    readiness: base.readiness,
     profile: {...base.profile!, 'rescuer_code': 'DT-000042'},
     vehicles: base.vehicles,
     services: base.services,
@@ -89,6 +90,7 @@ void main() {
       ..userId = 'rescuer'
       ..snapshot = RescuerSnapshot(
         profile: base.profile,
+        readiness: base.readiness,
         vehicles: base.vehicles,
         services: base.services,
         capabilities: [
@@ -201,6 +203,7 @@ void main() {
         ..userId = 'rescuer'
         ..snapshot = RescuerSnapshot(
           profile: base.profile,
+          readiness: {...base.readiness!, 'eligible_vehicle_ids': ['vehicle', 'vehicle-2']},
           services: base.services,
           vehicles: [
             ...base.vehicles,
@@ -294,6 +297,7 @@ void main() {
         ..userId = 'rescuer'
         ..snapshot = RescuerSnapshot(
           profile: base.profile,
+          readiness: base.readiness,
           vehicles: base.vehicles,
           services: base.services,
           capabilities: [

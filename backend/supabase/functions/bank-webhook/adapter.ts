@@ -55,4 +55,14 @@ export interface BankVerificationStore {
     changed: boolean;
   }>;
   recordAuthenticationFailure(provider: string, scope: string, bodySha256: string): Promise<void>;
+  /** Best-effort operational telemetry. Only safe metadata reaches this method. */
+  recordWebhookAttempt?(attempt: {
+    provider: string;
+    providerScope: string;
+    httpStatus: number;
+    resultCode: string;
+    stage: string;
+    bodySha256?: string;
+    durationMs: number;
+  }): Promise<void>;
 }

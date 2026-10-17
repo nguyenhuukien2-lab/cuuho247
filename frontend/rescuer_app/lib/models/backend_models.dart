@@ -9,6 +9,7 @@ class RescuerSnapshot {
     this.online,
     this.location,
     this.services = const [],
+    this.readiness,
   });
   final Json? profile;
   String? get rescuerCode => profile?['rescuer_code'] as String?;
@@ -18,6 +19,13 @@ class RescuerSnapshot {
   final Json? online;
   final Json? location;
   final List<Json> services;
+  final Json? readiness;
+  bool get documentsApproved =>
+      readiness?['identity_approved'] == true &&
+      readiness?['license_approved'] == true &&
+      (readiness?['vehicles'] as List? ?? const []).any(
+        (v) => v['registration_approved'] == true,
+      );
   bool documentReady(Json d) {
     final expires = d['expires_at'] == null
         ? null
@@ -48,14 +56,9 @@ class RescuerSnapshot {
   List<Json> get eligibleVehicles => vehicles
       .where(
         (v) =>
-            v['verification_status'] == 'approved' &&
-            v['is_active'] == true &&
-            capabilities.any(
-              (c) =>
-                  c['vehicle_id'] == v['id'] &&
-                  c['verification_status'] == 'approved' &&
-                  c['is_enabled'] == true,
-            ),
+            readiness?['can_online'] == true &&
+            (readiness?['eligible_vehicle_ids'] as List? ?? const [])
+                .contains(v['id']),
       )
       .toList();
   bool get canSubmit {

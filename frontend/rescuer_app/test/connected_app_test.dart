@@ -120,6 +120,13 @@ class FakeService implements RescuerService {
 }
 
 RescuerSnapshot approved() => const RescuerSnapshot(
+  readiness: {
+    'can_online': true,
+    'eligible_vehicle_ids': ['vehicle'],
+    'identity_approved': true,
+    'license_approved': true,
+    'vehicles': [{'vehicle_id': 'vehicle', 'registration_approved': true}],
+  },
   services: [
     {'code': 'tire', 'name': 'Vá lốp'},
     {'code': 'towing', 'name': 'Kéo xe'},
@@ -196,6 +203,7 @@ void main() {
       ..userId = 'rescuer'
       ..snapshot = RescuerSnapshot(
         profile: approved().profile,
+        readiness: approved().readiness,
         vehicles: approved().vehicles,
         services: approved().services,
         capabilities: const [

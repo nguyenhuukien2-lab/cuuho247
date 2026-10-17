@@ -23,6 +23,9 @@ const stageTests = new Map([
   ['202610110003_payment_bank_verification.sql', 'payment_bank_verification_regression.sql'],
   ['202610130003_admin_payment_operations_v2.sql', 'admin_payment_operations_v2_regression.sql'],
   ['202610140001_system_configuration_security_v1.sql', 'system_configuration_security_v1_regression.sql'],
+  ['202610150001_system_security_rpc_hardening.sql', 'system_security_rpc_hardening_regression.sql'],
+  ['202610160001_notifications_monitoring_v1.sql', 'notifications_monitoring_v1_regression.sql'],
+  ['202610170001_payment_reconciliation_v1.sql', '__payment_reconciliation_v1__'],
 ]);
 
 async function suite(path) {
@@ -31,6 +34,17 @@ async function suite(path) {
   assert(result, `No PASS summary: ${path}`);
   console.log('PASS', path, result.assertions, 'assertions');
   return result;
+}
+
+async function reconciliationSuite() {
+  const bankPrelude = (await read('backend/supabase/tests/payment_bank_verification_regression.sql'))
+    .split("select pg_temp.bank_error('untrusted evidence rejected',")[0];
+  const fixturePath = 'backend/supabase/tests/payment_reconciliation_v1_fixtures.sql';
+  const testPath = 'backend/supabase/tests/payment_reconciliation_v1_regression.sql';
+  const out = await db.exec(bankPrelude + await read(fixturePath) + await read(testPath));
+  const result = out.flatMap(x => x.rows ?? []).find(x => x.result === 'PAYMENT_RECONCILIATION_V1_PASS');
+  assert(result, `No PASS summary: ${testPath}`);
+  console.log('PASS', testPath, result.assertions, 'assertions');
 }
 
 try {
@@ -94,7 +108,8 @@ try {
     await db.exec(await read(path));
     console.log('PASS migration', path);
     const test = stageTests.get(path.split('/').at(-1));
-    if (test) await suite(`backend/supabase/tests/${test}`);
+    if (test === '__payment_reconciliation_v1__') await reconciliationSuite();
+    else if (test) await suite(`backend/supabase/tests/${test}`);
   }
 
   for (const signature of signatures) {

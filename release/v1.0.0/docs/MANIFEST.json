@@ -1,0 +1,62 @@
+{
+    "release":  "v1.0.0",
+    "generatedAt":  "2026-10-16T19:38:34.6502985+07:00",
+    "sourceRevision":  "23796a32a6ee378465bdc4d467afbe63defb9acf",
+    "sourceIncludesUncommittedChanges":  true,
+    "flutter":  "3.47.5",
+    "dart":  "3.13.4",
+    "productionProjectRef":  "mqnnzobfzbtolvmatuwr",
+    "productionConfig":  "PASS_FRONTEND_INPUTS_ONLY",
+    "signing":  "SIGNING_NOT_CONFIGURED",
+    "secretScan":  "PASS",
+    "phoneInstall":  "NOT_RUN_NO_DEVICE_AND_UNSIGNED_APKS",
+    "readyToTagV1":  false,
+    "blockers":  [
+                     "Authentic Android release signing not configured.",
+                     "Last recorded production preflight: reconciliation migration alignment and authenticated checks incomplete.",
+                     "Signed APK device installation and smoke tests not performed."
+                 ],
+    "validation":  {
+                       "customerAnalyze":  "PASS_RETAINED",
+                       "customerTests":  "PASS_613_RETAINED",
+                       "customerReleaseApk":  "PASS_RETAINED",
+                       "rescuerAnalyze":  "PASS_RETAINED",
+                       "rescuerTests":  "PASS_207_RETAINED",
+                       "rescuerReleaseApk":  "PASS_VERBOSE_REBUILD_EXIT_0",
+                       "adminLint":  "PASS_EXIT_0_EXISTING_TEMP_WORK_WARNING",
+                       "adminProductionBuild":  "PASS_EXIT_0",
+                       "adminPlaywright":  "83_PRIOR_PASSED_PLUS_1_RETRY_PASSED_OF_84"
+                   },
+    "artifacts":  [
+                      {
+                          "file":  "customer/customer-1.0.0+1-release-unsigned.apk",
+                          "bytes":  59740405,
+                          "sha256":  "2b481619dcef526a0474b894a136f6705f133170526d8936ce856965f279b0f4",
+                          "packageId":  "vn.cuuho247.cuu_ho_247",
+                          "versionName":  "1.0.0",
+                          "versionCode":  1,
+                          "signing":  "SIGNING_NOT_CONFIGURED",
+                          "installable":  false,
+                          "aab":  "NOT_BUILT_SIGNING_NOT_CONFIGURED"
+                      },
+                      {
+                          "file":  "rescuer/rescuer-1.0.0+1-release-unsigned.apk",
+                          "bytes":  57432002,
+                          "sha256":  "db2036d8f2089a67a384c849d6f55c3864d5389150dbd9ac94f242c71de54b82",
+                          "packageId":  "vn.cuuho247.rescuer",
+                          "versionName":  "1.0.0",
+                          "versionCode":  1,
+                          "signing":  "SIGNING_NOT_CONFIGURED",
+                          "installable":  false,
+                          "aab":  "NOT_BUILT_SIGNING_NOT_CONFIGURED"
+                      },
+                      {
+                          "file":  "admin/admin-v1.0.0-production.zip",
+                          "bytes":  900657,
+                          "sha256":  "2a3ce5afad9da0d84fafa84a1fc40b3dcfd9817e0c6040b6ab50bd012aea7dfe",
+                          "mode":  "production",
+                          "sourceFiles":  48,
+                          "npmPackageVersion":  "0.0.0"
+                      }
+                  ]
+}

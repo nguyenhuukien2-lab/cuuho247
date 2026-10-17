@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { LayoutDashboard, ClipboardList, Users, Truck, Wrench, Wallet, Star, Map, Bell, Settings, Radio, PhoneCall, MapPin } from 'lucide-react'
+import { LayoutDashboard, ClipboardList, Users, Truck, Wrench, Wallet, Star, Map, Bell, Settings, Radio, PhoneCall, MapPin, Activity } from 'lucide-react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { PaymentNavigation } from './PaymentNavigation'
 import { APP_NAME, HOTLINE, REGION } from '../../lib/constants'
@@ -14,6 +14,7 @@ const items = [
   { to: '/reviews', label: 'Đánh giá dịch vụ', icon: Star },
   { to: '/map', label: 'Bản đồ hoạt động', icon: Map },
   { to: '/notifications', label: 'Thông báo', icon: Bell },
+  { to: '/monitoring', label: 'Giám sát hệ thống', icon: Activity },
   { to: '/audit-logs', label: 'Nhật ký quản trị', icon: ClipboardList },
   { to: '/settings', label: 'Cài đặt hệ thống', icon: Settings },
 ]

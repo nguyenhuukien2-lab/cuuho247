@@ -51,6 +51,7 @@ class MatchingStore implements BankVerificationStore {
   readonly processed: NormalizedBankTransaction[] = [];
   readonly outcomes: string[] = [];
   readonly authenticationFailures: string[] = [];
+  readonly webhookAttempts: { httpStatus: number; resultCode: string; bodySha256?: string }[] = [];
   readonly seen = new Set<string>();
   paidCount = 0;
 
@@ -80,6 +81,10 @@ class MatchingStore implements BankVerificationStore {
 
   async recordAuthenticationFailure(_provider: string, _scope: string, bodySha256: string) {
     this.authenticationFailures.push(bodySha256);
+  }
+
+  async recordWebhookAttempt(attempt: { httpStatus: number; resultCode: string; bodySha256?: string }) {
+    this.webhookAttempts.push(attempt);
   }
 }
 
@@ -140,6 +145,12 @@ test('valid HMAC authenticates exact raw body and normalizes SePay transaction',
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { success: true });
   assert.equal(store.paidCount, 1);
+  assert.equal(store.webhookAttempts.length, 1);
+  assert.deepEqual({
+    httpStatus: store.webhookAttempts[0].httpStatus,
+    resultCode: store.webhookAttempts[0].resultCode,
+    bodySha256: store.webhookAttempts[0].bodySha256,
+  }, { httpStatus: 200, resultCode: 'paid', bodySha256: store.processed[0].raw_payload_sha256 });
   assert.deepEqual(store.processed[0], {
     provider: 'sepay',
     provider_scope: liveScope,

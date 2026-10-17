@@ -20,6 +20,8 @@ Future<void> main() async {
       url: config.url,
       publishableKey: config.key,
       debug: false,
+      // Email confirmation uses verifyOTP in-app, without a URL callback.
+      authOptions: const FlutterAuthClientOptions(detectSessionInUri: false),
     );
     runApp(
       ConnectedRescuerApp(

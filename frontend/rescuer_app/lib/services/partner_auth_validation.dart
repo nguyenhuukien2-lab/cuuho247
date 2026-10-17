@@ -1,3 +1,6 @@
+const partnerEmailAlreadyUsed =
+    'Email này đã được sử dụng. Vui lòng đăng nhập hoặc sử dụng email khác.';
+
 String? partnerEmailError(String? value) =>
     RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value?.trim() ?? '')
     ? null

@@ -1,0 +1,1031 @@
+{
+    "status":  "PASS",
+    "productionProjectRef":  "mqnnzobfzbtolvmatuwr",
+    "productionProjectSeen":  true,
+    "files":  251,
+    "archiveEntries":  777,
+    "knownPrivateValuesChecked":  1,
+    "findings":  [
+
+                 ],
+    "reviewedNonSecrets":  [
+                               {
+                                   "location":  "frontend/rescuer_app/build/app/outputs/flutter-apk/app-release.apk!org/apache/tika/mime/tika-mimetypes.xml",
+                                   "rule":  "tika-mime-magic-signature"
+                               },
+                               {
+                                   "location":  "frontend/rescuer_app/build/app/outputs/flutter-apk/app-release.apk!org/apache/tika/mime/tika-mimetypes.xml",
+                                   "rule":  "tika-mime-magic-signature"
+                               },
+                               {
+                                   "location":  "frontend/rescuer_app/build/app/outputs/flutter-apk/app-release.apk!org/apache/tika/mime/tika-mimetypes.xml",
+                                   "rule":  "tika-mime-magic-signature"
+                               }
+                           ],
+    "inventory":  [
+                      {
+                          "file":  "frontend/customer_app/lib/app/app_controller.dart",
+                          "sha256":  "5de462eb548626517b9e49b4b8387dcf649f26eaae461d7cb5f1b7704b3adf2f"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/app/app_shell.dart",
+                          "sha256":  "e0e3543123c8329054e2a41703fdb60cbbe0f2c0a5921639b0343e6bc978442b"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/app/app_theme.dart",
+                          "sha256":  "01f2f94ffb5a0ff78f3f2244a2daa80c6856e02d8551d6af5000dbc681db57bb"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/app/customer_gps_controller.dart",
+                          "sha256":  "240a5242640ca81f9bfae183b02237676e756c26a163574008878160a0df986f"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/app/mobile_ui.dart",
+                          "sha256":  "61e3394e15fe7c810545dac4e9e83dfe1375d11cfd9df3ceb13c449964d0a895"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/app/navigation.dart",
+                          "sha256":  "8089e1ab794dafac847d1a38f0dffb41c3c5470b3bde6976221818e834273a6a"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/app/payment_watcher.dart",
+                          "sha256":  "24fd1411d1faba812e98e9af0ac6e4434427e6d968c3764ead90ec76ca4958f4"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/app/user_session.dart",
+                          "sha256":  "78edf0bc0cac09436a0f52187b1126f1a2286b0b8f9a19515707dd6670c004c5"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/core/utils/display_code.dart",
+                          "sha256":  "96c64f854d9820ad4fe0f739fa104f473cf268445eda3633abb99017b9d6c699"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/core/utils/payment_format.dart",
+                          "sha256":  "faa1c071064dbb857bff9ef540dce1cb642048ced00fdd7f73d671c19b77101d"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/main.dart",
+                          "sha256":  "003d094f828a5e7a3f1bedc8c8084bb91540c130dc093c68e4f7712c98487a21"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/models/bank_payment_dto.dart",
+                          "sha256":  "ca056487f63ce72007ab78feaa343488aedb021ad0f508ce1857486e546dbaa9"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/models/payment_dto.dart",
+                          "sha256":  "621c20390aaf88b9e634c7164d8f4ed1d49337bd7b61d5cf8798fc7714c0a564"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/previews/app_previews.dart",
+                          "sha256":  "d229c4db6d55d5e657a1288cfa34e7f0cc2dc19d210112b9ee1d1a634bd0c28f"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/screens/account_screen.dart",
+                          "sha256":  "8edd5c631855f622ddadea99b329a0da2816a1ff4d0962c5eacbaacce4b4e621"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/screens/customer_saved_addresses_screen.dart",
+                          "sha256":  "d6e9535a05e94c78c9b72f9b604a02b74e3b0b697f92a437275265ad0aa3032c"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/screens/customer_vehicles_screen.dart",
+                          "sha256":  "c38e1ad6d2c98b97467de23f5c7a102aa8b7727bc3eceee10a83b232884d6e14"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/screens/history_details_screen.dart",
+                          "sha256":  "b14c748c4a194f63c5d1b8339241357ee762ca7e196354ce3d84413ea7524476"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/screens/history_screen.dart",
+                          "sha256":  "1ca957829100a9939bfbb2480f04441f39ac89af492e643b2ccc18193e5841d0"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/screens/home_screen.dart",
+                          "sha256":  "5c925f6856f5bd57e1fc65cb358b9d3da6a8cb479971926ae4b1095860b17893"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/screens/login_screen.dart",
+                          "sha256":  "c9c905850eb9e657a3f6292092be38358bd86d1e5d72182eb67c4e5d24ca28ef"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/screens/new_account_screen.dart",
+                          "sha256":  "7b12d2a3dd21d96a6d941525bbe31b8f6a6e34e33f84f28febce545976163d2b"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/screens/new_auth_screen.dart",
+                          "sha256":  "46de4cf4677a1c0094659468d1c9fa489690705b6e38c7085cfd9f5d14dc277c"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/screens/new_history_screen.dart",
+                          "sha256":  "e332368d056ab3b41b10f8b96001911a9e0b939b5a7b11d18a2a40c4053efcfe"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/screens/new_home_screen.dart",
+                          "sha256":  "81d68d55751d7e0156dee3bc415fe7ebf2f5ae072255cc4861dfe369deb0db2f"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/screens/new_request_screen.dart",
+                          "sha256":  "8f91d1fe18864d7a16fd5c7afc76b3b2017ad349d4241f8ef5c01561bb72590d"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/screens/new_tracking_screen.dart",
+                          "sha256":  "b91479075c510ebf7bb52da48f4b7232b823720fc00f79d7d97fcae86edf4ecb"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/screens/payment_screen.dart",
+                          "sha256":  "54ed708f3a8ff942d40f180162f43f092be93735f4f20e44e8e8f334dd28f938"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/screens/provider_list_screen.dart",
+                          "sha256":  "09bdbbec88e9c9177bc95a2c429151bb49339426702d6743684cddf71153cf54"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/screens/request_form_screen.dart",
+                          "sha256":  "6bb82090aca1fca2abaafd7c86fd122bd76888a50a60d23b315311d49f7d55a0"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/screens/tracking_screen.dart",
+                          "sha256":  "59f8af91f9eac640cd0e21103bc4c02272f2c32b540961ea6a01cc2fa11ce844"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/services/customer_profile_service.dart",
+                          "sha256":  "1ae9ba99b15f55b5b6c8d2247d69902d2f7d33eae18dc611115fc81a89f098da"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/services/customer_request_review_service.dart",
+                          "sha256":  "13967f401deb00dc1285e8d086ee1cdaa6ddde940e7d7cffd1177514907792cb"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/services/customer_saved_address_service.dart",
+                          "sha256":  "682bd1f3d9dbde556f467aa8984c335ea3ad0a6695571a62f711ce556ee481fa"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/services/customer_vehicle_service.dart",
+                          "sha256":  "b78ba37adbf5c6f07befc189ede823ac74c9fc50d1a66e4bac252659b6ec953a"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/services/location_service.dart",
+                          "sha256":  "a2fa9e018c065baf4b93e6dbf513c696f508ad2d733afe6b5c8d68dfc19a2157"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/services/payment_service.dart",
+                          "sha256":  "5d144f6529d1bca8aae8ac9c99cc4df5fa3f78135789306fa4f7915549936020"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/services/public_system_config.dart",
+                          "sha256":  "ed94cf95658310435c2b54e22aaf3249c090e45a5683b1d07269bb1e836ec656"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/services/request_debug_log.dart",
+                          "sha256":  "a3ea6ca0dca9bf34ece73d12139014bb1c9b45e8144ad4aba5814377f8269586"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/services/request_details_service.dart",
+                          "sha256":  "71f7654d58cc7ddd5fffbe612590b6338ef265a315ad64585731bb130a2c3548"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/services/request_photo_service.dart",
+                          "sha256":  "8475eed67824070079268dc862d5248f43c16124d8cf2d40dcfa6b59505ea782"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/services/supabase_service.dart",
+                          "sha256":  "f246549f0c562d2aec1108aab98ef50c289ef885ea75cc2391286a08465947e3"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/account_ui.dart",
+                          "sha256":  "48fd16fe3cb0abf3d7466232d7439c1cc5b41ea27a9bccd650a46a886bf47e41"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/bank_payment_ui.dart",
+                          "sha256":  "67cf7ddaacd1b46d0d3834d46d2c7621caf9c5a7132501eeb06d5a76408d7d41"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/booking_detail_sections.dart",
+                          "sha256":  "ee5a6bc2c0a8496c7da9779451a7dfe4afc41f8d7bbf31445e5abcb678273da9"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/booking_form_ui.dart",
+                          "sha256":  "27ffb2d60b79e29a631794c2456087815505227dc8f1c257dbc47eda2f348442"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/booking_ui.dart",
+                          "sha256":  "b49a199fc3176206250d54e9f2ab95941ced8c36e1e3c5bb4b3141880b4785b9"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/customer_gps_status.dart",
+                          "sha256":  "98bfa89066276111d79d5068004f7e1d0095172312177701e1a67a0817b56ba3"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/customer_profile_card.dart",
+                          "sha256":  "b67df130991462f0b69c83c19c055be5b8fffbdefc28a4d6892f380473f09a73"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/customer_request_review_card.dart",
+                          "sha256":  "95e5cb329ccbf10b05fec035f255e1e91313f5ee97d5545119cd9fb59f3858ed"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/customer_ui.dart",
+                          "sha256":  "6311db4423852e49b47d1666d83ebbe3a83b8b4947e61dd4d4fc127bf739b26b"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/form_section.dart",
+                          "sha256":  "14de64f5c51085d2e2dd8cc378cab23a3041d395d6a997607ef0496c47806a2b"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/history_ui.dart",
+                          "sha256":  "966a3696aa977fbcd797c36e3eeb8a1f595ab15ce9184b6ac1d2b75085e1a07a"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/home_active_request_card.dart",
+                          "sha256":  "05c0738a541f8be536930cc062f4b20254992936e4a8fae6c2136d0bbb744fc5"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/home_ui.dart",
+                          "sha256":  "6db22d92da0321e3eba77f98b9c5311b6657a9b135f4f4e4743461aa38accd31"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/payment_ui.dart",
+                          "sha256":  "272828b24e8d5387a79911021e6383baa06c3e77b41e52c5c77f09a626156c71"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/request_location_card.dart",
+                          "sha256":  "0e19b5fd5f7e7f1fb849630267c8b82c079e121f532b0e2f49801bd86478fab6"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/request_photos_card.dart",
+                          "sha256":  "efcaea9ff77db768c16c52c1898edab48738cab3470f3e06ca561c33ab758bf4"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/request_timeline.dart",
+                          "sha256":  "2b89fd3fc5362c41a701c3900f22f0d567a02a15be4ad5fc8a7f6ec4feaff092"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/rescue_location_map.dart",
+                          "sha256":  "7cc6d6669b5736b5578751f91c781b793e8034394d907e9096f9c9ece62bc65d"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/rescue_widgets.dart",
+                          "sha256":  "57949339fdd509e8613f6082cd33d579da4261285144dfbcc468a29c84276dce"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/saved_address_picker.dart",
+                          "sha256":  "8cce8406ed5cabdf8b41c91cc41b38efc1a8590cbc242bd4357559b72c00eb12"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/saved_vehicle_picker.dart",
+                          "sha256":  "0472152950af5e746a98e0431b60012c22a1b0798c4159c9175f822845a67662"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/stitch_customer_header.dart",
+                          "sha256":  "0da4737bdf854054766af5af99c8888df11d2e301e2b3e29c1b8a55bd10b440f"
+                      },
+                      {
+                          "file":  "frontend/customer_app/lib/widgets/tracking_ui.dart",
+                          "sha256":  "463cc05bdd226bacf0dae5d79780c784d735f83710b0615615de5b32960468e6"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/app/.gitkeep",
+                          "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/app/app_routes.dart",
+                          "sha256":  "62685cf6977a9290e985f6410e1fa8fda678d04e37b0988cdd54efc001b4f615"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/app/app_state.dart",
+                          "sha256":  "3c0e15ca2c19c6f49742d9fcf56f6178d1e81cd2b8a11a1b80e2c96f95cc0f51"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/app/app_theme.dart",
+                          "sha256":  "adaffa7139a75cb6deffb33cb35a228b2c6e2f498b05cdd7b5fba6c7df66386b"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/app/cash_payment_controller.dart",
+                          "sha256":  "be7ad6d1594184852968f6048fd3ef2ad038f16ad97692704adacc5357b07892"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/app/connected_app.dart",
+                          "sha256":  "65abeee105ddf6d9d5c1842d005b7e705825c4adb356f8326c9544670eaf6c37"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/app/history_payment_controller.dart",
+                          "sha256":  "0a29aae5a4c140ddbca046c3f6cb7d1e18261828444f597d1bb038d330c44b7b"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/app/mobile_app_frame.dart",
+                          "sha256":  "e01906d77839e3475cc5e969b8b57c27cd8e36489383ae9c6e7cf8a8181176b7"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/app/mobile_ui.dart",
+                          "sha256":  "30d4c4a2c4c41808497b038f882490db88e10b61704c5f8f04775820e45a231a"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/app/payment_watcher.dart",
+                          "sha256":  "b3868e7dae9128911553ea5a35a3b194655310f898e51ca5de29fad0732d54c0"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/app/rescuer_app.dart",
+                          "sha256":  "8d52966cea0a1059e2807b166e19086339294d4a449654fc89783dae42717ea3"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/app/rescuer_controller.dart",
+                          "sha256":  "45f931c2816e19b74f8148fa4b9fca132efc82bb3f0672281fd9fd0d3133d395"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/config/.gitkeep",
+                          "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/core/.gitkeep",
+                          "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/core/utils/display_code.dart",
+                          "sha256":  "96c64f854d9820ad4fe0f739fa104f473cf268445eda3633abb99017b9d6c699"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/main.dart",
+                          "sha256":  "5fea027e510e4084ba12066623e092e6f443f01fd1fad4ccbf5e793f8279336b"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/models/.gitkeep",
+                          "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/models/active_job.dart",
+                          "sha256":  "67aba7c01bf1ff242cc35b972fa4c52dc1b6d0f822edfafabe0dc189476f8244"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/models/backend_models.dart",
+                          "sha256":  "60d0e6ba8da4cf2e4456cb75a4c61b14c921a0228540cfab6a1361c2ddf244cb"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/models/payment_dto.dart",
+                          "sha256":  "b377fa777da1eb5f1b12652bd0e8c00f8bda5fdb603302388ce9b13b1762eb3b"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/models/quote_item.dart",
+                          "sha256":  "327db55fcd044ccd692336851df4c15a732af2f14a1ddf50a5da568c7edfe10a"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/models/request_preview.dart",
+                          "sha256":  "9ecda97bc05faf968b58096dbfda5065f758519c45c35e96aee27678a2e41d0e"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/models/rescuer_status.dart",
+                          "sha256":  "e72f4214f863fa230bb4eb60656d2da7da367c2a8e00232a59003b90569793f2"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/repositories/.gitkeep",
+                          "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/account/.gitkeep",
+                          "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/account/account_screen.dart",
+                          "sha256":  "0f0bbe9347b008f8cff4b8d1023bdbbd9f30283a85c8cee972cc51071f3504b1"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/active_job/.gitkeep",
+                          "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/active_job/active_job_screen.dart",
+                          "sha256":  "92939083eed126ecbc4aace318255e938f086cdba171e94edccaf0a5df09f435"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/auth/.gitkeep",
+                          "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/auth/auth_screens.dart",
+                          "sha256":  "476cd9ec35c4c1e78c6e587b8ee6083cb5e7331b9100f9442d6f734a08be045d"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/connected/connected_screen.dart",
+                          "sha256":  "864e392d31867421f2b9ac04e7f47b8041908cb2881baae4f8e340a3cc1152b7"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/history/.gitkeep",
+                          "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/history/history_screen.dart",
+                          "sha256":  "e583e2acd47196cd5bd0f911250745b818ca35484657afdcf9eae5bec6568b09"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/home/.gitkeep",
+                          "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/home/home_screen.dart",
+                          "sha256":  "095ea322833050f49e155780e66ee2f3c6e9c0b1c34037fbd0a4945326f6b744"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/onboarding/.gitkeep",
+                          "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/onboarding/onboarding_screens.dart",
+                          "sha256":  "1ca4ad7990770b430a267bb95799c98a959d2210cc4134f9de25dfcfdf2e63ec"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/payment/job_payment_section.dart",
+                          "sha256":  "0cf201546a5a69c6e221d3c286d70fcba2f237964d33f34d35c7543f547908b2"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/payment/rescuer_cash_screen.dart",
+                          "sha256":  "a110d3f8f7791d0cf215676200f7717b67d13a97705f65c4f1242097d721303f"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/payment/rescuer_payment_widgets.dart",
+                          "sha256":  "492957913dacac394bf62c9dcf9f241c05491cf940b7aa08c231087f3d53d6a1"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/preparation/account_overview.dart",
+                          "sha256":  "025522dce6afd6fe1bc4e9bc03686ed0c726375af16c5095838e1624493ee82e"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/preparation/active_job_panel.dart",
+                          "sha256":  "b2b1397a68e7773c5ef1407386f9a7bc4d612ca4ee8b6073efd474ba4a5403b5"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/preparation/gps_status_detail.dart",
+                          "sha256":  "8055a235359c983bfb8827125c24dd6ab3300ab2c4d55cad184cfd88e5738031"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/preparation/history_panel.dart",
+                          "sha256":  "71a28e564b7b26d512e8969961e35e22ad35881f773d551c1cec0504260e97b9"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/preparation/job_finance_section.dart",
+                          "sha256":  "256e8623f1c406858727bd2d8cfddd004a1998db5c33059dfaae2ef697df577e"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/preparation/job_progress_timeline.dart",
+                          "sha256":  "7bf79061d9faba9d6b56c2ff105ae9a6075422e38bb39f3919207f991130ee1f"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/preparation/new_request_preview.dart",
+                          "sha256":  "5dbaa6bbfc60d0a4ccec287a0a0202cce4a258e20fa9b33ce66bc498ccb00a20"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/preparation/partner_accordion.dart",
+                          "sha256":  "a9ea67131c581fdf31a6f959cf7bbb573956bbf889a98d929ece8e3755855c81"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/preparation/partner_registration_screen.dart",
+                          "sha256":  "3a82676fc3e77cfb681eafd35c6fd26d2f67415bd562cae59580e21442cb79cb"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/preparation/preparation_components.dart",
+                          "sha256":  "c52b653816762635338ddde56af96f3e471c1c0cf6e625439d6c4536f4f2dd17"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/preparation/preparation_forms.dart",
+                          "sha256":  "331500d4266fd563206f3ae1b07b29ce040b91fe61061fd573849b5c4925118a"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/preparation/preparation_screen.dart",
+                          "sha256":  "316595a04b49dceebde3019d265ee7057c040da7ca47bb2b1a460ec4028808d1"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/preparation/ui_v2_components.dart",
+                          "sha256":  "fb2241d0d7ff5a1ef04c4d9790767b1398051a610e1edd7c0e37c7351645ec02"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/requests/.gitkeep",
+                          "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/screens/requests/requests_screen.dart",
+                          "sha256":  "d69b3bd75102539f444ec349804cbf63d13f3ab879a7cf43da04fbce17b5210f"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/services/.gitkeep",
+                          "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/services/document_picker.dart",
+                          "sha256":  "ba5f7c361573c3d6f8bc5f2bb27879b221ba09ae9b37587aceec1a8b447d4e8f"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/services/location_service.dart",
+                          "sha256":  "e6fa9661f877c156cccb1f0be438e9e9e329c4bbe57e04f5d42532a7997a9fb9"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/services/partner_auth_validation.dart",
+                          "sha256":  "ecdea94a78d5c2b7c249bf34a31d2f0f79a9a5047bcf71c0aa3cf3b7df6b2672"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/services/payment_service.dart",
+                          "sha256":  "421a195df089b22f9366c2d1f7bbb6461b494ec3ddce0a9a081f7663ca3a408a"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/services/public_system_config.dart",
+                          "sha256":  "18e017ced3401f53a2d7fd66bccd35fcf896f7a19ee35eaf9406c89a11467ae8"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/services/rescuer_service.dart",
+                          "sha256":  "f060ae80f7b20fc0d0601dddecb4025f7c8e11fadfe1a9ee6e4967047906fe84"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/services/supabase_config.dart",
+                          "sha256":  "40b24f1f1421bb9da98af891fcb1eacf7f7f16b5b24be3af5aff992fae00e3bb"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/widgets/.gitkeep",
+                          "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/lib/widgets/app_components.dart",
+                          "sha256":  "52d8fccd5f8010289f2e368a9573f567ce2a4c2058e022e413c92772ddac755c"
+                      },
+                      {
+                          "file":  "admin_web/src/app/AdminRoute.tsx",
+                          "sha256":  "0305642e9b62f0ca92be77b53db8e3f17a7601a14336be5537d348780219c736"
+                      },
+                      {
+                          "file":  "admin_web/src/app/App.tsx",
+                          "sha256":  "fb4721c69b12ae0c1fe1f3d3fd2b176528746dc98bda25cf6cd6458bd8bef83c"
+                      },
+                      {
+                          "file":  "admin_web/src/app/lazyPages.tsx",
+                          "sha256":  "945f7476a18ac536f5f5b45a9ee0d43e310d779ad015d3b4cd8bf50b38803db3"
+                      },
+                      {
+                          "file":  "admin_web/src/app/router.tsx",
+                          "sha256":  "42cb3ee48b543dc1ea17e9e557a9f334b66b120c692ed8dd84c7662e2178675a"
+                      },
+                      {
+                          "file":  "admin_web/src/components/dashboard/RequestCharts.tsx",
+                          "sha256":  "2e6db96581a83411a73de1f547ae900768da7a29b93844b254461bf2b21c577c"
+                      },
+                      {
+                          "file":  "admin_web/src/components/layout/AdminLayout.tsx",
+                          "sha256":  "d0e64b860ac6cf929e8b30f5e2e0e612e17f1fd92ea7dd172613e13b2c4a4278"
+                      },
+                      {
+                          "file":  "admin_web/src/components/layout/PaymentNavigation.tsx",
+                          "sha256":  "a7136ca3ea7cd04836217637793409cfab5fc3deb190283a01eb2c113a6c5dbf"
+                      },
+                      {
+                          "file":  "admin_web/src/components/layout/Sidebar.tsx",
+                          "sha256":  "32ca0118af491dd637f0f7858fa0efa103fc2bd52afb3054bd85b8ad1e2a7fa5"
+                      },
+                      {
+                          "file":  "admin_web/src/components/layout/Topbar.tsx",
+                          "sha256":  "20b1881acd92f2fbb24917bf1700720e0131d9590b57102b453e232901bb1475"
+                      },
+                      {
+                          "file":  "admin_web/src/components/payments/PaymentCharts.tsx",
+                          "sha256":  "9d1bbb72cc83073eb4a409e2ee150c3d852b5c9430d820dda4e00553d5213837"
+                      },
+                      {
+                          "file":  "admin_web/src/components/payments/PaymentUI.tsx",
+                          "sha256":  "b2087684127fd5ee789ca5f4222d44f420a3e806e91dbca8c26c89b2563ef9cb"
+                      },
+                      {
+                          "file":  "admin_web/src/components/system/AccountSecurity.tsx",
+                          "sha256":  "e5fd82f96fc7e8633df0b43fe9ff65ccd660c1e2d8d43a7ac5a38bfe02903b92"
+                      },
+                      {
+                          "file":  "admin_web/src/components/system/Confirmation.tsx",
+                          "sha256":  "e99844cbe73a28dede1d17cd2a276ce13fc52f59ebda2ab42b40f549dd1e94ea"
+                      },
+                      {
+                          "file":  "admin_web/src/components/system/SettingRow.tsx",
+                          "sha256":  "db69e9b9604a4608812ecad8dcae8bbc012100fa5725a1cabfec7ea71416c81b"
+                      },
+                      {
+                          "file":  "admin_web/src/components/system/SettingsHistoryDrawer.tsx",
+                          "sha256":  "9b617e20e6fab68e95ca444c11dc3166163cf3005d726d9540fd48ff8694f4a2"
+                      },
+                      {
+                          "file":  "admin_web/src/components/system/SettingsOverview.tsx",
+                          "sha256":  "2a37ecea06cbb78b158c0c8f474ed73f7cb4ed3e18fc7d428f1004425f62b17a"
+                      },
+                      {
+                          "file":  "admin_web/src/components/system/settingsPresentation.ts",
+                          "sha256":  "a76b2214ded954580fd3676bb65489791a7d58c215a5dc66dffb239134483b0c"
+                      },
+                      {
+                          "file":  "admin_web/src/components/system/SettingsSaveBar.tsx",
+                          "sha256":  "6bcd4d4aca18d5cdb96249cb6f2f67108b327d666d60628b6322ce760eb6bd52"
+                      },
+                      {
+                          "file":  "admin_web/src/components/ui/AdminAction.tsx",
+                          "sha256":  "11e5e3de9f1b84aa7766f4827f5abc2433f21ea9a0e6c11df4d96512bbf1fdf2"
+                      },
+                      {
+                          "file":  "admin_web/src/components/ui/AdminData.tsx",
+                          "sha256":  "5dd7527f772d5f78184834ec414371e2e7d07c3a6900a49bf33553a7b9d0b03c"
+                      },
+                      {
+                          "file":  "admin_web/src/components/ui/EmptyState.tsx",
+                          "sha256":  "b70547b362137fecf3612ee1a6623dc4c499a70bb24141229968b2c8a7455d9b"
+                      },
+                      {
+                          "file":  "admin_web/src/components/ui/PageHeader.tsx",
+                          "sha256":  "553eb399316250e594bca6f48dca89e4b809b38a8ec9469eaee9bcff44e236df"
+                      },
+                      {
+                          "file":  "admin_web/src/components/ui/SectionCard.tsx",
+                          "sha256":  "eb3f876d879abc1fdbc680053894dfd0995eec76f623433c47cc54e64ccc2b77"
+                      },
+                      {
+                          "file":  "admin_web/src/components/ui/StatCard.tsx",
+                          "sha256":  "bb971eb8688d5c001681e31a6d10366cefe76a47d094d8d9ef18d37c5a26feb0"
+                      },
+                      {
+                          "file":  "admin_web/src/components/ui/StatusBadge.tsx",
+                          "sha256":  "686f722fb47cb13b89cac42bafd5279e871319fe3e815dfdfb4c92bc37f110c0"
+                      },
+                      {
+                          "file":  "admin_web/src/hooks/useAdminAction.tsx",
+                          "sha256":  "305242c41379a87c286150fdecda4d601a2f2ae5d158e98a4f0d5c7b3010eeae"
+                      },
+                      {
+                          "file":  "admin_web/src/hooks/useAdminData.ts",
+                          "sha256":  "d95c341f2dbd08a078defaf34fd485dd8f0480057ed8019bfeef32d80fffaf39"
+                      },
+                      {
+                          "file":  "admin_web/src/hooks/usePaymentQuery.ts",
+                          "sha256":  "8c319313d15328a2f3c871e5f909e0c34ed0a4e2aef642be675f4add5ebd13dc"
+                      },
+                      {
+                          "file":  "admin_web/src/index.css",
+                          "sha256":  "393ce1c76f8577d6aea90e781f959dff8b73bfcca44e1329d0aa18e378d8cac2"
+                      },
+                      {
+                          "file":  "admin_web/src/lib/adminApi.ts",
+                          "sha256":  "f99f4dd6b2bfccec192f3930eae6f7fc39fce63f822f50fb7110ce947fa931c0"
+                      },
+                      {
+                          "file":  "admin_web/src/lib/adminFormat.ts",
+                          "sha256":  "ce0aaf5e80e5851a9643ceb21ce856ea2b66dd503e8e8193a4dc9e465a0d37dd"
+                      },
+                      {
+                          "file":  "admin_web/src/lib/adminTypes.ts",
+                          "sha256":  "0d97d27d8210187a32d7fabcb58fd6f7b940513bd7409ced9b06c7c9f38061d2"
+                      },
+                      {
+                          "file":  "admin_web/src/lib/constants.ts",
+                          "sha256":  "ba843a5817dd8c597b5c3e061eb76a73028640fcd63e9896ae973a23a1ad41b5"
+                      },
+                      {
+                          "file":  "admin_web/src/lib/format.ts",
+                          "sha256":  "cf2e73ceee00da68997ee56032cc3d6f3ec0a484527750bb4a449b7c767d5d8a"
+                      },
+                      {
+                          "file":  "admin_web/src/lib/monitoringApi.ts",
+                          "sha256":  "7ac7bd3c7237fff134d71db794f556b0143735dee4cbdc435c849c8e6e421564"
+                      },
+                      {
+                          "file":  "admin_web/src/lib/monitoringTypes.ts",
+                          "sha256":  "b1a20b2964888bdbbf974425914391256186a7ab42e2c041f578283418e69b3d"
+                      },
+                      {
+                          "file":  "admin_web/src/lib/paymentApi.ts",
+                          "sha256":  "6e58a2081566680fa5e7f55f157b509067abd8c5c03907f0968e314f63a42221"
+                      },
+                      {
+                          "file":  "admin_web/src/lib/paymentFormat.ts",
+                          "sha256":  "d26dcfd0df8e1a946ee917cd7b060a5769f8733d6236d3a72c24a17abfc68387"
+                      },
+                      {
+                          "file":  "admin_web/src/lib/paymentTypes.ts",
+                          "sha256":  "c0d4294ea432163edba2975e6aa62444c1fedc85cc7dfc74b84f3a6f4ce42932"
+                      },
+                      {
+                          "file":  "admin_web/src/lib/supabase.ts",
+                          "sha256":  "3ad767d60f0bd0c92163548bbb8fbb9e1990a5ae0cf6aa0f9b5533f93f43d685"
+                      },
+                      {
+                          "file":  "admin_web/src/lib/systemConfigApi.ts",
+                          "sha256":  "41710be5870fa37c0aa540e067b5686e2131d7df8c802a53f6790bd73210f68a"
+                      },
+                      {
+                          "file":  "admin_web/src/lib/uiTypes.ts",
+                          "sha256":  "c94eaacec01d57050785ac575537781fff0f3ba363e1f8c14d9772e6122561c0"
+                      },
+                      {
+                          "file":  "admin_web/src/main.tsx",
+                          "sha256":  "253dcbca1eb4ce79fbb30e3179506a8a447418972442951191163fc1a35fef81"
+                      },
+                      {
+                          "file":  "admin_web/src/mocks/mockData.ts",
+                          "sha256":  "5c56ea300cc5705a4fed3acf752e231ff0e22ba8a3cc33bfa66b3cb3c456e106"
+                      },
+                      {
+                          "file":  "admin_web/src/pages/AuditLogsPage.tsx",
+                          "sha256":  "0f8a38f2ecd94c40fca2abfc3ae4fa6e0c9c87db06cc88e26fbae65e0ff2dbee"
+                      },
+                      {
+                          "file":  "admin_web/src/pages/BankTransactionsPage.tsx",
+                          "sha256":  "8239e2d741d43697abd6a60016665b2723d66c9538d40a4e4e206e89c8786a91"
+                      },
+                      {
+                          "file":  "admin_web/src/pages/CustomerDetailPage.tsx",
+                          "sha256":  "557c131176035ba65bd1548ab41ecedad88f1e195e663ebb0d305eb36dec77dd"
+                      },
+                      {
+                          "file":  "admin_web/src/pages/CustomersPage.tsx",
+                          "sha256":  "e0c4cf8f8884aed3d237bb6ecc95d123501b1192ba76906570e5bf67de05f633"
+                      },
+                      {
+                          "file":  "admin_web/src/pages/DashboardPage.tsx",
+                          "sha256":  "ab93d2c00adcaa226bb3a91724a95c1603a91ffb1187ddc24a2063ece0f30fc5"
+                      },
+                      {
+                          "file":  "admin_web/src/pages/LoginPage.tsx",
+                          "sha256":  "9a96d5c4fcde79fc17aee2969eadb4d932cfc1edfb7a8b12fb4a52bea49229cd"
+                      },
+                      {
+                          "file":  "admin_web/src/pages/NotificationsPage.tsx",
+                          "sha256":  "f1f450ffda512521401520a7f92636815c22956ea7b323cd1adad14fe16647e0"
+                      },
+                      {
+                          "file":  "admin_web/src/pages/OperationsMapPage.tsx",
+                          "sha256":  "2f658f8f201e5434f2bfc3dbd1a1aab85f63fc4a13bfbd1707a31dba6ea60fe7"
+                      },
+                      {
+                          "file":  "admin_web/src/pages/PaymentDetailPage.tsx",
+                          "sha256":  "908555cb4bdbd75256810b6a8f5d2b1f60d7ef256ae69122121ec64cf4c3a1bc"
+                      },
+                      {
+                          "file":  "admin_web/src/pages/PaymentListPage.tsx",
+                          "sha256":  "86e9712017252aae4cc151ab37a43c0bb37575150fc3fda0e0e14f363943f8c0"
+                      },
+                      {
+                          "file":  "admin_web/src/pages/PaymentOperationsPage.tsx",
+                          "sha256":  "bdc331db234eab4be0df3235ee9f021f4814b38ed6e691c149029e0e50286834"
+                      },
+                      {
+                          "file":  "admin_web/src/pages/PaymentOverviewPage.tsx",
+                          "sha256":  "18f47bad83f5f49f1f76eb0fa45745bc9624f6693bcfcae2f32fd1bf1c420880"
+                      },
+                      {
+                          "file":  "admin_web/src/pages/QuotesPage.tsx",
+                          "sha256":  "3a92dc5e6475008364513200148c28c76ba7f15d5c497ad611a3a80e228b2782"
+                      },
+                      {
+                          "file":  "admin_web/src/pages/RescuerDetailPage.tsx",
+                          "sha256":  "84ce1bab14fccd3d0c2930bfc21baa90aac74ca00a669bf2347fa69a60132722"
+                      },
+                      {
+                          "file":  "admin_web/src/pages/RescueRequestDetailPage.tsx",
+                          "sha256":  "15c45f89348e554c5fc45d7cf0b7f2fef5c88bb23a57c7096d36f43ddcee7f44"
+                      },
+                      {
+                          "file":  "admin_web/src/pages/RescueRequestsPage.tsx",
+                          "sha256":  "691b7cf1a8aea5e7b4dd8a9674d9782a7809390da0a1fb6cb86dbf8131876d08"
+                      },
+                      {
+                          "file":  "admin_web/src/pages/RescuersPage.tsx",
+                          "sha256":  "96e19e7735d001f0a93f72b7ae5a5f391dee7c3e2f48363d3b0b82ed2c5c1cfe"
+                      },
+                      {
+                          "file":  "admin_web/src/pages/ReviewsPage.tsx",
+                          "sha256":  "8feee65eb21605420c5ea0c55ecb886cb94fbe060ba5c637875a17a399caf3f7"
+                      },
+                      {
+                          "file":  "admin_web/src/pages/ServicesPage.tsx",
+                          "sha256":  "c75a2e129e11692d263db57812b153dfac4f406d27476f14ec5e1efd59ea32fb"
+                      },
+                      {
+                          "file":  "admin_web/src/pages/SettingsPage.tsx",
+                          "sha256":  "123fe24c8af6c16a55ecb91e6eabacc5f8e44b62ad816527c37a368689a40e27"
+                      },
+                      {
+                          "file":  "admin_web/src/pages/SystemMonitoringPage.tsx",
+                          "sha256":  "b76669c4b722bc92b40e074bc0b3ab99e9380f3e04c7a5e53fe3025493b72d62"
+                      },
+                      {
+                          "file":  "admin_web/src/styles/globals.css",
+                          "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                      },
+                      {
+                          "file":  "admin_web/src/styles/payment-navigation.css",
+                          "sha256":  "0e61d4b9c062a314d39cb889fe075d0a9ac816c07bc6d6d281628fe660be32eb"
+                      },
+                      {
+                          "file":  "admin_web/src/styles/payments.css",
+                          "sha256":  "35687f2299848bb2860ed3ecdfe59eb3b4c394233998e17b3c5366d5c28add4c"
+                      },
+                      {
+                          "file":  "admin_web/src/styles/stitch-admin.css",
+                          "sha256":  "9626e7430fc5ad5b365f2c76fe3ce3d07d899d50bc1371ffff95122b7c8e86d3"
+                      },
+                      {
+                          "file":  "admin_web/src/styles/system-config.css",
+                          "sha256":  "5bf854569d09ee86f2d2ca0a19294b9dff323b7490b4241c42c5892d937007c1"
+                      },
+                      {
+                          "file":  "admin_web/src/styles/system-monitoring.css",
+                          "sha256":  "e5e8fd2c549c294f9ef41066a9a0843aed6c59f333c47aaec9c51f37d0958e30"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/AdminData-DCT-8Izz.js",
+                          "sha256":  "08042635ae9f799ffbd47ffba5d8e3bef49568a02e4248daff0fbb6100c23c8b"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/arrow-right-Cd12yPmn.js",
+                          "sha256":  "37f5402b69c4c1bb9863a4224dd0cd39c7dc7dc3df731b7960ffafc6df021328"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/AuditLogsPage-Db-rYoZB.js",
+                          "sha256":  "5784548375171467b3f7f7b4f5a5cbc979631c0a737cb08a3226f61a7877211e"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/BankTransactionsPage-Ded7Hkax.js",
+                          "sha256":  "21bb520d0f4812b82eda999e6675f6a94cc4e1cb97841d2834144ac37f8bcff8"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/CartesianChart-DS-jiQ5j.js",
+                          "sha256":  "91afb9cb17aad881d6758e10029ac8178d86b19c3ef03804e14a650a40298301"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/clock-3-BZ2fXnT-.js",
+                          "sha256":  "c8bfdf07ebcbe407d9c6090e45124abe0ff183dc7758846ca5802c0e02ed3ca3"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/CustomerDetailPage-Cc0G-_8j.js",
+                          "sha256":  "06462706647daa7c8c23fd3fc562048cc2986efac85540b98c818bdf170cfceb"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/CustomersPage-BVshLyt6.js",
+                          "sha256":  "4da7b94293bd67096c7902f8f07f4bc8aab6a11c9ca5e94c356763f214375b18"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/DashboardPage-CSLtWm1-.js",
+                          "sha256":  "d7a5b833384d8ed67fab2a30cd17ddd09d9f86ff097d32ff6c68329a9641ea04"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/index-BJXiuEPs.css",
+                          "sha256":  "0ecea3442a1bc35d2bfd1dc32d2af2b7a15154f1497ad9cc150347ef002757d2"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/index-fBcSkFD4.js",
+                          "sha256":  "c3e5bc0fde58405da9b8b1d969c58e5c0fa2f186ce60fd79302d4f74cc439439"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/jsx-runtime-D3jfb0Ew.js",
+                          "sha256":  "a2c68294426b0ded53fa2d6c97bb39c4a51f99e5e4b23e7953a2c69298e361f8"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/LoginPage-vbLZBzYG.js",
+                          "sha256":  "3751413e602a1eb99eb1dd89b02ed15aab1b469c1efaba9e446474db693b3bec"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/NotificationsPage-ButEuTb6.js",
+                          "sha256":  "b79908f1ca84b8ae7ee7c6b4442f86002fbabf9ecd90f4202a294422a5cc5946"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/OperationsMapPage-B9aF5qby.js",
+                          "sha256":  "bd34f342a87b87d24c56a87503d357d065316862ea199ed2190a22bf2e4a4fac"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/PageHeader-BCAi8eHC.js",
+                          "sha256":  "da69d5d1a0d49a1ba7994b6e7092200aafde32da64b405db0c9394af7559bc38"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/PaymentDetailPage-D-uTwzCS.js",
+                          "sha256":  "0de17961752d2b9552403b71b05e3c91691e809aeadad42a6488a7c26166f94f"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/PaymentListPage-BYmxwLcg.js",
+                          "sha256":  "065c20a2904e17b5eaf25255073db84d8c18550435d52987efa6363c45b97557"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/PaymentOperationsPage-DDEOXXoV.js",
+                          "sha256":  "acf19f454a9ec6f7ffdc153a64e3d6fb41d3f84e52faedf4ca63b49a94a0931c"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/PaymentOverviewPage-iD8cvLAr.js",
+                          "sha256":  "1ce16864f931956521d422349a2f4e0f60e0c869c50130a7d8c9b13e8ecc51d1"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/PaymentUI-BkFvpVAK.css",
+                          "sha256":  "acbcf8e12128f37eff390a6f4ff7258809d93560c5404ac140ad76c9676b1b7a"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/PaymentUI-Df4YDHyh.js",
+                          "sha256":  "4756e707831a6c82cb626b790ea37bc2c34d64f40cc9940f0491cdfbcae29ec8"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/QuotesPage-OlSHGJ-Y.js",
+                          "sha256":  "37fdf6d728eb9926983d830221800ad427c393dc43a601227e8ea18f13820d53"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/RescuerDetailPage-4wRzvSpz.js",
+                          "sha256":  "2f3d17e4c877de041922bb2e66c327b701bdf69e52adba3802f14a1de05795e4"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/RescueRequestDetailPage-Z9mK0wA3.js",
+                          "sha256":  "4cd3f86786786800ffa9515390ed66fb2416475b5649f0df0186ae637feaf7df"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/RescueRequestsPage-Ct1zVKUY.js",
+                          "sha256":  "7a29a5c19295bbe29680f5060d3a6c991ac7137bbb94d1f6036b18ff8ba20fac"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/RescuersPage-D04cN7pF.js",
+                          "sha256":  "50328ef668154e6a7a685006b4170b6bba7f364cab67c2c8fcc6e238a62c1cdf"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/ReviewsPage-BF4hBuHY.js",
+                          "sha256":  "9d5df9399a9889154a7329cd7ee24cad6d51163dfd8434bb00ea1aaf1f007a48"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/SectionCard-eqN3mJbB.js",
+                          "sha256":  "72c7680970ae95e50f30a0036d5f00de6a6c94fdce6263d771fb216bc23e02df"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/ServicesPage-CB2sQLVa.js",
+                          "sha256":  "b3d44918af1255e2084f2e20f509fbe8979ff6ced44fb1dbaf94b67a33dc3cdd"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/SettingsPage-aaLYJaYn.js",
+                          "sha256":  "e2ed1223a1b9a38c422bbb34e760bccef627cb08df8ec4c7fabe7f2e451b74a6"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/SettingsPage-DJXxoGhd.css",
+                          "sha256":  "ab605b54af3a276fe10e1d1981648dfec2b2e77bfb2d977ce592f362b88ce675"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/shield-check-BmdC6FyS.js",
+                          "sha256":  "64353ca067b79cd12ff1f5b507d5faa453366e1e6185aea33d080c35dec3c784"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/siren-D2uxgC_e.js",
+                          "sha256":  "793b58bfef3ef1e6b0eb1cc56a790776cfab63c0d7c4f5aa3b447f7fb58e43e2"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/StatCard-Dx51cTfB.js",
+                          "sha256":  "21a38cc021ba88216c954a9164e9de241db6961c64c77d97c3019f4bd304ba09"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/StatusBadge-h985q7rH.js",
+                          "sha256":  "1fa0e0d2c38d1fa4eaf6937b10add23c803bd2a0ae5dfb0373f5f22f10a87d4f"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/SystemMonitoringPage-BGraFhY5.css",
+                          "sha256":  "605436100da42d211b2884536bc8da5e7f83832cee250d7d2747fd8b40b26dc2"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/SystemMonitoringPage-molDPBlM.js",
+                          "sha256":  "81b4ca7ae1604467d0a495a7a0c9b2fdfe28343265bbac032767b123a851c905"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/useAdminAction-Cvqwhs7t.js",
+                          "sha256":  "9c6f57484a21f3efba16b39147e1f2be668cd75c5603a6d2e1027d6d1f12036d"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/useAdminData-DwpHuSdp.js",
+                          "sha256":  "0b7c1ac46816b16ba63e19bc298e47e72c6b59cf90e531769a97e4d12c7610ac"
+                      },
+                      {
+                          "file":  "admin_web/dist/assets/usePaymentQuery-B9nQfIk3.js",
+                          "sha256":  "060602d433f905f26863a79b2695fc5c3f01deb1a65206a20cc71ab596c3b6ca"
+                      },
+                      {
+                          "file":  "admin_web/dist/cuuho-logo.svg",
+                          "sha256":  "bf13cfb49c803f514422dcdeca16a8204b927a0dcae8c6449042b633005c6305"
+                      },
+                      {
+                          "file":  "admin_web/dist/favicon.svg",
+                          "sha256":  "2ae9c711bd90a6ce9880cfc7a5f6ba1f53b9d06c5a625b6880430ccad25d7190"
+                      },
+                      {
+                          "file":  "admin_web/dist/fonts/Inter-OFL.txt",
+                          "sha256":  "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57"
+                      },
+                      {
+                          "file":  "admin_web/dist/fonts/Inter.ttf",
+                          "sha256":  "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031"
+                      },
+                      {
+                          "file":  "admin_web/dist/fonts/PlusJakartaSans-OFL.txt",
+                          "sha256":  "995c7199cab65954f545996326755daee7b63cc6b42b06c13da1f9502ab08a99"
+                      },
+                      {
+                          "file":  "admin_web/dist/fonts/PlusJakartaSans.ttf",
+                          "sha256":  "89b3fb38aa0d275d7a731d0d817a4f1622b316b4d7fbdedcf02ee9099ff68bc8"
+                      },
+                      {
+                          "file":  "admin_web/dist/index.html",
+                          "sha256":  "bc010ef58fda05e6f2ff2c6d1a3dfa0d6e7c4df2b97719f9674de37351b80f73"
+                      },
+                      {
+                          "file":  "frontend/customer_app/build/app/outputs/flutter-apk/app-release.apk",
+                          "sha256":  "2b481619dcef526a0474b894a136f6705f133170526d8936ce856965f279b0f4"
+                      },
+                      {
+                          "file":  "frontend/rescuer_app/build/app/outputs/flutter-apk/app-release.apk",
+                          "sha256":  "db2036d8f2089a67a384c849d6f55c3864d5389150dbd9ac94f242c71de54b82"
+                      }
+                  ]
+}

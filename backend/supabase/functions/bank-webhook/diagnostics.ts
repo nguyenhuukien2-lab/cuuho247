@@ -11,8 +11,9 @@ export type DiagnosticCategory =
 export type DiagnosticStage =
   | 'startup' | 'request_validation' | 'read_body' | 'authenticate_normalize'
   | 'process_transaction' | 'processor_result' | 'authentication_audit'
+  | 'monitoring_audit'
   | 'configuration' | 'connect' | 'begin_transaction' | 'statement_timeout'
-  | 'beneficiary_mapping' | 'processor_call' | 'auth_audit_call' | 'commit' | 'rollback';
+  | 'beneficiary_mapping' | 'processor_call' | 'auth_audit_call' | 'webhook_audit_call' | 'commit' | 'rollback';
 
 const safeNames = new Set([
   'Error', 'TypeError', 'RangeError', 'SyntaxError', 'PostgresError',

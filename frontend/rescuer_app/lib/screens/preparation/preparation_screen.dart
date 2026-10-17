@@ -21,8 +21,13 @@ import 'new_request_preview.dart';
 import 'partner_registration_screen.dart';
 
 class PreparationScreen extends StatefulWidget {
-  const PreparationScreen({super.key, required this.controller});
+  const PreparationScreen({
+    super.key,
+    required this.controller,
+    this.startInProfile = false,
+  });
   final RescuerController controller;
+  final bool startInProfile;
   @override
   State<PreparationScreen> createState() => _PreparationScreenState();
 }
@@ -39,6 +44,7 @@ class _PreparationScreenState extends State<PreparationScreen> {
   @override
   void initState() {
     super.initState();
+    _accountOverview = !widget.startInProfile;
     _shownClaimSerial = widget.controller.claimSuccessSerial;
     _shownJobUpdateSerial = widget.controller.jobUpdateSerial;
     widget.controller.addListener(_locationPrompt);
@@ -145,7 +151,7 @@ class _PreparationScreenState extends State<PreparationScreen> {
         _displayUser = c.userId;
         _orderFilter = 'all';
         _ignoredRequests.clear();
-        _accountOverview = true;
+        _accountOverview = !widget.startInProfile;
         _lastAccountSection = null;
       }
       if (_lastAccountSection != c.accountSection) {

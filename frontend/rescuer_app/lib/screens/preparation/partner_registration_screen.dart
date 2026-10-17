@@ -60,6 +60,13 @@ class _PartnerRegistrationScreenState extends State<PartnerRegistrationScreen> {
       Navigator.of(context).pop();
       return;
     }
+    if (result == PartnerRegistration.confirmationRequired &&
+        widget.c.emailConfirmation != null) {
+      _password.clear();
+      _confirmation.clear();
+      Navigator.of(context).pop();
+      return;
+    }
     setState(() {
       _submitting = false;
       _confirmationRequired =

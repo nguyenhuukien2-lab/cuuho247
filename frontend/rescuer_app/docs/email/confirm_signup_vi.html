@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cứu Hộ 24/7 | Xác nhận email</title>
+</head>
+<body style="margin:0;padding:0;background-color:#edf2f7;font-family:Arial,Helvetica,sans-serif;color:#243247;">
+  {{ $partner := or (eq (printf "%v" .Data.account_type) "rescuer_partner") (eq (printf "%#v" .Data.partner_registration) "true") }}
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Xác nhận địa chỉ email để tiếp tục đăng ký tài khoản Cứu Hộ 24/7.</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background-color:#edf2f7;">
+    <tr><td align="center" style="padding:24px 12px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;border-collapse:collapse;background-color:#ffffff;">
+        <tr><td style="padding:28px 24px;background-color:#0b1c30;border-radius:12px 12px 0 0;">
+          <p style="margin:0;color:#ffffff;font-size:26px;font-weight:bold;letter-spacing:1px;">CỨU HỘ <span style="color:#fb923c;">24/7</span></p>
+          <p style="margin:10px 0 0;color:#dbeafe;font-size:14px;line-height:22px;">{{ if $partner }}Dành cho Đối tác cứu hộ{{ else }}Hệ thống kết nối cứu hộ phương tiện{{ end }}</p>
+        </td></tr>
+        <tr><td style="padding:28px 24px 12px;">
+          <h1 style="margin:0 0 24px;color:#0b1c30;font-size:23px;line-height:32px;">XÁC NHẬN ĐỊA CHỈ EMAIL</h1>
+          <p style="margin:0 0 16px;font-size:16px;line-height:26px;">Xin chào <strong>{{ if .Data.full_name }}{{ .Data.full_name }}{{ else }}{{ if $partner }}Quý đối tác{{ else }}bạn{{ end }}{{ end }}</strong>,</p>
+          <p style="margin:0 0 20px;font-size:15px;line-height:25px;">Chúng tôi đã nhận được yêu cầu đăng ký tài khoản {{ if $partner }}Đối tác {{ end }}trên ứng dụng Cứu Hộ 24/7.</p>
+          <h2 style="margin:0 0 14px;color:#0b1c30;font-size:17px;line-height:25px;">Thông tin đăng ký</h2>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background-color:#f5f7fa;border:1px solid #dbe3ed;">
+            <tr><td style="padding:14px 16px;border-bottom:1px solid #dbe3ed;font-size:14px;line-height:23px;">Họ và tên:<br><strong style="color:#0b1c30;">{{ if .Data.full_name }}{{ .Data.full_name }}{{ else }}Chưa cung cấp{{ end }}</strong></td></tr>
+            <tr><td style="padding:14px 16px;border-bottom:1px solid #dbe3ed;font-size:14px;line-height:23px;overflow-wrap:anywhere;word-break:break-word;">Email:<br><strong style="color:#0b1c30;">{{ .Email }}</strong></td></tr>
+            <tr><td style="padding:14px 16px;border-bottom:1px solid #dbe3ed;font-size:14px;line-height:23px;">Loại tài khoản:<br><strong style="color:#0b1c30;">{{ if $partner }}Đối tác cứu hộ{{ else }}Tài khoản Cứu Hộ 24/7{{ end }}</strong></td></tr>
+            <tr><td style="padding:14px 16px;border-bottom:1px solid #dbe3ed;font-size:14px;line-height:23px;">Thời gian đăng ký:<br><strong style="color:#0b1c30;">{{ if .Data.registered_at }}{{ .Data.registered_at }}{{ else }}Chưa có thông tin{{ end }}</strong><br><span style="color:#526178;font-size:12px;">Giờ Việt Nam · Thông tin hiển thị khi đăng ký</span></td></tr>
+            <tr><td style="padding:14px 16px;font-size:14px;line-height:23px;">Trạng thái:<br><strong style="color:#9a3412;">Chưa xác nhận email</strong></td></tr>
+          </table>
+          {{ if $partner }}
+          <p style="margin:24px 0 18px;font-size:15px;line-height:25px;">Để tiếp tục quá trình đăng ký đối tác, vui lòng nhập mã xác nhận bên dưới vào ứng dụng Cứu Hộ 24/7.</p>
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;border-collapse:collapse;">
+            <tr><td align="center" bgcolor="#fff7ed" style="padding:20px 16px;border:1px solid #fed7aa;border-radius:8px;background-color:#fff7ed;">
+              <p style="margin:0 0 14px;color:#9a3412;font-size:13px;font-weight:bold;line-height:22px;">MÃ XÁC NHẬN EMAIL CỦA BẠN</p>
+              <p style="margin:0;color:#c2410c;font-family:Arial,Helvetica,sans-serif;font-size:40px;font-weight:bold;letter-spacing:6px;line-height:52px;white-space:nowrap;">{{ .Token }}</p>
+            </td></tr>
+          </table>
+          {{ else }}
+          <p style="margin:24px 0 18px;font-size:15px;line-height:25px;">Để tiếp tục đăng ký tài khoản khách hàng, vui lòng xác nhận địa chỉ email bằng nút bên dưới.</p>
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;border-collapse:collapse;">
+            <tr><td align="center" bgcolor="#c2410c" style="border-radius:8px;background-color:#c2410c;">
+              <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:17px 24px;border:1px solid #c2410c;border-radius:8px;color:#ffffff;font-size:15px;font-weight:bold;line-height:22px;text-decoration:none;text-align:center;">XÁC NHẬN EMAIL</a>
+            </td></tr>
+          </table>
+          {{ end }}
+          {{ if $partner }}
+          <p style="margin:26px 0 12px;font-size:15px;line-height:25px;">Sau khi xác nhận email thành công, bạn có thể quay lại ứng dụng Cứu Hộ 24/7 để:</p>
+          <ul style="margin:0 0 22px;padding-left:22px;font-size:15px;line-height:28px;">
+            <li>Hoàn thiện hồ sơ đối tác</li>
+            <li>Khai báo phương tiện</li>
+            <li>Chọn dịch vụ cứu hộ</li>
+            <li>Cung cấp giấy tờ xác minh</li>
+            <li>Gửi hồ sơ cho quản trị viên xét duyệt</li>
+          </ul>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background-color:#fff7ed;border-left:4px solid #ea580c;">
+            <tr><td style="padding:16px;font-size:14px;line-height:24px;">
+              <strong style="color:#9a3412;">LƯU Ý</strong><br>
+              Xác nhận email <strong>KHÔNG đồng nghĩa</strong> với việc tài khoản đối tác đã được phê duyệt.<br><br>
+              Tài khoản chỉ được phép Online và nhận yêu cầu cứu hộ sau khi hồ sơ được <strong>Quản trị viên Cứu Hộ 24/7</strong> phê duyệt.
+            </td></tr>
+          </table>
+          {{ else }}
+          <p style="margin:24px 0;font-size:15px;line-height:25px;">Sau khi xác nhận, vui lòng quay lại ứng dụng để tiếp tục sử dụng tài khoản của bạn.</p>
+          {{ end }}
+          {{ if $partner }}
+          <p style="margin:24px 0 16px;font-size:14px;line-height:24px;">Nếu mã xác nhận đã hết hạn hoặc không còn hiệu lực, mở ứng dụng và chọn <strong>Gửi lại mã</strong>. Chỉ sử dụng mã xác nhận mới nhất.</p>
+          <p style="margin:0 0 16px;font-size:14px;line-height:24px;">Nếu bạn không thực hiện đăng ký này, vui lòng bỏ qua email và không sử dụng mã xác nhận.</p>
+          {{ else }}
+          <p style="margin:24px 0 16px;font-size:14px;line-height:24px;">Nếu liên kết đã hết hạn hoặc không còn hiệu lực, vui lòng quay lại ứng dụng khách hàng để yêu cầu email xác nhận mới. Chỉ sử dụng liên kết trong email mới nhất.</p>
+          <p style="margin:0 0 16px;font-size:14px;line-height:24px;">Nếu bạn không thực hiện đăng ký này, vui lòng bỏ qua email và không bấm vào liên kết xác nhận.</p>
+          {{ end }}
+          <p style="margin:0 0 12px;color:#526178;font-size:13px;line-height:22px;">Email này được gửi tự động từ hệ thống Cứu Hộ 24/7.<br>Vui lòng không trả lời email này.</p>
+        </td></tr>
+        <tr><td align="center" style="padding:22px 24px;border-top:1px solid #e2e8f0;background-color:#f8fafc;color:#526178;font-size:12px;line-height:21px;border-radius:0 0 12px 12px;">
+          <strong style="color:#0b1c30;">© Cứu Hộ 24/7</strong><br>Hệ thống kết nối cứu hộ phương tiện 24/7
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>

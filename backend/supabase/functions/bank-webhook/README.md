@@ -24,7 +24,9 @@ Security sequence:
 
 The function never logs secrets, signatures, headers, raw payloads, SQL details,
 or stack traces. Authentication-failure audit is best effort and stores only the
-raw-body SHA-256 digest. A valid authenticated terminal mismatch receives SePay's
+raw-body SHA-256 digest. Operational monitoring stores only allowlisted status,
+result code, processing stage, duration and optional body digest in the private
+schema; the Admin API never returns the digest. A valid authenticated terminal mismatch receives SePay's
 short `{"success":true}` acknowledgement; internal/incomplete processing returns
 500 so the provider can retry.
 
